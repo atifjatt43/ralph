@@ -90,22 +90,22 @@ This roadmap outlines the planned development path for Ralph to become a product
 - [x] CROSS JOIN, FULL OUTER JOIN (`cross_join`, `full_outer_join`)
 
 ### 2.4 Subqueries
-- [ ] WHERE EXISTS / NOT EXISTS
-- [ ] WHERE IN with subquery
-- [ ] FROM subqueries
-- [ ] CTEs (Common Table Expressions)
+- [x] WHERE EXISTS / NOT EXISTS
+- [x] WHERE IN with subquery
+- [x] FROM subqueries
+- [x] CTEs (Common Table Expressions)
 
 ### 2.5 Query Composition
-- [ ] Query merging (`or`, `and` methods)
-- [ ] Query scopes (`scope :active, -> { where("active = ?", true) }`)
-- [ ] Chained scopes on model class
-- [ ] Anonymous scopes
+- [x] Query merging (`or`, `and` methods)
+- [x] Query scopes (`scope :active, -> { where("active = ?", true) }`)
+- [x] Chained scopes on model class
+- [x] Anonymous scopes
 
 ### 2.6 Additional Features
-- [ ] Window functions
-- [ ] UNION / UNION ALL
-- [ ] INTERSECT / EXCEPT
-- [ ] Query caching / memoization
+- [x] Window functions
+- [x] UNION / UNION ALL
+- [x] INTERSECT / EXCEPT
+- [x] Query caching / memoization
 
 ---
 

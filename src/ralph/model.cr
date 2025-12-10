@@ -125,6 +125,102 @@ module Ralph
       query(&block)
     end
 
+    # ========================================
+    # Query Scopes
+    # ========================================
+
+    # Define a named scope for this model
+    #
+    # Scopes are reusable query fragments that can be chained together.
+    # They're defined as class methods that return Query::Builder instances.
+    #
+    # The block receives a Query::Builder and should return it after applying conditions.
+    #
+    # Example without arguments:
+    # ```
+    # class User < Ralph::Model
+    #   table "users"
+    #   column id, Int64, primary: true
+    #   column active, Bool
+    #   column age, Int32
+    #
+    #   scope :active, ->(q : Query::Builder) { q.where("active = ?", true) }
+    #   scope :adults, ->(q : Query::Builder) { q.where("age >= ?", 18) }
+    # end
+    #
+    # User.active                    # Returns Builder with active = true
+    # User.active.merge(User.adults) # Chains scopes together
+    # User.active.limit(10)          # Chains with other query methods
+    # ```
+    #
+    # Example with arguments:
+    # ```
+    # class User < Ralph::Model
+    #   scope :older_than, ->(q : Query::Builder, age : Int32) { q.where("age > ?", age) }
+    #   scope :with_role, ->(q : Query::Builder, role : String) { q.where("role = ?", role) }
+    # end
+    #
+    # User.older_than(21)
+    # User.with_role("admin").merge(User.older_than(18))
+    # ```
+    macro scope(name, block)
+      {% if block.args.size == 1 %}
+        # Scope without extra arguments (just the query builder)
+        # The first block arg is the query builder variable name
+        {% query_arg = block.args[0] %}
+        {% query_var_name = query_arg.is_a?(TypeDeclaration) ? query_arg.var : query_arg %}
+        def self.{{name.id}} : Query::Builder
+          __scope_query__ = Query::Builder.new(self.table_name)
+          {{query_var_name.id}} = __scope_query__
+          {{block.body}}
+          __scope_query__
+        end
+      {% else %}
+        # Scope with arguments (first arg is query builder, rest are user args)
+        {% query_arg = block.args[0] %}
+        {% query_var_name = query_arg.is_a?(TypeDeclaration) ? query_arg.var : query_arg %}
+        {% user_args = block.args[1..-1] %}
+        def self.{{name.id}}(
+          {% for arg, idx in user_args %}
+            {% if arg.is_a?(TypeDeclaration) %}
+              __scope_arg_{{idx}}__ : {{arg.type}}{% if idx < user_args.size - 1 %},{% end %}
+            {% else %}
+              __scope_arg_{{idx}}__{% if idx < user_args.size - 1 %},{% end %}
+            {% end %}
+          {% end %}
+        ) : Query::Builder
+          __scope_query__ = Query::Builder.new(self.table_name)
+          {{query_var_name.id}} = __scope_query__
+          # Assign scope args to their expected names
+          {% for arg, idx in user_args %}
+            {% if arg.is_a?(TypeDeclaration) %}
+              {{arg.var.id}} = __scope_arg_{{idx}}__
+            {% else %}
+              {{arg.id}} = __scope_arg_{{idx}}__
+            {% end %}
+          {% end %}
+          {{block.body}}
+          __scope_query__
+        end
+      {% end %}
+    end
+
+    # Apply an inline/anonymous scope to a query
+    #
+    # This is useful for one-off query customizations that don't need
+    # to be defined as named scopes.
+    #
+    # Example:
+    # ```
+    # User.scoped { |q| q.where("active = ?", true).order("name", :asc) }
+    # User.scoped { |q| q.where("age > ?", 18) }.limit(10)
+    # ```
+    def self.scoped(&block : Query::Builder ->) : Query::Builder
+      query = Query::Builder.new(self.table_name)
+      block.call(query)
+      query
+    end
+
     # Build a query with GROUP BY clause
     def self.group_by(*columns : String) : Query::Builder
       query = Query::Builder.new(self.table_name)
