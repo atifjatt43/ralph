@@ -12,7 +12,6 @@ module Ralph
     column age, Int32 | Nil
     column created_at, Time | Nil
 
-    setup_callbacks
   end
 
   # Integration tests for Model CRUD operations

@@ -402,8 +402,6 @@ module Ralph
     scope :ordered_by_name, ->(q : Query::Builder) { q.order("name", :asc) }
     scope :limited, ->(q : Query::Builder, count : Int32) { q.limit(count) }
 
-    setup_validations
-    setup_callbacks
   end
 end
 

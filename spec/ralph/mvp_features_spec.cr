@@ -11,8 +11,6 @@ module Ralph
     column email, String
     column age, Int32 | Nil
 
-    setup_validations
-    setup_callbacks
   end
 
   # Test model with default values defined
@@ -24,8 +22,6 @@ module Ralph
     column email, String, default: "anonymous@example.com"
     column age, Int32 | Nil, default: 18
 
-    setup_validations
-    setup_callbacks
   end
 
   # Test model for conditional callbacks
@@ -70,8 +66,6 @@ module Ralph
       @_conditional_callback_log << "before_create_if_active"
     end
 
-    setup_validations
-    setup_callbacks
   end
 
   describe "Default Values" do

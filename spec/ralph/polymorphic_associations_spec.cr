@@ -15,8 +15,6 @@ module Ralph
 
       belongs_to commentable, polymorphic: true
 
-      setup_validations
-      setup_callbacks
     end
 
     class Post < Model
@@ -27,8 +25,6 @@ module Ralph
 
       has_many comments, as: :commentable
 
-      setup_validations
-      setup_callbacks
     end
 
     class Article < Model
@@ -39,8 +35,6 @@ module Ralph
 
       has_many comments, as: :commentable
 
-      setup_validations
-      setup_callbacks
     end
 
     # ========================================
@@ -55,8 +49,6 @@ module Ralph
 
       belongs_to profileable, polymorphic: true
 
-      setup_validations
-      setup_callbacks
     end
 
     class User < Model
@@ -67,8 +59,6 @@ module Ralph
 
       has_one profile, as: :profileable
 
-      setup_validations
-      setup_callbacks
     end
 
     class Company < Model
@@ -79,8 +69,6 @@ module Ralph
 
       has_one profile, as: :profileable
 
-      setup_validations
-      setup_callbacks
     end
 
     # ========================================
@@ -110,8 +98,6 @@ module Ralph
         @@destroyed_names << name.to_s if name
       end
 
-      setup_validations
-      setup_callbacks
     end
 
     class Photo < Model
@@ -122,8 +108,6 @@ module Ralph
 
       has_many tags, as: :taggable, dependent: :destroy
 
-      setup_validations
-      setup_callbacks
     end
 
     class Video < Model
@@ -134,8 +118,6 @@ module Ralph
 
       has_many tags, as: :taggable, dependent: :delete_all
 
-      setup_validations
-      setup_callbacks
     end
   end
 
@@ -355,7 +337,7 @@ module Ralph
           comment.save
         end
 
-        count = post.comments_count
+        count = post.comments.size
         count.should eq(3)
       end
 

@@ -7,11 +7,13 @@ This roadmap outlines the planned development path for Ralph to become a product
 **Current Version:** 0.1.0
 
 **What's Working:**
-- ✅ **ALL IMMEDIATE MVP FEATURES COMPLETE** - Phase 1 + Phase 2.1 Advanced Clauses + Phase 2.2 Aggregates + Phase 3.1 Basic Associations (incl. Polymorphic) + Phase 3.2 Association Options + Phase 4.1 Transactions + Phase 2.3 Join Improvements + Phase 7.1 CLI Enhancements
+- ✅ **ALL IMMEDIATE MVP FEATURES COMPLETE** - Phase 1 + Phase 2.1 Advanced Clauses + Phase 2.2 Aggregates + Phase 3.1 Basic Associations (incl. Polymorphic) + Phase 3.2 Association Options + Phase 3.3 Association Features + Phase 4.1 Transactions + Phase 2.3 Join Improvements + Phase 7.1 CLI Enhancements
 - ✅ Phase 1: Core Model Features (CRUD, Validations, Callbacks, Attributes)
 - ✅ Phase 2.1: Advanced Clauses (GROUP BY, HAVING, DISTINCT)
 - ✅ Phase 2.2: Aggregates (count, sum, avg, min, max)
 - ✅ Phase 3.1: Basic Associations (belongs_to, has_one, has_many, polymorphic)
+- ✅ Phase 3.2: Association Options (class_name, foreign_key, dependent behaviors)
+- ✅ Phase 3.3: Association Features (counter cache, touch, scoping, through associations)
 - ✅ Phase 4.1: Transactions (Model.transaction, nested transactions, callbacks)
 - ✅ Phase 2.3: Join Improvements (CROSS/FULL OUTER JOIN, join aliases, association joins)
 - ✅ Phase 7.1: CLI Enhancements (seed, reset, setup, model/scaffold generators)
@@ -20,7 +22,7 @@ This roadmap outlines the planned development path for Ralph to become a product
 - Migration system with schema DSL
 - CLI with database operations and generators
 - Model base class with macros
-- **Comprehensive test coverage (398 tests, all passing)**
+- **Comprehensive test coverage (420 tests, all passing)**
 
 ---
 
@@ -127,13 +129,13 @@ This roadmap outlines the planned development path for Ralph to become a product
   - [x] `:nullify` - Set foreign key to NULL
   - [x] `:restrict_with_error` / `:restrict_with_exception`
 
-### 3.3 Association Features
-- [ ] Automatic foreign key management
-- [ ] Counter cache for has_many
-- [ ] Touch option (update timestamp on association change)
-- [ ] Association scoping (`has_many :comments, -> { where(published: true) }`)
-- [ ] Through associations (`has_many :tags, through: :posts`)
-- [ ] Nested attributes (`accepts_nested_attributes_for`)
+### 3.3 Association Features ✅
+- [x] Automatic foreign key management
+- [x] Counter cache for has_many (`counter_cache: true`)
+- [x] Touch option (`touch: true` to update parent timestamp on association change)
+- [x] Association scoping (`has_many :comments, -> { where(published: true) }`)
+- [x] Through associations (`has_many :tags, through: :posts`)
+- [ ] Nested attributes (`accepts_nested_attributes_for`) - Deferred to Phase 9
 
 ### 3.4 Eager Loading
 - [ ] Preloading (separate queries)
@@ -338,7 +340,7 @@ This roadmap outlines the planned development path for Ralph to become a product
 12. Phase 3.2 - Association Options ✅
 
 **Medium-term (3-6 months):**
-13. Phase 3.3 - Association Features
+13. Phase 3.3 - Association Features ✅
 14. Phase 3.4 - Eager Loading (advanced)
 15. Phase 2.4 - Subqueries
 16. Phase 5.1 - PostgreSQL Backend

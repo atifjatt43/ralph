@@ -6,7 +6,6 @@ module Ralph
     column id, Int64
     column name, String
 
-    setup_callbacks
   end
 end
 

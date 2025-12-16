@@ -20,6 +20,365 @@ module Ralph
     include Ralph::Callbacks
     include Ralph::Associations
 
+    # When a subclass is defined, set up callbacks and validations after parsing completes
+    macro inherited
+      macro finished
+        # Generate save method with callbacks
+        def save : Bool
+          # Run before_validation callbacks
+          \{% for meth in @type.methods %}
+            \{% if meth.annotation(Ralph::Callbacks::BeforeValidation) %}
+              \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+              \{% if options %}
+                \{% if_method = options[:if] %}
+                \{% unless_method = options[:unless] %}
+                \{% if if_method && unless_method %}
+                  if \{{if_method.id}} && !\{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif if_method %}
+                  if \{{if_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif unless_method %}
+                  unless \{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% else %}
+                \{{meth.name}}
+              \{% end %}
+            \{% end %}
+          \{% end %}
+
+          # Run validations
+          is_valid = valid?
+
+          # Run after_validation callbacks
+          \{% for meth in @type.methods %}
+            \{% if meth.annotation(Ralph::Callbacks::AfterValidation) %}
+              \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+              \{% if options %}
+                \{% if_method = options[:if] %}
+                \{% unless_method = options[:unless] %}
+                \{% if if_method && unless_method %}
+                  if \{{if_method.id}} && !\{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif if_method %}
+                  if \{{if_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif unless_method %}
+                  unless \{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% else %}
+                \{{meth.name}}
+              \{% end %}
+            \{% end %}
+          \{% end %}
+
+          # Return false if validations failed
+          return false unless is_valid
+
+          # Run before_save callbacks
+          \{% for meth in @type.methods %}
+            \{% if meth.annotation(Ralph::Callbacks::BeforeSave) %}
+              \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+              \{% if options %}
+                \{% if_method = options[:if] %}
+                \{% unless_method = options[:unless] %}
+                \{% if if_method && unless_method %}
+                  if \{{if_method.id}} && !\{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif if_method %}
+                  if \{{if_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif unless_method %}
+                  unless \{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% else %}
+                \{{meth.name}}
+              \{% end %}
+            \{% end %}
+          \{% end %}
+
+          result = if new_record?
+            # Run before_create callbacks
+            \{% for meth in @type.methods %}
+              \{% if meth.annotation(Ralph::Callbacks::BeforeCreate) %}
+                \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+                \{% if options %}
+                  \{% if_method = options[:if] %}
+                  \{% unless_method = options[:unless] %}
+                  \{% if if_method && unless_method %}
+                    if \{{if_method.id}} && !\{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif if_method %}
+                    if \{{if_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif unless_method %}
+                    unless \{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% else %}
+                    \{{meth.name}}
+                  \{% end %}
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% end %}
+            \{% end %}
+
+            insert_result = insert
+
+            if insert_result
+              # Run after_create callbacks
+              \{% for meth in @type.methods %}
+                \{% if meth.annotation(Ralph::Callbacks::AfterCreate) %}
+                  \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+                  \{% if options %}
+                    \{% if_method = options[:if] %}
+                    \{% unless_method = options[:unless] %}
+                    \{% if if_method && unless_method %}
+                      if \{{if_method.id}} && !\{{unless_method.id}}
+                        \{{meth.name}}
+                      end
+                    \{% elsif if_method %}
+                      if \{{if_method.id}}
+                        \{{meth.name}}
+                      end
+                    \{% elsif unless_method %}
+                      unless \{{unless_method.id}}
+                        \{{meth.name}}
+                      end
+                    \{% else %}
+                      \{{meth.name}}
+                    \{% end %}
+                  \{% else %}
+                    \{{meth.name}}
+                  \{% end %}
+                \{% end %}
+              \{% end %}
+            end
+
+            insert_result
+          else
+            # Run before_update callbacks
+            \{% for meth in @type.methods %}
+              \{% if meth.annotation(Ralph::Callbacks::BeforeUpdate) %}
+                \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+                \{% if options %}
+                  \{% if_method = options[:if] %}
+                  \{% unless_method = options[:unless] %}
+                  \{% if if_method && unless_method %}
+                    if \{{if_method.id}} && !\{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif if_method %}
+                    if \{{if_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif unless_method %}
+                    unless \{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% else %}
+                    \{{meth.name}}
+                  \{% end %}
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% end %}
+            \{% end %}
+
+            update_result = update_record
+
+            if update_result
+              # Run after_update callbacks
+              \{% for meth in @type.methods %}
+                \{% if meth.annotation(Ralph::Callbacks::AfterUpdate) %}
+                  \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+                  \{% if options %}
+                    \{% if_method = options[:if] %}
+                    \{% unless_method = options[:unless] %}
+                    \{% if if_method && unless_method %}
+                      if \{{if_method.id}} && !\{{unless_method.id}}
+                        \{{meth.name}}
+                      end
+                    \{% elsif if_method %}
+                      if \{{if_method.id}}
+                        \{{meth.name}}
+                      end
+                    \{% elsif unless_method %}
+                      unless \{{unless_method.id}}
+                        \{{meth.name}}
+                      end
+                    \{% else %}
+                      \{{meth.name}}
+                    \{% end %}
+                  \{% else %}
+                    \{{meth.name}}
+                  \{% end %}
+                \{% end %}
+              \{% end %}
+            end
+
+            update_result
+          end
+
+          if result
+            # Run after_save callbacks
+            \{% for meth in @type.methods %}
+              \{% if meth.annotation(Ralph::Callbacks::AfterSave) %}
+                \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+                \{% if options %}
+                  \{% if_method = options[:if] %}
+                  \{% unless_method = options[:unless] %}
+                  \{% if if_method && unless_method %}
+                    if \{{if_method.id}} && !\{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif if_method %}
+                    if \{{if_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif unless_method %}
+                    unless \{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% else %}
+                    \{{meth.name}}
+                  \{% end %}
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% end %}
+            \{% end %}
+          end
+
+          result
+        end
+
+        # Generate destroy method with callbacks
+        def destroy : Bool
+          return false if new_record?
+
+          # Run before_destroy callbacks
+          \{% for meth in @type.methods %}
+            \{% if meth.annotation(Ralph::Callbacks::BeforeDestroy) %}
+              \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+              \{% if options %}
+                \{% if_method = options[:if] %}
+                \{% unless_method = options[:unless] %}
+                \{% if if_method && unless_method %}
+                  if \{{if_method.id}} && !\{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif if_method %}
+                  if \{{if_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% elsif unless_method %}
+                  unless \{{unless_method.id}}
+                    \{{meth.name}}
+                  end
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% else %}
+                \{{meth.name}}
+              \{% end %}
+            \{% end %}
+          \{% end %}
+
+          # Handle dependent associations before destroying this record
+          # Look for _handle_dependent_* methods generated by association macros
+          \{% for meth in @type.methods %}
+            \{% if meth.name.starts_with?("_handle_dependent_") %}
+              unless \{{meth.name}}
+                return false
+              end
+            \{% end %}
+          \{% end %}
+
+          query = Query::Builder.new(self.class.table_name)
+          query.where("#{self.class.primary_key} = ?", primary_key_value)
+
+          sql, args = query.build_delete
+          Ralph.database.execute(sql, args: args)
+          result = true
+
+          if result
+            # Run after_destroy callbacks
+            \{% for meth in @type.methods %}
+              \{% if meth.annotation(Ralph::Callbacks::AfterDestroy) %}
+                \{% options = meth.annotation(Ralph::Callbacks::CallbackOptions) %}
+                \{% if options %}
+                  \{% if_method = options[:if] %}
+                  \{% unless_method = options[:unless] %}
+                  \{% if if_method && unless_method %}
+                    if \{{if_method.id}} && !\{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif if_method %}
+                    if \{{if_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% elsif unless_method %}
+                    unless \{{unless_method.id}}
+                      \{{meth.name}}
+                    end
+                  \{% else %}
+                    \{{meth.name}}
+                  \{% end %}
+                \{% else %}
+                  \{{meth.name}}
+                \{% end %}
+              \{% end %}
+            \{% end %}
+          end
+
+          result
+        end
+
+        # Generate valid? method that calls all validation methods
+        def valid? : Bool
+          errors.clear
+
+          # Call each validation method (generated by validates_* macros)
+          \{% for meth in @type.methods %}
+            \{% if meth.name.starts_with?("_ralph_validate_") %}
+              \{{meth.name}}
+            \{% end %}
+          \{% end %}
+
+          # Also call custom validation methods marked with the annotation
+          \{% for meth in @type.methods %}
+            \{% if meth.annotation(Ralph::Validations::ValidationMethod) %}
+              \{{meth.name}}
+            \{% end %}
+          \{% end %}
+
+          errors.empty?
+        end
+      end
+    end
+
     @@table_name : String = ""
     @@columns : Hash(String, ColumnMetadata) = {} of String => ColumnMetadata
     @@primary_key : String = "id"
@@ -45,7 +404,7 @@ module Ralph
 
       # Register column metadata
       {% unless @type.has_constant?("_ralph_column_{{name}}") %}
-        @@columns[{{name.stringify}}] = ColumnMetadata.new({{name.stringify}}, {{type}}, {{primary}}, {{default}})
+        @@columns[{{name.stringify}}] = Ralph::ColumnMetadata.new({{name.stringify}}, {{type}}, {{primary}}, {{default}})
       {% end %}
 
       # Define the property with nilable type to allow uninitialized state
@@ -423,6 +782,42 @@ module Ralph
       record
     end
 
+    # Find all records using a pre-built query builder
+    #
+    # Used primarily for scoped associations where additional WHERE conditions
+    # are added to the query via a lambda.
+    #
+    # Example:
+    # ```
+    # query = Ralph::Query::Builder.new(User.table_name)
+    # query.where("age > ?", 18)
+    # User.find_all_with_query(query)
+    # ```
+    def self.find_all_with_query(query : Query::Builder) : Array(self)
+      results = Ralph.database.query_all(query.build_select, args: query.where_args)
+      records = [] of self
+      results.each do
+        records << from_result_set(results)
+      end
+      records
+    ensure
+      results.close if results
+    end
+
+    # Count records using a pre-built query builder
+    #
+    # Used for counting scoped associations.
+    def self.count_with_query(query : Query::Builder) : Int32
+      result = Ralph.database.scalar(query.build_count, args: query.where_args)
+      return 0 unless result
+
+      case result
+      when Int32 then result
+      when Int64 then result.to_i32
+      else 0
+      end
+    end
+
     # Count all records
     def self.count : Int64
       query = Query::Builder.new(self.table_name)
@@ -434,6 +829,59 @@ module Ralph
       when Int64 then result.as(Int64)
       else 0_i64
       end
+    end
+
+    # Reset a counter cache column to the actual count
+    #
+    # This is useful when counter caches get out of sync.
+    # Call this on the parent model to reset the counter for a specific record.
+    #
+    # Example:
+    # ```
+    # # Reset books_count for publisher with id 1
+    # Publisher.reset_counter_cache(1, "books_count", Book, "publisher_id")
+    #
+    # # Or more commonly via instance method
+    # publisher.reset_counter_cache!("books_count", Book, "publisher_id")
+    # ```
+    def self.reset_counter_cache(id, counter_column : String, child_class, foreign_key : String)
+      # Count actual children
+      child_table = child_class.table_name
+      count_sql = "SELECT COUNT(*) FROM \"#{child_table}\" WHERE \"#{foreign_key}\" = ?"
+      result = Ralph.database.query_one(count_sql, args: [id])
+      return unless result
+      count = result.read(Int32)
+      result.close
+
+      # Update the counter
+      sql = "UPDATE \"#{self.table_name}\" SET \"#{counter_column}\" = ? WHERE \"#{self.primary_key}\" = ?"
+      Ralph.database.execute(sql, args: [count, id])
+    end
+
+    # Reset all counter caches for this model to their actual counts
+    #
+    # Example:
+    # ```
+    # Publisher.reset_all_counter_caches("books_count", Book, "publisher_id")
+    # ```
+    def self.reset_all_counter_caches(counter_column : String, child_class, foreign_key : String)
+      child_table = child_class.table_name
+      sql = <<-SQL
+        UPDATE "#{self.table_name}" SET "#{counter_column}" = (
+          SELECT COUNT(*)
+          FROM "#{child_table}"
+          WHERE "#{child_table}"."#{foreign_key}" = "#{self.table_name}"."#{self.primary_key}"
+        )
+      SQL
+      Ralph.database.execute(sql)
+    end
+
+    # Instance method to reset a counter cache
+    def reset_counter_cache!(counter_column : String, child_class, foreign_key : String)
+      pk = primary_key_value
+      return if pk.nil?
+      self.class.reset_counter_cache(pk, counter_column, child_class, foreign_key)
+      reload
     end
 
     # Count records matching a column value

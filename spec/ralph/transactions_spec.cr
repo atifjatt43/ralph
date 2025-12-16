@@ -12,8 +12,6 @@ module Ralph
       column name, String
       column email, String?
 
-      setup_validations
-      setup_callbacks
     end
 
     class Post < Model
@@ -23,8 +21,6 @@ module Ralph
       column title, String
       column user_id, Int64?
 
-      setup_validations
-      setup_callbacks
     end
   end
 

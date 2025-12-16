@@ -18,8 +18,6 @@ module Ralph
       email.to_s.includes?("@")
     end
 
-    setup_validations
-    setup_callbacks
   end
 
   # Model with custom validation method
@@ -37,8 +35,6 @@ module Ralph
       end
     end
 
-    setup_validations
-    setup_callbacks
   end
 
   describe Validations do

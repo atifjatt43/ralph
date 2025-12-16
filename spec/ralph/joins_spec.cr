@@ -10,8 +10,6 @@ module Ralph
     column name, String
     column email, String?
 
-    setup_validations
-    setup_callbacks
   end
 
   class JoinTestPost < Model
@@ -23,8 +21,6 @@ module Ralph
     column user_id, Int64?
     column author_id, Int64?
 
-    setup_validations
-    setup_callbacks
   end
 
   class JoinTestComment < Model
@@ -34,8 +30,6 @@ module Ralph
     column body, String
     column post_id, Int64?
 
-    setup_validations
-    setup_callbacks
   end
 
   # Test models with associations
@@ -49,8 +43,6 @@ module Ralph
     has_many posts
     has_one profile
 
-    setup_validations
-    setup_callbacks
   end
 
   class JoinAssocPost < Model
@@ -65,8 +57,6 @@ module Ralph
     belongs_to user
     has_many comments
 
-    setup_validations
-    setup_callbacks
   end
 
   class JoinAssocComment < Model
@@ -78,8 +68,6 @@ module Ralph
 
     belongs_to post
 
-    setup_validations
-    setup_callbacks
   end
 
   describe "Joins" do

@@ -24,6 +24,7 @@ module Ralph
     property primary_key : String
     property type : Symbol # :belongs_to, :has_one, :has_many
     property through : String?
+    property source : String?       # For through associations: the association name on the through model
     property table_name : String
     property dependent : DependentBehavior
     property class_name_override : Bool # True if class_name was explicitly set
@@ -31,6 +32,9 @@ module Ralph
     property primary_key_override : Bool # True if primary_key was explicitly set
     property polymorphic : Bool          # True if this is a polymorphic belongs_to
     property as_name : String?           # For has_many/has_one, the polymorphic interface name
+    property counter_cache : String?     # Column name for counter cache on parent, or nil if disabled
+    property touch : String?             # Timestamp column to update on parent, or nil if disabled
+    property inverse_of : String?        # Name of the inverse association
 
     def initialize(
       @name : String,
@@ -39,13 +43,17 @@ module Ralph
       @type : Symbol,
       @table_name : String,
       @through : String? = nil,
+      @source : String? = nil,
       @primary_key : String = "id",
       @dependent : DependentBehavior = DependentBehavior::None,
       @class_name_override : Bool = false,
       @foreign_key_override : Bool = false,
       @primary_key_override : Bool = false,
       @polymorphic : Bool = false,
-      @as_name : String? = nil
+      @as_name : String? = nil,
+      @counter_cache : String? = nil,
+      @touch : String? = nil,
+      @inverse_of : String? = nil
     )
     end
   end
@@ -61,6 +69,12 @@ module Ralph
   # - `belongs_to :commentable, polymorphic: true` - Can belong to multiple model types
   # - `has_many :comments, as: :commentable` - Parent side of polymorphic relationship
   #
+  # New in Phase 3.3:
+  # - `counter_cache: true` - Maintain a count column on parent for has_many associations
+  # - `touch: true` - Update parent timestamp when association changes
+  # - Association scoping with lambda blocks
+  # - Through associations: `has_many :tags, through: :posts`
+  #
   # Example:
   # ```
   # class Post < Ralph::Model
@@ -68,31 +82,18 @@ module Ralph
   #   column title, String
   #   column user_id, Int64
   #
-  #   belongs_to user
+  #   belongs_to user, touch: true
   # end
   #
   # class User < Ralph::Model
   #   column id, Int64, primary: true
   #   column name, String
+  #   column posts_count, Int32, default: 0
+  #   column updated_at, Time?
   #
   #   has_one profile
-  #   has_many posts
-  # end
-  #
-  # # Polymorphic example:
-  # class Comment < Ralph::Model
-  #   column id, Int64, primary: true
-  #   column body, String
-  #
-  #   belongs_to :commentable, polymorphic: true
-  # end
-  #
-  # class Post < Ralph::Model
-  #   has_many :comments, as: :commentable
-  # end
-  #
-  # class Article < Ralph::Model
-  #   has_many :comments, as: :commentable
+  #   has_many posts, counter_cache: true
+  #   has_many tags, through: :posts
   # end
   # ```
   module Associations
@@ -103,6 +104,12 @@ module Ralph
     # Required because Crystal doesn't have Object.const_get like Ruby
     @@polymorphic_registry : Hash(String, Proc(Int64, Ralph::Model?)) = Hash(String, Proc(Int64, Ralph::Model?)).new
 
+    # Registry for counter cache relationships: child_class => [{parent_class, association_name, counter_column, foreign_key}]
+    @@counter_cache_registry : Hash(String, Array(NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String))) = Hash(String, Array(NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String))).new
+
+    # Registry for touch relationships: child_class => [{parent_class, association_name, touch_column, foreign_key}]
+    @@touch_registry : Hash(String, Array(NamedTuple(parent_class: String, association_name: String, touch_column: String, foreign_key: String))) = Hash(String, Array(NamedTuple(parent_class: String, association_name: String, touch_column: String, foreign_key: String))).new
+
     def self.associations : Hash(String, Hash(String, AssociationMetadata))
       @@associations
     end
@@ -110,6 +117,16 @@ module Ralph
     # Get the polymorphic registry
     def self.polymorphic_registry : Hash(String, Proc(Int64, Ralph::Model?))
       @@polymorphic_registry
+    end
+
+    # Get the counter cache registry
+    def self.counter_cache_registry : Hash(String, Array(NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String)))
+      @@counter_cache_registry
+    end
+
+    # Get the touch registry
+    def self.touch_registry : Hash(String, Array(NamedTuple(parent_class: String, association_name: String, touch_column: String, foreign_key: String)))
+      @@touch_registry
     end
 
     # Register a model class for polymorphic lookup
@@ -125,6 +142,28 @@ module Ralph
       finder.call(id)
     end
 
+    # Register a counter cache relationship
+    def self.register_counter_cache(child_class : String, parent_class : String, association_name : String, counter_column : String, foreign_key : String)
+      @@counter_cache_registry[child_class] ||= [] of NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String)
+      @@counter_cache_registry[child_class] << {parent_class: parent_class, association_name: association_name, counter_column: counter_column, foreign_key: foreign_key}
+    end
+
+    # Get counter caches for a child class
+    def self.counter_caches_for(child_class : String) : Array(NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String))?
+      @@counter_cache_registry[child_class]?
+    end
+
+    # Register a touch relationship
+    def self.register_touch(child_class : String, parent_class : String, association_name : String, touch_column : String, foreign_key : String)
+      @@touch_registry[child_class] ||= [] of NamedTuple(parent_class: String, association_name: String, touch_column: String, foreign_key: String)
+      @@touch_registry[child_class] << {parent_class: parent_class, association_name: association_name, touch_column: touch_column, foreign_key: foreign_key}
+    end
+
+    # Get touch relationships for a child class
+    def self.touches_for(child_class : String) : Array(NamedTuple(parent_class: String, association_name: String, touch_column: String, foreign_key: String))?
+      @@touch_registry[child_class]?
+    end
+
     # Define a belongs_to association
     #
     # Options:
@@ -132,6 +171,11 @@ module Ralph
     # - foreign_key: Specify a custom foreign key column (e.g., "author_id" instead of "user_id")
     # - primary_key: Specify the primary key on the associated model (defaults to "id")
     # - polymorphic: If true, this association can belong to multiple model types
+    # - touch: If true, updates parent's updated_at on save; can also be a column name
+    # - counter_cache: If true, maintains a count column on the parent model
+    #   - true: Uses default column name (e.g., `posts_count` for `belongs_to :post`)
+    #   - String: Uses custom column name (e.g., `counter_cache: "comment_count"`)
+    # - optional: If true, the foreign key can be nil (default: false)
     #
     # Usage:
     # ```crystal
@@ -140,6 +184,10 @@ module Ralph
     # belongs_to author, class_name: "User", foreign_key: "writer_id"
     # belongs_to author, class_name: "User", primary_key: "uuid"
     # belongs_to commentable, polymorphic: true  # Creates commentable_id and commentable_type columns
+    # belongs_to user, touch: true               # Updates user.updated_at on save
+    # belongs_to user, touch: :last_post_at      # Updates user.last_post_at on save
+    # belongs_to publisher, counter_cache: true  # Maintains publisher.books_count (inferred from child table)
+    # belongs_to publisher, counter_cache: "total_books"  # Uses custom column name
     # ```
     macro belongs_to(name, **options)
       {%
@@ -169,6 +217,35 @@ module Ralph
         primary_key_override = primary_key_opt != nil
         primary_key = primary_key_opt ? primary_key_opt.id.stringify : "id"
 
+        # Handle touch option
+        touch_opt = options[:touch]
+        touch_column = if touch_opt == true
+                         "updated_at"
+                       elsif touch_opt
+                         touch_opt.id.stringify
+                       else
+                         nil
+                       end
+
+        # Handle counter_cache option
+        # When true, infers column name from the child's table name (e.g., books -> books_count)
+        # When a string, uses that as the column name
+        counter_cache_opt = options[:counter_cache]
+        # Get the child table name (this class) for inferring the counter column
+        # We need to get it from @type which represents the current class being defined
+        child_table_name = @type.name.stringify.split("::").last.underscore + "s"
+        counter_cache_col = if counter_cache_opt == true
+                               child_table_name + "_count"
+                             elsif counter_cache_opt
+                               counter_cache_opt.id.stringify
+                             else
+                               nil
+                             end
+
+        # Handle optional option
+        optional_opt = options[:optional]
+        is_optional = optional_opt == true
+
         type_str = @type.stringify
 
         # Table name derived from class_name (not used for polymorphic)
@@ -184,12 +261,16 @@ module Ralph
           :belongs_to,
           {{table_name}},
           nil,
+          nil,
           {{primary_key}},
           DependentBehavior::None,
           {{class_name_override}},
           {{foreign_key_override}},
           {{primary_key_override}},
           {{is_polymorphic}},
+          nil,
+          nil,
+          {{touch_column}},
           nil
         )
       {% else %}
@@ -201,12 +282,16 @@ module Ralph
           :belongs_to,
           {{table_name}},
           nil,
+          nil,
           {{primary_key}},
           DependentBehavior::None,
           {{class_name_override}},
           {{foreign_key_override}},
           {{primary_key_override}},
           {{is_polymorphic}},
+          nil,
+          nil,
+          {{touch_column}},
           nil
         )
         Ralph::Associations.associations[{{type_str}}] = @@_ralph_associations
@@ -230,6 +315,9 @@ module Ralph
 
         # Polymorphic setter - accepts any Ralph::Model
         def {{name}}=(record : Ralph::Model?)
+          _old_fk = @{{foreign_key}}
+          _old_type = @{{type_column}}
+
           if record
             @{{type_column}} = record.class.to_s
             @{{foreign_key}} = record.id
@@ -237,10 +325,20 @@ module Ralph
             @{{type_column}} = nil
             @{{foreign_key}} = nil
           end
+
+          # Track change for dirty tracking
+          if _old_fk != @{{foreign_key}} || _old_type != @{{type_column}}
+            @_changed_attributes.add({{foreign_key_str}})
+            @_changed_attributes.add({{type_column_str}})
+          end
         end
       {% else %}
         # Regular belongs_to: define the foreign key column
-        column {{foreign_key}}, Int64
+        {% if is_optional %}
+          column {{foreign_key}}, Int64?
+        {% else %}
+          column {{foreign_key}}, Int64
+        {% end %}
 
         # Getter for the associated record
         def {{name}} : {{class_name.id}}?
@@ -259,6 +357,8 @@ module Ralph
 
         # Setter for the associated record
         def {{name}}=(record : {{class_name.id}}?)
+          _old_fk = @{{foreign_key}}
+
           if record
             # Use the configured primary key from the associated record
             {% if primary_key == "id" %}
@@ -269,6 +369,26 @@ module Ralph
             {% end %}
           else
             @{{foreign_key}} = nil
+          end
+
+          # Track change for dirty tracking
+          if _old_fk != @{{foreign_key}}
+            @_changed_attributes.add({{foreign_key_str}})
+          end
+        end
+
+        # Check if the foreign key has changed
+        def {{foreign_key}}_changed? : Bool
+          @_changed_attributes.includes?({{foreign_key_str}})
+        end
+
+        # Get the previous foreign key value before changes
+        def {{foreign_key}}_was : Int64?
+          if @_original_attributes.has_key?({{foreign_key_str}})
+            val = @_original_attributes[{{foreign_key_str}}]
+            val.as(Int64) if val.is_a?(Int64)
+          else
+            @{{foreign_key}}
           end
         end
 
@@ -288,8 +408,89 @@ module Ralph
             pk_value = record.__get_by_key_name({{primary_key}})
             @{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
           {% end %}
+          @_changed_attributes.add({{foreign_key_str}})
           record
         end
+
+        # Touch the parent association (update timestamp)
+        {% if touch_column %}
+          def _touch_{{name}}_association!
+            parent_record = {{name}}
+            return unless parent_record
+
+            parent_table = {{class_name.id}}.table_name
+            parent_pk = parent_record.id
+            return if parent_pk.nil?
+
+            sql = "UPDATE \"#{parent_table}\" SET \"#{{{touch_column}}}\" = ? WHERE \"#{{{class_name.id}}.primary_key}\" = ?"
+            Ralph.database.execute(sql, args: [Time.utc, parent_pk])
+          end
+        {% end %}
+
+        # Counter cache callbacks
+        # These methods are automatically called by setup_callbacks via annotations
+        {% if counter_cache_col %}
+          # Increment the parent's counter cache after this record is created
+          @[Ralph::Callbacks::AfterCreate]
+          def _increment_{{name}}_counter_cache
+            fk_value = @{{foreign_key}}
+            return if fk_value.nil?
+
+            parent_table = {{class_name.id}}.table_name
+            col = {{counter_cache_col}}
+            sql = "UPDATE \"#{parent_table}\" SET \"#{col}\" = \"#{col}\" + 1 WHERE \"#{{{class_name.id}}.primary_key}\" = ?"
+            Ralph.database.execute(sql, args: [fk_value])
+          end
+
+          # Decrement the parent's counter cache after this record is destroyed
+          @[Ralph::Callbacks::AfterDestroy]
+          def _decrement_{{name}}_counter_cache
+            fk_value = @{{foreign_key}}
+            return if fk_value.nil?
+
+            parent_table = {{class_name.id}}.table_name
+            col = {{counter_cache_col}}
+            sql = "UPDATE \"#{parent_table}\" SET \"#{col}\" = \"#{col}\" - 1 WHERE \"#{{{class_name.id}}.primary_key}\" = ? AND \"#{col}\" > 0"
+            Ralph.database.execute(sql, args: [fk_value])
+          end
+
+          # Handle counter cache updates when the foreign key changes (re-parenting)
+          # This decrements the old parent's counter and increments the new parent's counter
+          @[Ralph::Callbacks::BeforeUpdate]
+          def _update_{{name}}_counter_cache_on_reassignment
+            return unless {{foreign_key}}_changed?
+
+            old_fk = {{foreign_key}}_was
+            new_fk = @{{foreign_key}}
+            parent_table = {{class_name.id}}.table_name
+            col = {{counter_cache_col}}
+
+            # Decrement old parent's counter
+            if old_fk
+              sql = "UPDATE \"#{parent_table}\" SET \"#{col}\" = \"#{col}\" - 1 WHERE \"#{{{class_name.id}}.primary_key}\" = ? AND \"#{col}\" > 0"
+              Ralph.database.execute(sql, args: [old_fk])
+            end
+
+            # Increment new parent's counter
+            if new_fk
+              sql = "UPDATE \"#{parent_table}\" SET \"#{col}\" = \"#{col}\" + 1 WHERE \"#{{{class_name.id}}.primary_key}\" = ?"
+              Ralph.database.execute(sql, args: [new_fk])
+            end
+          end
+
+          # Register the counter cache so the parent model can provide reset methods
+          def self.__register_counter_cache_{{name}}
+            Ralph::Associations.register_counter_cache(
+              {{type_str}},
+              {{class_name}},
+              {{name_str}},
+              {{counter_cache_col}},
+              {{foreign_key_str}}
+            )
+          end
+
+          __register_counter_cache_{{name}}
+        {% end %}
       {% end %}
     end
 
@@ -369,34 +570,6 @@ module Ralph
           :has_one,
           {{table_name}},
           nil,
-          {{primary_key}},
-          {% if dependent_sym == "destroy" %}
-            DependentBehavior::Destroy,
-          {% elsif dependent_sym == "delete" %}
-            DependentBehavior::Delete,
-          {% elsif dependent_sym == "nullify" %}
-            DependentBehavior::Nullify,
-          {% elsif dependent_sym == "restrict_with_error" %}
-            DependentBehavior::RestrictWithError,
-          {% elsif dependent_sym == "restrict_with_exception" %}
-            DependentBehavior::RestrictWithException,
-          {% else %}
-            DependentBehavior::None,
-          {% end %}
-          {{class_name_override}},
-          {{foreign_key_override}},
-          {{primary_key_override}},
-          false,
-          {{as_name}}
-        )
-      {% else %}
-        @@_ralph_associations = Hash(String, AssociationMetadata).new
-        @@_ralph_associations[{{name_str}}] = AssociationMetadata.new(
-          {{name_str}},
-          {{class_name}},
-          {{foreign_key_str}},
-          :has_one,
-          {{table_name}},
           nil,
           {{primary_key}},
           {% if dependent_sym == "destroy" %}
@@ -416,7 +589,43 @@ module Ralph
           {{foreign_key_override}},
           {{primary_key_override}},
           false,
-          {{as_name}}
+          {{as_name}},
+          nil,
+          nil,
+          nil
+        )
+      {% else %}
+        @@_ralph_associations = Hash(String, AssociationMetadata).new
+        @@_ralph_associations[{{name_str}}] = AssociationMetadata.new(
+          {{name_str}},
+          {{class_name}},
+          {{foreign_key_str}},
+          :has_one,
+          {{table_name}},
+          nil,
+          nil,
+          {{primary_key}},
+          {% if dependent_sym == "destroy" %}
+            DependentBehavior::Destroy,
+          {% elsif dependent_sym == "delete" %}
+            DependentBehavior::Delete,
+          {% elsif dependent_sym == "nullify" %}
+            DependentBehavior::Nullify,
+          {% elsif dependent_sym == "restrict_with_error" %}
+            DependentBehavior::RestrictWithError,
+          {% elsif dependent_sym == "restrict_with_exception" %}
+            DependentBehavior::RestrictWithException,
+          {% else %}
+            DependentBehavior::None,
+          {% end %}
+          {{class_name_override}},
+          {{foreign_key_override}},
+          {{primary_key_override}},
+          false,
+          {{as_name}},
+          nil,
+          nil,
+          nil
         )
         Ralph::Associations.associations[{{type_str}}] = @@_ralph_associations
       {% end %}
@@ -587,12 +796,17 @@ module Ralph
     # - foreign_key: Specify a custom foreign key on the associated model (e.g., "owner_id" instead of "user_id")
     # - primary_key: Specify the primary key on this model (defaults to "id")
     # - as: For polymorphic associations, specify the name of the polymorphic interface
+    # - through: For through associations, specify the intermediate association name
+    # - source: For through associations, specify the source association on the through model
     # - dependent: Specify what happens to associated records when this record is destroyed
     #   - :destroy - Destroy associated records (runs callbacks)
     #   - :delete_all - Delete associated records (skips callbacks)
     #   - :nullify - Set foreign key to NULL
     #   - :restrict_with_error - Prevent destruction if associations exist (adds error)
     #   - :restrict_with_exception - Prevent destruction if associations exist (raises exception)
+    #
+    # Note: For counter caching, use `counter_cache: true` on the `belongs_to` side of the association.
+    # This automatically generates increment/decrement/update callbacks on the child model.
     #
     # Usage:
     # ```crystal
@@ -602,8 +816,10 @@ module Ralph
     # has_many posts, dependent: :destroy
     # has_many posts, dependent: :delete_all
     # has_many comments, as: :commentable  # Polymorphic association
+    # has_many tags, through: :post_tags   # Through association
+    # has_many tags, through: :post_tags, source: :tag  # Through with custom source
     # ```
-    macro has_many(name, **options)
+    macro has_many(name, scope_block = nil, **options)
       {%
         # Singularize the class name (e.g., "posts" -> "Post")
         name_str = name.id.stringify
@@ -622,6 +838,15 @@ module Ralph
         is_polymorphic = as_opt != nil
         as_name = as_opt ? as_opt.id.stringify : nil
 
+        # Handle 'through' option for through associations
+        through_opt = options[:through]
+        is_through = through_opt != nil
+        through_name = through_opt ? through_opt.id.stringify : nil
+
+        # Handle 'source' option for through associations
+        source_opt = options[:source]
+        source_name = source_opt ? source_opt.id.stringify : singular_name
+
         # Handle foreign_key option
         # For polymorphic, default to {as_name}_id
         foreign_key_opt = options[:foreign_key]
@@ -630,6 +855,9 @@ module Ralph
                         foreign_key_opt.id
                       elsif is_polymorphic && as_name
                         "#{as_name.id}_id".id
+                      elsif is_through
+                        # For through associations, FK doesn't apply directly
+                        "".id
                       else
                         "#{type_name.id}_id".id
                       end
@@ -649,6 +877,9 @@ module Ralph
 
         # Table name is the underscored class name (usually plural, matching the association name)
         table_name = name_str
+
+        # Check if we have a scope block
+        has_scope = scope_block != nil
       %}
 
       # Register the association metadata
@@ -659,7 +890,8 @@ module Ralph
           {{foreign_key_str}},
           :has_many,
           {{table_name}},
-          nil,
+          {{through_name}},
+          {{source_name}},
           {{primary_key}},
           {% if dependent_sym == "destroy" %}
             DependentBehavior::Destroy,
@@ -678,7 +910,10 @@ module Ralph
           {{foreign_key_override}},
           {{primary_key_override}},
           false,
-          {{as_name}}
+          {{as_name}},
+          nil,
+          nil,
+          nil
         )
       {% else %}
         @@_ralph_associations = Hash(String, AssociationMetadata).new
@@ -688,7 +923,8 @@ module Ralph
           {{foreign_key_str}},
           :has_many,
           {{table_name}},
-          nil,
+          {{through_name}},
+          {{source_name}},
           {{primary_key}},
           {% if dependent_sym == "destroy" %}
             DependentBehavior::Destroy,
@@ -707,7 +943,10 @@ module Ralph
           {{foreign_key_override}},
           {{primary_key_override}},
           false,
-          {{as_name}}
+          {{as_name}},
+          nil,
+          nil,
+          nil
         )
         Ralph::Associations.associations[{{type_str}}] = @@_ralph_associations
       {% end %}
@@ -726,7 +965,75 @@ module Ralph
         __register_polymorphic_type
       {% end %}
 
-      {% if is_polymorphic %}
+      {% if is_through %}
+        # Through association getter - follows the chain: self -> through -> source
+        def {{name}} : Array({{class_name.id}})
+          # Get the primary key value from this record
+          {% if primary_key == "id" %}
+            pk_value = self.id
+          {% else %}
+            pk_value = self.__get_by_key_name({{primary_key}})
+          {% end %}
+          return [] of {{class_name.id}} if pk_value.nil?
+
+          # Get the through records first
+          through_records = {{through_name.id}}
+          return [] of {{class_name.id}} if through_records.empty?
+
+          # Collect IDs from source association on each through record
+          source_ids = [] of Int64
+          through_records.each do |through_record|
+            # Access the source association on the through record
+            source_assoc = through_record.{{source_name.id}}
+            if source_assoc
+              source_id = source_assoc.id
+              source_ids << source_id if source_id
+            end
+          end
+
+          return [] of {{class_name.id}} if source_ids.empty?
+
+          # Build query with IN clause for all source IDs
+          query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+          query.where_in("id", source_ids)
+
+          {% if has_scope %}
+            # Apply the scope block
+            {{scope_block}}.call(query)
+          {% end %}
+
+          {{class_name.id}}.find_all_with_query(query)
+        end
+
+        # Unscoped through association getter
+        def {{name}}_unscoped : Array({{class_name.id}})
+          {% if primary_key == "id" %}
+            pk_value = self.id
+          {% else %}
+            pk_value = self.__get_by_key_name({{primary_key}})
+          {% end %}
+          return [] of {{class_name.id}} if pk_value.nil?
+
+          through_records = {{through_name.id}}
+          return [] of {{class_name.id}} if through_records.empty?
+
+          source_ids = [] of Int64
+          through_records.each do |through_record|
+            source_assoc = through_record.{{source_name.id}}
+            if source_assoc
+              source_id = source_assoc.id
+              source_ids << source_id if source_id
+            end
+          end
+
+          return [] of {{class_name.id}} if source_ids.empty?
+
+          query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+          query.where_in("id", source_ids)
+
+          {{class_name.id}}.find_all_with_query(query)
+        end
+      {% elsif is_polymorphic %}
         # Polymorphic has_many: filter by type AND id
         def {{name}} : Array({{class_name.id}})
           pk_value = self.id
@@ -736,34 +1043,40 @@ module Ralph
           id_column = {{as_name}}.not_nil! + "_id"
           type_value = {{type_str}}
 
-          # Use the find_all_by_conditions helper
-          conditions = {
-            type_column => type_value.as(DB::Any),
-            id_column => pk_value.as(DB::Any)
-          }
-          {{class_name.id}}.find_all_by_conditions(conditions)
+          {% if has_scope %}
+            # Build query with scope
+            query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+            query.where("\"#{type_column}\" = ?", type_value)
+            query.where("\"#{id_column}\" = ?", pk_value)
+
+            # Apply the scope block
+            {{scope_block}}.call(query)
+
+            {{class_name.id}}.find_all_with_query(query)
+          {% else %}
+            # Use the find_all_by_conditions helper
+            conditions = {
+              type_column => type_value.as(DB::Any),
+              id_column => pk_value.as(DB::Any)
+            }
+            {{class_name.id}}.find_all_by_conditions(conditions)
+          {% end %}
         end
 
-        # Count the associated records (polymorphic)
-        def {{name}}_count : Int32
+        # Unscoped polymorphic getter
+        def {{name}}_unscoped : Array({{class_name.id}})
           pk_value = self.id
-          return 0 if pk_value.nil?
+          return [] of {{class_name.id}} if pk_value.nil?
 
           type_column = {{as_name}}.not_nil! + "_type"
           id_column = {{as_name}}.not_nil! + "_id"
           type_value = {{type_str}}
 
-          table_name = {{class_name.id}}.table_name
-          sql = "SELECT COUNT(*) FROM \"#{table_name}\" WHERE \"#{type_column}\" = ? AND \"#{id_column}\" = ?"
-
-          result = Ralph.database.scalar(sql, args: [type_value, pk_value])
-          return 0 unless result
-
-          case result
-          when Int32 then result
-          when Int64 then result.to_i32
-          else 0
-          end
+          conditions = {
+            type_column => type_value.as(DB::Any),
+            id_column => pk_value.as(DB::Any)
+          }
+          {{class_name.id}}.find_all_by_conditions(conditions)
         end
       {% else %}
         # Regular has_many: Getter for the associated records collection
@@ -776,44 +1089,60 @@ module Ralph
           {% end %}
           return [] of {{class_name.id}} if pk_value.nil?
 
-          # Find associated records by foreign key
-          {{class_name.id}}.find_all_by({{foreign_key_str}}, pk_value)
+          {% if has_scope %}
+            # Build query with scope
+            query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+            query.where("\"#{{{foreign_key_str}}}\" = ?", pk_value)
+
+            # Apply the scope block
+            {{scope_block}}.call(query)
+
+            {{class_name.id}}.find_all_with_query(query)
+          {% else %}
+            # Find associated records by foreign key
+            {{class_name.id}}.find_all_by({{foreign_key_str}}, pk_value)
+          {% end %}
         end
 
-        # Count the associated records
-        def {{name}}_count : Int32
-          # Get the primary key value from this record
+        # Unscoped getter - bypasses any association scope
+        def {{name}}_unscoped : Array({{class_name.id}})
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
             pk_value = self.__get_by_key_name({{primary_key}})
           {% end %}
-          return 0 if pk_value.nil?
+          return [] of {{class_name.id}} if pk_value.nil?
 
-          table_name = {{class_name.id}}.table_name
-          fk = {{foreign_key_str}}
-          sql = "SELECT COUNT(*) FROM \"#{table_name}\" WHERE \"#{fk}\" = ?"
-
-          result = Ralph.database.query_one(sql, args: [pk_value])
-          return 0 unless result
-
-          count = result.read(Int32)
-          result.close
-          count
+          {{class_name.id}}.find_all_by({{foreign_key_str}}, pk_value)
         end
+
       {% end %}
 
       # Check if any associated records exist
       def {{name}}_any? : Bool
-        {{name}}_count > 0
+        !{{name}}.empty?
       end
 
       # Check if no associated records exist
       def {{name}}_empty? : Bool
-        {{name}}_count == 0
+        {{name}}.empty?
       end
 
-      {% if is_polymorphic %}
+      {% if is_through %}
+        # Build a new source record (through association)
+        # Note: This just builds the final record, not the through record
+        def build_{{singular_name.id}}(**attrs) : {{class_name.id}}
+          {{class_name.id}}.new(**attrs)
+        end
+
+        # Create a source record (through association)
+        # Note: You still need to create the through record to link them
+        def create_{{singular_name.id}}(**attrs) : {{class_name.id}}
+          record = {{class_name.id}}.new(**attrs)
+          record.save
+          record
+        end
+      {% elsif is_polymorphic %}
         {%
           # Compute column names at compile time
           poly_type_col = "#{as_name.id}_type".id
@@ -866,7 +1195,7 @@ module Ralph
       {% end %}
 
       # Handle dependent behavior for has_many
-      {% if dependent_sym != "none" %}
+      {% if dependent_sym != "none" && !is_through %}
         def _handle_dependent_{{name}} : Bool
           {% if dependent_sym == "restrict_with_error" %}
             if {{name}}_any?

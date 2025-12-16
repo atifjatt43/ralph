@@ -14,8 +14,6 @@ module Ralph
       has_one profile
       has_many articles
 
-      setup_validations
-      setup_callbacks
 
       @@author1 : Author?
       @@author2 : Author?
@@ -41,8 +39,6 @@ module Ralph
       column bio_text, String
       column author_id, Int64
 
-      setup_validations
-      setup_callbacks
     end
 
     class Article < Model
@@ -52,8 +48,6 @@ module Ralph
       column title, String
       column author_id, Int64
 
-      setup_validations
-      setup_callbacks
 
       @@article1 : Article?
       @@article2 : Article?
@@ -86,8 +80,6 @@ module Ralph
 
       belongs_to article
 
-      setup_validations
-      setup_callbacks
 
       @@comment1 : Comment?
       @@comment2 : Comment?
@@ -265,7 +257,7 @@ module Ralph
 
       it "counts the associated records" do
         author = AssociationTests::Author.author1.not_nil!
-        count = author.articles_count
+        count = author.articles.size
 
         count.should eq(2)
       end

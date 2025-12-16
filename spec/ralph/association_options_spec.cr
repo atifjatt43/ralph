@@ -17,8 +17,6 @@ module Ralph
       has_many written_articles, class_name: "BlogPost", foreign_key: "author_id"
       has_one avatar, class_name: "UserImage", foreign_key: "owner_id"
 
-      setup_validations
-      setup_callbacks
     end
 
     class BlogPost < Model
@@ -31,8 +29,6 @@ module Ralph
       # Use class_name to reference Person as "writer"
       belongs_to writer, class_name: "Person", foreign_key: "author_id"
 
-      setup_validations
-      setup_callbacks
     end
 
     class UserImage < Model
@@ -42,8 +38,6 @@ module Ralph
       column url, String
       column owner_id, Int64?
 
-      setup_validations
-      setup_callbacks
     end
 
     # ========================================
@@ -59,8 +53,6 @@ module Ralph
       # Custom foreign key on the employees table
       has_many workers, class_name: "Employee", foreign_key: "employer_id"
 
-      setup_validations
-      setup_callbacks
     end
 
     class Employee < Model
@@ -73,8 +65,6 @@ module Ralph
       # Custom foreign_key to match company's has_many
       belongs_to employer, class_name: "Company", foreign_key: "employer_id"
 
-      setup_validations
-      setup_callbacks
     end
 
     # ========================================
@@ -90,8 +80,6 @@ module Ralph
       # dependent: :destroy - runs callbacks on each book
       has_many books, dependent: :destroy
 
-      setup_validations
-      setup_callbacks
     end
 
     class Book < Model
@@ -116,8 +104,6 @@ module Ralph
         @@destroyed_titles << title.to_s if title
       end
 
-      setup_validations
-      setup_callbacks
     end
 
     class Library < Model
@@ -129,8 +115,6 @@ module Ralph
       # dependent: :delete_all - deletes without callbacks
       has_many magazines, dependent: :delete_all
 
-      setup_validations
-      setup_callbacks
     end
 
     class Magazine < Model
@@ -155,8 +139,6 @@ module Ralph
         @@destroyed_titles << title.to_s if title
       end
 
-      setup_validations
-      setup_callbacks
     end
 
     class Author < Model
@@ -168,8 +150,6 @@ module Ralph
       # dependent: :nullify - sets foreign key to NULL
       has_many essays, dependent: :nullify
 
-      setup_validations
-      setup_callbacks
     end
 
     class Essay < Model
@@ -179,8 +159,6 @@ module Ralph
       column title, String
       column author_id, Int64?
 
-      setup_validations
-      setup_callbacks
     end
 
     class RestrictedPublisher < Model
@@ -192,8 +170,6 @@ module Ralph
       # dependent: :restrict_with_error - prevents destroy if associations exist
       has_many documents, class_name: "Document", foreign_key: "restricted_publisher_id", dependent: :restrict_with_error
 
-      setup_validations
-      setup_callbacks
     end
 
     class Document < Model
@@ -203,8 +179,6 @@ module Ralph
       column title, String
       column restricted_publisher_id, Int64?
 
-      setup_validations
-      setup_callbacks
     end
 
     class StrictPublisher < Model
@@ -216,8 +190,6 @@ module Ralph
       # dependent: :restrict_with_exception - raises exception if associations exist
       has_many papers, class_name: "Paper", foreign_key: "strict_publisher_id", dependent: :restrict_with_exception
 
-      setup_validations
-      setup_callbacks
     end
 
     class Paper < Model
@@ -227,8 +199,6 @@ module Ralph
       column title, String
       column strict_publisher_id, Int64?
 
-      setup_validations
-      setup_callbacks
     end
 
     # ========================================
@@ -244,8 +214,6 @@ module Ralph
       # dependent: :destroy for has_one
       has_one profile, dependent: :destroy
 
-      setup_validations
-      setup_callbacks
     end
 
     class Profile < Model
@@ -270,8 +238,6 @@ module Ralph
         @@destroyed_bios << bio.to_s if bio
       end
 
-      setup_validations
-      setup_callbacks
     end
 
     class Account < Model
@@ -283,8 +249,6 @@ module Ralph
       # dependent: :nullify for has_one
       has_one settings, class_name: "AccountSettings", foreign_key: "account_id", dependent: :nullify
 
-      setup_validations
-      setup_callbacks
     end
 
     class AccountSettings < Model
@@ -294,8 +258,6 @@ module Ralph
       column theme, String
       column account_id, Int64?
 
-      setup_validations
-      setup_callbacks
     end
   end
 

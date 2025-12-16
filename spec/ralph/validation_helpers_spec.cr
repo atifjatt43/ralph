@@ -14,8 +14,6 @@ module Ralph
     validates_presence_of :name
     validates_presence_of :email
 
-    setup_validations
-    setup_callbacks
   end
 
   class PresenceCustomMessageModel < Model
@@ -25,8 +23,6 @@ module Ralph
 
     validates_presence_of :name, message: "is required"
 
-    setup_validations
-    setup_callbacks
   end
 
   # Length validation test models
@@ -39,8 +35,6 @@ module Ralph
     validates_length_of :name, min: 3, max: 50
     validates_length_of :email, minimum: 8
 
-    setup_validations
-    setup_callbacks
   end
 
   class LengthRangeModel < Model
@@ -50,8 +44,6 @@ module Ralph
 
     validates_length_of :name, range: 3..20
 
-    setup_validations
-    setup_callbacks
   end
 
   class LengthCustomMessageModel < Model
@@ -61,8 +53,6 @@ module Ralph
 
     validates_length_of :name, min: 5, message: "is too short"
 
-    setup_validations
-    setup_callbacks
   end
 
   # Format validation test models
@@ -75,8 +65,6 @@ module Ralph
     validates_format_of :email, pattern: /@/
     validates_format_of :name, pattern: /^[a-zA-Z0-9_]+$/
 
-    setup_validations
-    setup_callbacks
   end
 
   class FormatCustomMessageModel < Model
@@ -86,8 +74,6 @@ module Ralph
 
     validates_format_of :email, pattern: /@/, message: "must contain @"
 
-    setup_validations
-    setup_callbacks
   end
 
   # Numericality validation test models
@@ -98,8 +84,6 @@ module Ralph
 
     validates_numericality_of :age
 
-    setup_validations
-    setup_callbacks
   end
 
   class NumericalityCustomMessageModel < Model
@@ -109,8 +93,6 @@ module Ralph
 
     validates_numericality_of :age, message: "must be numeric"
 
-    setup_validations
-    setup_callbacks
   end
 
   # Inclusion validation test models
@@ -123,8 +105,6 @@ module Ralph
     validates_inclusion_of :name, allow: ["draft", "published", "archived"]
     validates_inclusion_of :email, allow: ["user", "admin"]
 
-    setup_validations
-    setup_callbacks
   end
 
   class InclusionCustomMessageModel < Model
@@ -134,8 +114,6 @@ module Ralph
 
     validates_inclusion_of :name, allow: ["active", "inactive"], message: "is not a valid status"
 
-    setup_validations
-    setup_callbacks
   end
 
   # Exclusion validation test models
@@ -148,8 +126,6 @@ module Ralph
     validates_exclusion_of :name, forbid: ["admin", "root", "system"]
     validates_exclusion_of :email, forbid: ["blocked@example.com"]
 
-    setup_validations
-    setup_callbacks
   end
 
   class ExclusionCustomMessageModel < Model
@@ -159,8 +135,6 @@ module Ralph
 
     validates_exclusion_of :name, forbid: ["admin"], message: "is not allowed"
 
-    setup_validations
-    setup_callbacks
   end
 
   # Uniqueness validation test models
@@ -173,8 +147,6 @@ module Ralph
     validates_uniqueness_of :email
     validates_uniqueness_of :name
 
-    setup_validations
-    setup_callbacks
   end
 
   class UniquenessCustomMessageModel < Model
@@ -185,8 +157,6 @@ module Ralph
 
     validates_uniqueness_of :email, message: "is already taken"
 
-    setup_validations
-    setup_callbacks
   end
 
   class UniquenessNilModel < Model
@@ -196,8 +166,6 @@ module Ralph
 
     validates_uniqueness_of :age
 
-    setup_validations
-    setup_callbacks
   end
 
   # Validation callback test model
@@ -226,8 +194,6 @@ module Ralph
 
     validates_presence_of :name
 
-    setup_validations
-    setup_callbacks
   end
 
   describe "Validation Helpers" do

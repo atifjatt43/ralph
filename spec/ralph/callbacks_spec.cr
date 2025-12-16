@@ -57,7 +57,6 @@ module Ralph
       @_callback_log << "after_destroy"
     end
 
-    setup_callbacks
   end
 
   describe Callbacks do

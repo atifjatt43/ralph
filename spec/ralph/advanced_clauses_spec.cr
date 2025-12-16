@@ -12,8 +12,6 @@ module Ralph
     column views, Int32
     column published, Bool | Nil
 
-    setup_validations
-    setup_callbacks
   end
 
   describe "Advanced Query Clauses" do
