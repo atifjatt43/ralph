@@ -424,7 +424,7 @@ describe Ralph::Query::Builder do
       it "marks query for caching" do
         builder = Ralph::Query::Builder.new("users")
           .where("active = ?", true)
-          .cache!
+          .cache
 
         builder.cached?.should be_true
       end
@@ -433,8 +433,8 @@ describe Ralph::Query::Builder do
     describe "#uncache!" do
       it "disables caching for query" do
         builder = Ralph::Query::Builder.new("users")
-          .cache!
-          .uncache!
+          .cache
+          .uncache
 
         builder.cached?.should be_false
       end
@@ -444,7 +444,7 @@ describe Ralph::Query::Builder do
       it "generates consistent cache key" do
         builder = Ralph::Query::Builder.new("users")
           .where("active = ?", true)
-          .cache!
+          .cache
 
         key1 = builder.cache_key
         key2 = builder.cache_key
@@ -476,7 +476,7 @@ describe Ralph::Query::Builder do
     describe "#cached_result? and #cache_result" do
       it "returns nil when no cached result" do
         builder = Ralph::Query::Builder.new("users")
-          .cache!
+          .cache
 
         builder.cached_result?.should be_nil
       end
@@ -484,7 +484,7 @@ describe Ralph::Query::Builder do
       it "stores and retrieves cached results" do
         builder = Ralph::Query::Builder.new("users")
           .where("active = ?", true)
-          .cache!
+          .cache
 
         test_results = [{"id" => 1_i64.as(Ralph::Query::DBValue), "name" => "Test".as(Ralph::Query::DBValue)}]
         builder.cache_result(test_results)
@@ -506,8 +506,8 @@ describe Ralph::Query::Builder do
 
     describe ".clear_cache" do
       it "clears all cached results" do
-        builder1 = Ralph::Query::Builder.new("users").cache!
-        builder2 = Ralph::Query::Builder.new("orders").cache!
+        builder1 = Ralph::Query::Builder.new("users").cache
+        builder2 = Ralph::Query::Builder.new("orders").cache
 
         builder1.cache_result([{"id" => 1_i64.as(Ralph::Query::DBValue)}])
         builder2.cache_result([{"id" => 2_i64.as(Ralph::Query::DBValue)}])
@@ -523,10 +523,10 @@ describe Ralph::Query::Builder do
       it "clears cached result for specific query" do
         builder1 = Ralph::Query::Builder.new("users")
           .where("id = ?", 1)
-          .cache!
+          .cache
         builder2 = Ralph::Query::Builder.new("users")
           .where("id = ?", 2)
-          .cache!
+          .cache
 
         builder1.cache_result([{"id" => 1_i64.as(Ralph::Query::DBValue)}])
         builder2.cache_result([{"id" => 2_i64.as(Ralph::Query::DBValue)}])
@@ -540,8 +540,8 @@ describe Ralph::Query::Builder do
 
     describe ".invalidate_table_cache" do
       it "invalidates cache entries for specific table" do
-        users_query = Ralph::Query::Builder.new("users").cache!
-        orders_query = Ralph::Query::Builder.new("orders").cache!
+        users_query = Ralph::Query::Builder.new("users").cache
+        orders_query = Ralph::Query::Builder.new("orders").cache
 
         users_query.cache_result([{"id" => 1_i64.as(Ralph::Query::DBValue)}])
         orders_query.cache_result([{"id" => 2_i64.as(Ralph::Query::DBValue)}])
@@ -559,9 +559,9 @@ describe Ralph::Query::Builder do
       builder = Ralph::Query::Builder.new("employees")
         .window("ROW_NUMBER()", order_by: "id", as: "row_num")
 
-      builder.reset
+      reset_builder = builder.reset
 
-      sql = builder.build_select
+      sql = reset_builder.build_select
       sql.should eq("SELECT * FROM \"employees\"")
       sql.should_not contain("ROW_NUMBER")
     end
@@ -574,22 +574,22 @@ describe Ralph::Query::Builder do
         .where("role = ?", "admin")
 
       combined = query1.union(query2)
-      combined.reset
+      reset_combined = combined.reset
 
-      sql = combined.build_select
+      sql = reset_combined.build_select
       sql.should eq("SELECT * FROM \"users\"")
       sql.should_not contain("UNION")
     end
 
     it "clears caching flag on reset" do
       builder = Ralph::Query::Builder.new("users")
-        .cache!
+        .cache
 
       builder.cached?.should be_true
 
-      builder.reset
+      reset_builder = builder.reset
 
-      builder.cached?.should be_false
+      reset_builder.cached?.should be_false
     end
   end
 

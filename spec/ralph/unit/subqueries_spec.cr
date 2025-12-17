@@ -417,9 +417,9 @@ describe Ralph::Query::Builder do
         .exists(exists_query)
         .where_in("status", ["active", "pending"])
 
-      builder.reset
+      reset_builder = builder.reset
 
-      sql = builder.build_select
+      sql = reset_builder.build_select
       sql.should eq("SELECT * FROM \"users\"")
     end
   end

@@ -207,8 +207,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .where("age > ?", 18)
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should eq("SELECT * FROM \"users\" WHERE active = $1 AND age > $2")
     end
@@ -220,8 +220,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .order("created_at", :desc)
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should contain("ORDER BY \"name\" ASC, \"created_at\" DESC")
     end
@@ -233,8 +233,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .select("email")
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should contain("\"id\"")
       sql.should contain("\"name\"")
@@ -248,8 +248,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .group("role")
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should contain("GROUP BY \"department\", \"role\"")
     end
@@ -262,8 +262,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .having("SUM(salary) > ?", 100000)
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should contain("HAVING COUNT(*) > $1 AND SUM(salary) > $2")
     end
@@ -275,8 +275,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .limit(20)
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should contain("LIMIT 10")
       sql.should_not contain("LIMIT 20")
@@ -288,8 +288,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .limit(20)
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should contain("LIMIT 20")
     end
@@ -300,8 +300,8 @@ describe Ralph::Query::Builder do
       additional = Ralph::Query::Builder.new("users")
         .distinct
 
-      base.merge(additional)
-      sql = base.build_select
+      merged = base.merge(additional)
+      sql = merged.build_select
 
       sql.should contain("SELECT DISTINCT")
     end
@@ -329,9 +329,9 @@ describe Ralph::Query::Builder do
         .where("role = ?", "admin")
 
       combined = query1.or(query2)
-      combined.reset
+      reset_query = combined.reset
 
-      sql = combined.build_select
+      sql = reset_query.build_select
       sql.should eq("SELECT * FROM \"users\"")
     end
   end

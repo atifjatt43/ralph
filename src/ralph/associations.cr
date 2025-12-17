@@ -760,7 +760,7 @@ module Ralph
           {% elsif dependent_sym == "delete" %}
             # Direct SQL delete without callbacks
             query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
-            query.where("#{{{class_name.id}}.primary_key} = ?", associated.id)
+              .where("#{{{class_name.id}}.primary_key} = ?", associated.id)
             sql, args = query.build_delete
             Ralph.database.execute(sql, args: args)
             true
@@ -995,11 +995,11 @@ module Ralph
 
           # Build query with IN clause for all source IDs
           query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
-          query.where_in("id", source_ids)
+            .where_in("id", source_ids)
 
           {% if has_scope %}
-            # Apply the scope block
-            {{scope_block}}.call(query)
+            # Apply the scope block (must return the modified query)
+            query = {{scope_block}}.call(query)
           {% end %}
 
           {{class_name.id}}.find_all_with_query(query)
@@ -1029,7 +1029,7 @@ module Ralph
           return [] of {{class_name.id}} if source_ids.empty?
 
           query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
-          query.where_in("id", source_ids)
+            .where_in("id", source_ids)
 
           {{class_name.id}}.find_all_with_query(query)
         end
@@ -1046,11 +1046,11 @@ module Ralph
           {% if has_scope %}
             # Build query with scope
             query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
-            query.where("\"#{type_column}\" = ?", type_value)
-            query.where("\"#{id_column}\" = ?", pk_value)
+              .where("\"#{type_column}\" = ?", type_value)
+              .where("\"#{id_column}\" = ?", pk_value)
 
-            # Apply the scope block
-            {{scope_block}}.call(query)
+            # Apply the scope block (must return the modified query)
+            query = {{scope_block}}.call(query)
 
             {{class_name.id}}.find_all_with_query(query)
           {% else %}
@@ -1092,10 +1092,10 @@ module Ralph
           {% if has_scope %}
             # Build query with scope
             query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
-            query.where("\"#{{{foreign_key_str}}}\" = ?", pk_value)
+              .where("\"#{{{foreign_key_str}}}\" = ?", pk_value)
 
-            # Apply the scope block
-            {{scope_block}}.call(query)
+            # Apply the scope block (must return the modified query)
+            query = {{scope_block}}.call(query)
 
             {{class_name.id}}.find_all_with_query(query)
           {% else %}

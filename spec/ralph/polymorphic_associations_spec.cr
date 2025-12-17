@@ -202,6 +202,19 @@ module Ralph
       RalphTestHelper.cleanup_test_database
     end
 
+    # Clear all polymorphic test tables before each test
+    before_each do
+      Ralph.database.execute("DELETE FROM poly_test_comments")
+      Ralph.database.execute("DELETE FROM poly_test_posts")
+      Ralph.database.execute("DELETE FROM poly_test_articles")
+      Ralph.database.execute("DELETE FROM poly_test_profiles")
+      Ralph.database.execute("DELETE FROM poly_test_users")
+      Ralph.database.execute("DELETE FROM poly_test_companies")
+      Ralph.database.execute("DELETE FROM poly_test_tags")
+      Ralph.database.execute("DELETE FROM poly_test_photos")
+      Ralph.database.execute("DELETE FROM poly_test_videos")
+    end
+
     describe "polymorphic belongs_to" do
       it "defines both id and type columns" do
         comment = PolymorphicTests::Comment.new(body: "Test")

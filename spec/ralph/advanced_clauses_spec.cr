@@ -48,7 +48,7 @@ module Ralph
     describe "GROUP BY clause" do
       it "builds GROUP BY query" do
         query = Query::Builder.new("posts_advanced")
-        query.group("category")
+          .group("category")
 
         sql = query.build_select
         sql.should contain("GROUP BY")
@@ -57,8 +57,8 @@ module Ralph
 
       it "groups by single column" do
         query = Query::Builder.new("posts_advanced")
-        query.group("category")
-        query.select("category")
+          .group("category")
+          .select("category")
 
         results = Ralph.database.query_all(query.build_select)
         categories = [] of String
@@ -73,7 +73,7 @@ module Ralph
 
       it "groups by multiple columns" do
         query = Query::Builder.new("posts_advanced")
-        query.group("category", "published")
+          .group("category", "published")
 
         sql = query.build_select
         sql.should contain("GROUP BY")
@@ -85,8 +85,8 @@ module Ralph
     describe "HAVING clause" do
       it "builds HAVING query with GROUP BY" do
         query = Query::Builder.new("posts_advanced")
-        query.group("category")
-        query.having("COUNT(*) > 1")
+          .group("category")
+          .having("COUNT(*) > 1")
 
         sql = query.build_select
         sql.should contain("GROUP BY")
@@ -96,8 +96,8 @@ module Ralph
 
       it "uses HAVING with parameterized conditions" do
         query = Query::Builder.new("posts_advanced")
-        query.group("category")
-        query.having("SUM(views) > ?", 200)
+          .group("category")
+          .having("SUM(views) > ?", 200)
 
         sql = query.build_select
         sql.should contain("HAVING")
@@ -108,7 +108,7 @@ module Ralph
     describe "DISTINCT clause" do
       it "builds DISTINCT query" do
         query = Query::Builder.new("posts_advanced")
-        query.distinct
+          .distinct
 
         sql = query.build_select
         sql.should start_with("SELECT DISTINCT")
@@ -116,7 +116,7 @@ module Ralph
 
       it "builds DISTINCT with specific columns using GROUP BY" do
         query = Query::Builder.new("posts_advanced")
-        query.distinct("category")
+          .distinct("category")
 
         sql = query.build_select
         # SQLite uses GROUP BY for column-specific distinct
@@ -126,9 +126,9 @@ module Ralph
 
       it "returns distinct categories" do
         query = Query::Builder.new("posts_advanced")
-        query.distinct("category")
-        query.select("category")
-        query.order("category")
+          .distinct("category")
+          .select("category")
+          .order("category")
 
         results = Ralph.database.query_all(query.build_select)
         categories = [] of String
@@ -142,9 +142,9 @@ module Ralph
 
       it "returns distinct values" do
         query = Query::Builder.new("posts_advanced")
-        query.distinct
-        query.select("category")
-        query.order("category")
+          .distinct
+          .select("category")
+          .order("category")
 
         results = Ralph.database.query_all(query.build_select)
         categories = [] of String
@@ -185,9 +185,9 @@ module Ralph
     describe "Combined clauses" do
       it "combines GROUP BY, HAVING, and ORDER BY" do
         query = Query::Builder.new("posts_advanced")
-        query.group("category")
-        query.having("SUM(views) > ?", 100)
-        query.order("category")
+          .group("category")
+          .having("SUM(views) > ?", 100)
+          .order("category")
 
         sql = query.build_select
         sql.should contain("GROUP BY")
@@ -197,9 +197,9 @@ module Ralph
 
       it "combines WHERE, GROUP BY, and HAVING" do
         query = Query::Builder.new("posts_advanced")
-        query.where("published = ?", true)
-        query.group("category")
-        query.having("COUNT(*) >= ?", 2)
+          .where("published = ?", true)
+          .group("category")
+          .having("COUNT(*) >= ?", 2)
 
         sql = query.build_select
         sql.should contain("WHERE")
@@ -209,9 +209,9 @@ module Ralph
 
       it "combines DISTINCT with WHERE and ORDER BY" do
         query = Query::Builder.new("posts_advanced")
-        query.distinct
-        query.where("views > ?", 50)
-        query.order("views", :desc)
+          .distinct
+          .where("views > ?", 50)
+          .order("views", :desc)
 
         sql = query.build_select
         sql.should contain("SELECT DISTINCT")

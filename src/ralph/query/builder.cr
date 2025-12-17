@@ -207,36 +207,45 @@ module Ralph
       end
     end
 
-    # Builds SQL queries with a fluent interface
+    # Builds SQL queries with an immutable fluent interface.
+    #
+    # Each method returns a NEW Builder instance, leaving the original unchanged.
+    # This enables safe query branching:
+    #
+    # ```
+    # base = Builder.new("users").where("active = ?", true)
+    # admins = base.where("role = ?", "admin")  # base is unchanged
+    # users = base.where("role = ?", "user")    # base is unchanged
+    # ```
     class Builder
-      @wheres : Array(WhereClause) = [] of WhereClause
-      @orders : Array(OrderClause) = [] of OrderClause
+      @wheres : Array(WhereClause)
+      @orders : Array(OrderClause)
       @limit : Int32?
       @offset : Int32?
-      @joins : Array(JoinClause) = [] of JoinClause
-      @selects : Array(String) = [] of String
-      @groups : Array(String) = [] of String
-      @havings : Array(WhereClause) = [] of WhereClause
-      @distinct : Bool = false
-      @distinct_columns : Array(String) = [] of String
+      @joins : Array(JoinClause)
+      @selects : Array(String)
+      @groups : Array(String)
+      @havings : Array(WhereClause)
+      @distinct : Bool
+      @distinct_columns : Array(String)
 
       # Subquery support
-      @ctes : Array(CTEClause) = [] of CTEClause
+      @ctes : Array(CTEClause)
       @from_subquery : FromSubquery?
-      @exists_clauses : Array(ExistsClause) = [] of ExistsClause
-      @in_subquery_clauses : Array(InSubqueryClause) = [] of InSubqueryClause
+      @exists_clauses : Array(ExistsClause)
+      @in_subquery_clauses : Array(InSubqueryClause)
 
       # Query composition support
-      @combined_clauses : Array(CombinedClause) = [] of CombinedClause
+      @combined_clauses : Array(CombinedClause)
 
       # Window functions support
-      @windows : Array(WindowClause) = [] of WindowClause
+      @windows : Array(WindowClause)
 
       # Set operations support (UNION, INTERSECT, EXCEPT)
-      @set_operations : Array(SetOperationClause) = [] of SetOperationClause
+      @set_operations : Array(SetOperationClause)
 
       # Query caching support
-      @cached : Bool = false
+      @cached : Bool
       @@cache : Hash(String, Array(Hash(String, DBValue))) = {} of String => Array(Hash(String, DBValue))
 
       # Expose table for subquery introspection
@@ -257,8 +266,79 @@ module Ralph
       getter windows : Array(WindowClause)
       getter set_operations : Array(SetOperationClause)
       getter? cached : Bool
+      getter ctes : Array(CTEClause)
+      getter from_subquery : FromSubquery?
+      getter exists_clauses : Array(ExistsClause)
+      getter in_subquery_clauses : Array(InSubqueryClause)
 
       def initialize(@table : String)
+        @wheres = [] of WhereClause
+        @orders = [] of OrderClause
+        @limit = nil
+        @offset = nil
+        @joins = [] of JoinClause
+        @selects = [] of String
+        @groups = [] of String
+        @havings = [] of WhereClause
+        @distinct = false
+        @distinct_columns = [] of String
+        @ctes = [] of CTEClause
+        @from_subquery = nil
+        @exists_clauses = [] of ExistsClause
+        @in_subquery_clauses = [] of InSubqueryClause
+        @combined_clauses = [] of CombinedClause
+        @windows = [] of WindowClause
+        @set_operations = [] of SetOperationClause
+        @cached = false
+      end
+
+      # Private copy constructor for immutability - creates a deep copy
+      protected def initialize(
+        @table : String,
+        @wheres : Array(WhereClause),
+        @orders : Array(OrderClause),
+        @limit : Int32?,
+        @offset : Int32?,
+        @joins : Array(JoinClause),
+        @selects : Array(String),
+        @groups : Array(String),
+        @havings : Array(WhereClause),
+        @distinct : Bool,
+        @distinct_columns : Array(String),
+        @ctes : Array(CTEClause),
+        @from_subquery : FromSubquery?,
+        @exists_clauses : Array(ExistsClause),
+        @in_subquery_clauses : Array(InSubqueryClause),
+        @combined_clauses : Array(CombinedClause),
+        @windows : Array(WindowClause),
+        @set_operations : Array(SetOperationClause),
+        @cached : Bool
+      )
+      end
+
+      # Create a copy of this builder with all state duplicated
+      def dup : Builder
+        Builder.new(
+          @table,
+          @wheres.dup,
+          @orders.dup,
+          @limit,
+          @offset,
+          @joins.dup,
+          @selects.dup,
+          @groups.dup,
+          @havings.dup,
+          @distinct,
+          @distinct_columns.dup,
+          @ctes.dup,
+          @from_subquery,
+          @exists_clauses.dup,
+          @in_subquery_clauses.dup,
+          @combined_clauses.dup,
+          @windows.dup,
+          @set_operations.dup,
+          @cached
+        )
       end
 
       # Getter aliases for limit/offset (they use @limit/@offset internally)
@@ -270,41 +350,108 @@ module Ralph
         @offset
       end
 
-      # Select specific columns
-      def select(*columns : String) : self
-        @selects.concat(columns.to_a)
-        self
+      # Select specific columns (returns new Builder)
+      def select(*columns : String) : Builder
+        with_selects(@selects + columns.to_a)
       end
 
-      # Add a WHERE clause
-      def where(clause : String, *args) : self
+      # Add a WHERE clause (returns new Builder)
+      def where(clause : String, *args) : Builder
         converted = args.to_a.map { |a| a.as(Bool | Float32 | Float64 | Int32 | Int64 | Slice(UInt8) | String | Time | Nil) }
-        @wheres << WhereClause.new(clause, converted)
-        self
+        with_wheres(@wheres + [WhereClause.new(clause, converted)])
       end
 
-      # Add a WHERE clause with a block
-      def where(&block : WhereBuilder ->) : self
+      # Add a WHERE clause with a block (returns new Builder)
+      def where(&block : WhereBuilder ->) : Builder
         builder = WhereBuilder.new
         block.call(builder)
         if clause = builder.build
-          @wheres << clause
+          with_wheres(@wheres + [clause])
+        else
+          self
         end
-        self
       end
 
-      # Add a WHERE NOT clause
-      def where_not(clause : String, *args) : self
+      # Add a WHERE NOT clause (returns new Builder)
+      def where_not(clause : String, *args) : Builder
         converted = args.to_a.map { |a| a.as(Bool | Float32 | Float64 | Int32 | Int64 | Slice(UInt8) | String | Time | Nil) }
-        @wheres << WhereClause.new("NOT (#{clause})", converted)
-        self
+        with_wheres(@wheres + [WhereClause.new("NOT (#{clause})", converted)])
+      end
+
+      # Private helper methods for immutable updates
+      private def with_wheres(wheres : Array(WhereClause)) : Builder
+        Builder.new(@table, wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_selects(selects : Array(String)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_orders(orders : Array(OrderClause)) : Builder
+        Builder.new(@table, @wheres, orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_limit(limit : Int32?) : Builder
+        Builder.new(@table, @wheres, @orders, limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_offset(offset : Int32?) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_joins(joins : Array(JoinClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_groups(groups : Array(String)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_havings(havings : Array(WhereClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_distinct(distinct : Bool, distinct_columns : Array(String) = @distinct_columns) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, distinct, distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_ctes(ctes : Array(CTEClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_from_subquery(from_subquery : FromSubquery?) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_exists_clauses(exists_clauses : Array(ExistsClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_in_subquery_clauses(in_subquery_clauses : Array(InSubqueryClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_combined_clauses(combined_clauses : Array(CombinedClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, combined_clauses, @windows, @set_operations, @cached)
+      end
+
+      private def with_windows(windows : Array(WindowClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, windows, @set_operations, @cached)
+      end
+
+      private def with_set_operations(set_operations : Array(SetOperationClause)) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, set_operations, @cached)
+      end
+
+      private def with_cached(cached : Bool) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, cached)
       end
 
       # ========================================
       # Query Composition Methods (OR/AND)
       # ========================================
 
-      # Combine this query's WHERE clauses with another query's using OR
+      # Combine this query's WHERE clauses with another query's using OR (returns new Builder)
       #
       # This creates a combined condition where either set of conditions can match.
       # The current query's WHERE clauses become the left side, and the other
@@ -322,22 +469,22 @@ module Ralph
       # combined = query1.or(query2)
       # # => WHERE (age > $1 AND active = $2) OR (role = $3)
       # ```
-      def or(other : Builder) : self
+      def or(other : Builder) : Builder
         # Only combine if both have WHERE clauses
         if @wheres.any? && other.wheres.any?
-          # Store current wheres and other's wheres as a combined clause
-          @combined_clauses << CombinedClause.new(@wheres.dup, other.wheres.dup, :or)
-          # Clear current wheres since they're now in the combined clause
-          @wheres.clear
+          # Create new combined clause and clear wheres
+          new_combined = @combined_clauses + [CombinedClause.new(@wheres.dup, other.wheres.dup, :or)]
+          Builder.new(@table, [] of WhereClause, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, new_combined, @windows, @set_operations, @cached)
         elsif other.wheres.any?
           # If we have no wheres, just adopt the other's
-          @wheres.concat(other.wheres)
+          with_wheres(other.wheres.dup)
+        else
+          # If other has no wheres, nothing changes
+          self
         end
-        # If other has no wheres, nothing changes
-        self
       end
 
-      # Combine this query's WHERE clauses with another query's using AND (explicit grouping)
+      # Combine this query's WHERE clauses with another query's using AND (returns new Builder)
       #
       # This is useful when you want explicit grouping of conditions.
       # Normal chained `.where()` calls already use AND, but this method
@@ -355,22 +502,22 @@ module Ralph
       # combined = query1.and(query2)
       # # => WHERE (age > $1) AND (role = $2 AND department = $3)
       # ```
-      def and(other : Builder) : self
+      def and(other : Builder) : Builder
         # Only combine if both have WHERE clauses
         if @wheres.any? && other.wheres.any?
-          # Store current wheres and other's wheres as a combined clause
-          @combined_clauses << CombinedClause.new(@wheres.dup, other.wheres.dup, :and)
-          # Clear current wheres since they're now in the combined clause
-          @wheres.clear
+          # Create new combined clause and clear wheres
+          new_combined = @combined_clauses + [CombinedClause.new(@wheres.dup, other.wheres.dup, :and)]
+          Builder.new(@table, [] of WhereClause, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, new_combined, @windows, @set_operations, @cached)
         elsif other.wheres.any?
           # If we have no wheres, just adopt the other's
-          @wheres.concat(other.wheres)
+          with_wheres(other.wheres.dup)
+        else
+          # If other has no wheres, nothing changes
+          self
         end
-        # If other has no wheres, nothing changes
-        self
       end
 
-      # Merge another query's clauses into this one
+      # Merge another query's clauses into this one (returns new Builder)
       #
       # This copies WHERE, ORDER, LIMIT, OFFSET, and other clauses from the
       # other builder into this one. Useful for combining scope conditions.
@@ -384,119 +531,113 @@ module Ralph
       #   .where("age > ?", 18)
       #   .order("name", :asc)
       #
-      # base_query.merge(additional)
+      # merged = base_query.merge(additional)
       # # Adds the WHERE and ORDER clauses from additional
       # ```
-      def merge(other : Builder) : self
-        @wheres.concat(other.wheres)
-        @orders.concat(other.orders)
-        @joins.concat(other.joins)
-        @selects.concat(other.selects)
-        @groups.concat(other.groups)
-        @havings.concat(other.havings)
-        @combined_clauses.concat(other.combined_clauses)
+      def merge(other : Builder) : Builder
+        new_limit = @limit || other.limit_value
+        new_offset = @offset || other.offset_value
+        new_distinct = @distinct || other.distinct?
 
-        # For single-value fields, only override if not already set
-        if other_limit = other.limit_value
-          @limit ||= other_limit
-        end
-        if other_offset = other.offset_value
-          @offset ||= other_offset
-        end
-        if other.distinct?
-          @distinct = true
-        end
-        @distinct_columns.concat(other.distinct_columns)
-
-        self
+        Builder.new(
+          @table,
+          @wheres + other.wheres,
+          @orders + other.orders,
+          new_limit,
+          new_offset,
+          @joins + other.joins,
+          @selects + other.selects,
+          @groups + other.groups,
+          @havings + other.havings,
+          new_distinct,
+          @distinct_columns + other.distinct_columns,
+          @ctes + other.ctes,
+          @from_subquery || other.from_subquery,
+          @exists_clauses + other.exists_clauses,
+          @in_subquery_clauses + other.in_subquery_clauses,
+          @combined_clauses + other.combined_clauses,
+          @windows + other.windows,
+          @set_operations + other.set_operations,
+          @cached || other.cached?
+        )
       end
 
-      # Add an ORDER BY clause
-      def order(column : String, direction : Symbol = :asc) : self
-        @orders << OrderClause.new(column, direction)
-        self
+      # Add an ORDER BY clause (returns new Builder)
+      def order(column : String, direction : Symbol = :asc) : Builder
+        with_orders(@orders + [OrderClause.new(column, direction)])
       end
 
-      # Add a LIMIT clause
-      def limit(count : Int32) : self
-        @limit = count
-        self
+      # Add a LIMIT clause (returns new Builder)
+      def limit(count : Int32) : Builder
+        with_limit(count)
       end
 
-      # Add an OFFSET clause
-      def offset(count : Int32) : self
-        @offset = count
-        self
+      # Add an OFFSET clause (returns new Builder)
+      def offset(count : Int32) : Builder
+        with_offset(count)
       end
 
-      # Join another table
-      def join(table : String, on : String, type : Symbol = :inner, alias as_alias : String? = nil) : self
-        @joins << JoinClause.new(table, on, type, as_alias)
-        self
+      # Join another table (returns new Builder)
+      def join(table : String, on : String, type : Symbol = :inner, alias as_alias : String? = nil) : Builder
+        with_joins(@joins + [JoinClause.new(table, on, type, as_alias)])
       end
 
       # Inner join (alias for join)
-      def inner_join(table : String, on : String, alias as_alias : String? = nil) : self
+      def inner_join(table : String, on : String, alias as_alias : String? = nil) : Builder
         join(table, on, :inner, as_alias)
       end
 
       # Left join
-      def left_join(table : String, on : String, alias as_alias : String? = nil) : self
+      def left_join(table : String, on : String, alias as_alias : String? = nil) : Builder
         join(table, on, :left, as_alias)
       end
 
       # Right join
-      def right_join(table : String, on : String, alias as_alias : String? = nil) : self
+      def right_join(table : String, on : String, alias as_alias : String? = nil) : Builder
         join(table, on, :right, as_alias)
       end
 
       # Cross join (no ON clause)
-      def cross_join(table : String, alias as_alias : String? = nil) : self
-        @joins << JoinClause.new(table, "", :cross, as_alias)
-        self
+      def cross_join(table : String, alias as_alias : String? = nil) : Builder
+        with_joins(@joins + [JoinClause.new(table, "", :cross, as_alias)])
       end
 
       # Full outer join
-      def full_outer_join(table : String, on : String, alias as_alias : String? = nil) : self
+      def full_outer_join(table : String, on : String, alias as_alias : String? = nil) : Builder
         join(table, on, :full_outer, as_alias)
       end
 
       # Full join (alias for full_outer_join)
-      def full_join(table : String, on : String, alias as_alias : String? = nil) : self
+      def full_join(table : String, on : String, alias as_alias : String? = nil) : Builder
         join(table, on, :full, as_alias)
       end
 
-      # Add a GROUP BY clause
-      def group(*columns : String) : self
-        @groups.concat(columns.to_a)
-        self
+      # Add a GROUP BY clause (returns new Builder)
+      def group(*columns : String) : Builder
+        with_groups(@groups + columns.to_a)
       end
 
-      # Add a HAVING clause
-      def having(clause : String, *args) : self
+      # Add a HAVING clause (returns new Builder)
+      def having(clause : String, *args) : Builder
         converted = args.to_a.map { |a| a.as(Bool | Float32 | Float64 | Int32 | Int64 | Slice(UInt8) | String | Time | Nil) }
-        @havings << WhereClause.new(clause, converted)
-        self
+        with_havings(@havings + [WhereClause.new(clause, converted)])
       end
 
-      # Add DISTINCT to SELECT
-      def distinct : self
-        @distinct = true
-        self
+      # Add DISTINCT to SELECT (returns new Builder)
+      def distinct : Builder
+        with_distinct(true)
       end
 
-      # Add DISTINCT ON specific columns
-      def distinct(*columns : String) : self
-        @distinct = true
-        @distinct_columns.concat(columns.to_a)
-        self
+      # Add DISTINCT ON specific columns (returns new Builder)
+      def distinct(*columns : String) : Builder
+        with_distinct(true, @distinct_columns + columns.to_a)
       end
 
       # ========================================
       # Subquery Support Methods
       # ========================================
 
-      # Add a CTE (Common Table Expression)
+      # Add a CTE (Common Table Expression) (returns new Builder)
       #
       # Example:
       # ```
@@ -507,12 +648,11 @@ module Ralph
       # query.with_cte("recent_orders", subquery)
       #   .where("user_id IN (SELECT user_id FROM recent_orders)")
       # ```
-      def with_cte(name : String, subquery : Builder, materialized : Bool? = nil) : self
-        @ctes << CTEClause.new(name, subquery, recursive: false, materialized: materialized)
-        self
+      def with_cte(name : String, subquery : Builder, materialized : Bool? = nil) : Builder
+        with_ctes(@ctes + [CTEClause.new(name, subquery, recursive: false, materialized: materialized)])
       end
 
-      # Add a recursive CTE
+      # Add a recursive CTE (returns new Builder)
       #
       # Example:
       # ```
@@ -528,14 +668,13 @@ module Ralph
       #
       # query.with_recursive_cte("category_tree", base, recursive)
       # ```
-      def with_recursive_cte(name : String, base_query : Builder, recursive_query : Builder, materialized : Bool? = nil) : self
+      def with_recursive_cte(name : String, base_query : Builder, recursive_query : Builder, materialized : Bool? = nil) : Builder
         # For recursive CTEs, we create a combined builder that will generate UNION ALL
         combined = RecursiveCTEBuilder.new(base_query, recursive_query)
-        @ctes << CTEClause.new(name, combined, recursive: true, materialized: materialized)
-        self
+        with_ctes(@ctes + [CTEClause.new(name, combined, recursive: true, materialized: materialized)])
       end
 
-      # Add a FROM subquery
+      # Add a FROM subquery (returns new Builder)
       #
       # Example:
       # ```
@@ -547,12 +686,11 @@ module Ralph
       #   .from_subquery(subquery, "order_totals")
       #   .where("total_spent > ?", 1000)
       # ```
-      def from_subquery(subquery : Builder, alias_name : String) : self
-        @from_subquery = FromSubquery.new(subquery, alias_name)
-        self
+      def from_subquery(subquery : Builder, alias_name : String) : Builder
+        with_from_subquery(FromSubquery.new(subquery, alias_name))
       end
 
-      # Add a WHERE EXISTS clause
+      # Add a WHERE EXISTS clause (returns new Builder)
       #
       # Example:
       # ```
@@ -564,12 +702,11 @@ module Ralph
       # query = Ralph::Query::Builder.new("users")
       #   .exists(subquery)
       # ```
-      def exists(subquery : Builder) : self
-        @exists_clauses << ExistsClause.new(subquery, negated: false)
-        self
+      def exists(subquery : Builder) : Builder
+        with_exists_clauses(@exists_clauses + [ExistsClause.new(subquery, negated: false)])
       end
 
-      # Add a WHERE NOT EXISTS clause
+      # Add a WHERE NOT EXISTS clause (returns new Builder)
       #
       # Example:
       # ```
@@ -580,12 +717,11 @@ module Ralph
       # query = Ralph::Query::Builder.new("users")
       #   .not_exists(subquery)
       # ```
-      def not_exists(subquery : Builder) : self
-        @exists_clauses << ExistsClause.new(subquery, negated: true)
-        self
+      def not_exists(subquery : Builder) : Builder
+        with_exists_clauses(@exists_clauses + [ExistsClause.new(subquery, negated: true)])
       end
 
-      # Add a WHERE IN clause with a subquery
+      # Add a WHERE IN clause with a subquery (returns new Builder)
       #
       # Example:
       # ```
@@ -596,12 +732,11 @@ module Ralph
       # query = Ralph::Query::Builder.new("users")
       #   .where_in("id", subquery)
       # ```
-      def where_in(column : String, subquery : Builder) : self
-        @in_subquery_clauses << InSubqueryClause.new(column, subquery, negated: false)
-        self
+      def where_in(column : String, subquery : Builder) : Builder
+        with_in_subquery_clauses(@in_subquery_clauses + [InSubqueryClause.new(column, subquery, negated: false)])
       end
 
-      # Add a WHERE NOT IN clause with a subquery
+      # Add a WHERE NOT IN clause with a subquery (returns new Builder)
       #
       # Example:
       # ```
@@ -611,46 +746,43 @@ module Ralph
       # query = Ralph::Query::Builder.new("users")
       #   .where_not_in("id", subquery)
       # ```
-      def where_not_in(column : String, subquery : Builder) : self
-        @in_subquery_clauses << InSubqueryClause.new(column, subquery, negated: true)
-        self
+      def where_not_in(column : String, subquery : Builder) : Builder
+        with_in_subquery_clauses(@in_subquery_clauses + [InSubqueryClause.new(column, subquery, negated: true)])
       end
 
-      # Add a WHERE IN clause with an array of values
+      # Add a WHERE IN clause with an array of values (returns new Builder)
       #
       # Example:
       # ```
       # query = Ralph::Query::Builder.new("users")
       #   .where_in("id", [1, 2, 3])
       # ```
-      def where_in(column : String, values : Array) : self
+      def where_in(column : String, values : Array) : Builder
         return self if values.empty?
         placeholders = values.map_with_index { |_, i| "?" }.join(", ")
         converted = values.map { |v| v.as(DBValue) }
-        @wheres << WhereClause.new("\"#{column}\" IN (#{placeholders})", converted)
-        self
+        with_wheres(@wheres + [WhereClause.new("\"#{column}\" IN (#{placeholders})", converted)])
       end
 
-      # Add a WHERE NOT IN clause with an array of values
+      # Add a WHERE NOT IN clause with an array of values (returns new Builder)
       #
       # Example:
       # ```
       # query = Ralph::Query::Builder.new("users")
       #   .where_not_in("id", [1, 2, 3])
       # ```
-      def where_not_in(column : String, values : Array) : self
+      def where_not_in(column : String, values : Array) : Builder
         return self if values.empty?
         placeholders = values.map_with_index { |_, i| "?" }.join(", ")
         converted = values.map { |v| v.as(DBValue) }
-        @wheres << WhereClause.new("\"#{column}\" NOT IN (#{placeholders})", converted)
-        self
+        with_wheres(@wheres + [WhereClause.new("\"#{column}\" NOT IN (#{placeholders})", converted)])
       end
 
       # ========================================
       # Window Functions Support
       # ========================================
 
-      # Add a window function to the SELECT clause
+      # Add a window function to the SELECT clause (returns new Builder)
       #
       # Supports common window functions: ROW_NUMBER(), RANK(), DENSE_RANK(),
       # SUM(), AVG(), COUNT(), MIN(), MAX(), LEAD(), LAG(), FIRST_VALUE(), LAST_VALUE(), etc.
@@ -662,9 +794,8 @@ module Ralph
       #   .window("ROW_NUMBER()", partition_by: "department", order_by: "salary DESC", as: "rank")
       # # => SELECT name, department, salary, ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS "rank" FROM employees
       # ```
-      def window(function : String, partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "window_result") : self
-        @windows << WindowClause.new(function, partition_by, order_by, alias_name)
-        self
+      def window(function : String, partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "window_result") : Builder
+        with_windows(@windows + [WindowClause.new(function, partition_by, order_by, alias_name)])
       end
 
       # Add ROW_NUMBER() window function
@@ -673,7 +804,7 @@ module Ralph
       # ```
       # query.row_number(partition_by: "department", order_by: "salary DESC", as: "rank")
       # ```
-      def row_number(partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "row_num") : self
+      def row_number(partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "row_num") : Builder
         window("ROW_NUMBER()", partition_by: partition_by, order_by: order_by, as: alias_name)
       end
 
@@ -683,7 +814,7 @@ module Ralph
       # ```
       # query.rank(partition_by: "department", order_by: "salary DESC", as: "salary_rank")
       # ```
-      def rank(partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "rank") : self
+      def rank(partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "rank") : Builder
         window("RANK()", partition_by: partition_by, order_by: order_by, as: alias_name)
       end
 
@@ -693,7 +824,7 @@ module Ralph
       # ```
       # query.dense_rank(partition_by: "department", order_by: "salary DESC", as: "dense_rank")
       # ```
-      def dense_rank(partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "dense_rank") : self
+      def dense_rank(partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "dense_rank") : Builder
         window("DENSE_RANK()", partition_by: partition_by, order_by: order_by, as: alias_name)
       end
 
@@ -703,7 +834,7 @@ module Ralph
       # ```
       # query.window_sum("salary", partition_by: "department", as: "dept_total")
       # ```
-      def window_sum(column : String, partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "sum") : self
+      def window_sum(column : String, partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "sum") : Builder
         window("SUM(#{column})", partition_by: partition_by, order_by: order_by, as: alias_name)
       end
 
@@ -713,7 +844,7 @@ module Ralph
       # ```
       # query.window_avg("salary", partition_by: "department", as: "dept_avg")
       # ```
-      def window_avg(column : String, partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "avg") : self
+      def window_avg(column : String, partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "avg") : Builder
         window("AVG(#{column})", partition_by: partition_by, order_by: order_by, as: alias_name)
       end
 
@@ -723,7 +854,7 @@ module Ralph
       # ```
       # query.window_count(partition_by: "department", as: "dept_count")
       # ```
-      def window_count(column : String = "*", partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "count") : self
+      def window_count(column : String = "*", partition_by : String? = nil, order_by : String? = nil, as alias_name : String = "count") : Builder
         window("COUNT(#{column})", partition_by: partition_by, order_by: order_by, as: alias_name)
       end
 
@@ -731,7 +862,7 @@ module Ralph
       # Set Operations (UNION, INTERSECT, EXCEPT)
       # ========================================
 
-      # Add a UNION operation with another query
+      # Add a UNION operation with another query (returns new Builder)
       #
       # UNION removes duplicate rows from the combined result set.
       #
@@ -748,12 +879,11 @@ module Ralph
       # combined = active_users.union(premium_users)
       # # => SELECT id, name FROM users WHERE active = $1 UNION SELECT id, name FROM users WHERE subscription = $2
       # ```
-      def union(other : Builder) : self
-        @set_operations << SetOperationClause.new(other, SetOperationClause::Operation::Union)
-        self
+      def union(other : Builder) : Builder
+        with_set_operations(@set_operations + [SetOperationClause.new(other, SetOperationClause::Operation::Union)])
       end
 
-      # Add a UNION ALL operation with another query
+      # Add a UNION ALL operation with another query (returns new Builder)
       #
       # UNION ALL keeps all rows including duplicates (faster than UNION).
       #
@@ -770,12 +900,11 @@ module Ralph
       # combined = recent_orders.union_all(large_orders)
       # # => SELECT id, total FROM orders WHERE created_at > $1 UNION ALL SELECT id, total FROM orders WHERE total > $2
       # ```
-      def union_all(other : Builder) : self
-        @set_operations << SetOperationClause.new(other, SetOperationClause::Operation::UnionAll)
-        self
+      def union_all(other : Builder) : Builder
+        with_set_operations(@set_operations + [SetOperationClause.new(other, SetOperationClause::Operation::UnionAll)])
       end
 
-      # Add an INTERSECT operation with another query
+      # Add an INTERSECT operation with another query (returns new Builder)
       #
       # INTERSECT returns only rows that appear in both result sets.
       #
@@ -792,12 +921,11 @@ module Ralph
       # both = active_users.intersect(premium_users)
       # # => SELECT id FROM users WHERE active = $1 INTERSECT SELECT id FROM users WHERE subscription = $2
       # ```
-      def intersect(other : Builder) : self
-        @set_operations << SetOperationClause.new(other, SetOperationClause::Operation::Intersect)
-        self
+      def intersect(other : Builder) : Builder
+        with_set_operations(@set_operations + [SetOperationClause.new(other, SetOperationClause::Operation::Intersect)])
       end
 
-      # Add an EXCEPT operation with another query
+      # Add an EXCEPT operation with another query (returns new Builder)
       #
       # EXCEPT returns rows from the first query that don't appear in the second.
       #
@@ -814,16 +942,15 @@ module Ralph
       # non_banned = all_users.except(banned_users)
       # # => SELECT id FROM users WHERE active = $1 EXCEPT SELECT id FROM users WHERE banned = $2
       # ```
-      def except(other : Builder) : self
-        @set_operations << SetOperationClause.new(other, SetOperationClause::Operation::Except)
-        self
+      def except(other : Builder) : Builder
+        with_set_operations(@set_operations + [SetOperationClause.new(other, SetOperationClause::Operation::Except)])
       end
 
       # ========================================
       # Query Caching / Memoization
       # ========================================
 
-      # Mark this query for caching
+      # Mark this query for caching (returns new Builder)
       #
       # When a query is marked for caching, subsequent executions with the same
       # SQL and parameters will return cached results instead of hitting the database.
@@ -832,17 +959,15 @@ module Ralph
       # ```
       # query = Ralph::Query::Builder.new("users")
       #   .where("active = ?", true)
-      #   .cache!
+      #   .cache
       # ```
-      def cache! : self
-        @cached = true
-        self
+      def cache : Builder
+        with_cached(true)
       end
 
-      # Disable caching for this query
-      def uncache! : self
-        @cached = false
-        self
+      # Disable caching for this query (returns new Builder)
+      def uncache : Builder
+        with_cached(false)
       end
 
       # Generate a cache key based on SQL and parameters
@@ -1145,27 +1270,9 @@ module Ralph
         @wheres.flat_map(&.args)
       end
 
-      # Reset the query builder
-      def reset : self
-        @wheres.clear
-        @orders.clear
-        @limit = nil
-        @offset = nil
-        @joins.clear
-        @selects.clear
-        @groups.clear
-        @havings.clear
-        @distinct = false
-        @distinct_columns.clear
-        @ctes.clear
-        @from_subquery = nil
-        @exists_clauses.clear
-        @in_subquery_clauses.clear
-        @combined_clauses.clear
-        @windows.clear
-        @set_operations.clear
-        @cached = false
-        self
+      # Reset the query builder (returns new empty Builder with same table)
+      def reset : Builder
+        Builder.new(@table)
       end
 
       # Check if the query has conditions

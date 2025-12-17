@@ -179,12 +179,12 @@ module Ralph
 
         # Build query to check for existing records
         %query = Query::Builder.new(self.class.table_name)
-        %query.where("#{{{attribute.id.stringify}}} = ?", %value)
+          .where("#{{{attribute.id.stringify}}} = ?", %value)
 
         # Exclude current record if it's persisted
         if persisted?
           %pk_value = primary_key_value
-          %query.where("#{self.class.primary_key} != ?", %pk_value) if %pk_value
+          %query = %query.where("#{self.class.primary_key} != ?", %pk_value) if %pk_value
         end
 
         %result = Ralph.database.query_one(%query.build_select, args: %query.where_args)

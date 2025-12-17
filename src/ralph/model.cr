@@ -317,7 +317,7 @@ module Ralph
           \{% end %}
 
           query = Query::Builder.new(self.class.table_name)
-          query.where("#{self.class.primary_key} = ?", primary_key_value)
+            .where("#{self.class.primary_key} = ?", primary_key_value)
 
           sql, args = query.build_delete
           Ralph.database.execute(sql, args: args)
@@ -443,7 +443,7 @@ module Ralph
     # Find a record by ID
     def self.find(id)
       query = Query::Builder.new(self.table_name)
-      query.where("#{@@primary_key} = ?", id)
+        .where("#{@@primary_key} = ?", id)
 
       result = Ralph.database.query_one(query.build_select, args: query.where_args)
       return nil unless result
@@ -473,14 +473,15 @@ module Ralph
     end
 
     # Find records matching conditions
-    def self.query(&block : Query::Builder ->) : Query::Builder
+    # The block receives a Builder and should return the modified Builder
+    # (since Builder is immutable, each method returns a new instance)
+    def self.query(&block : Query::Builder -> Query::Builder) : Query::Builder
       query = Query::Builder.new(self.table_name)
       block.call(query)
-      query
     end
 
     # Find records matching conditions (alias for query)
-    def self.with_query(&block : Query::Builder ->) : Query::Builder
+    def self.with_query(&block : Query::Builder -> Query::Builder) : Query::Builder
       query(&block)
     end
 
@@ -526,16 +527,16 @@ module Ralph
       {% if block.args.size == 1 %}
         # Scope without extra arguments (just the query builder)
         # The first block arg is the query builder variable name
+        # Since Builder is immutable, the block body returns the modified builder
         {% query_arg = block.args[0] %}
         {% query_var_name = query_arg.is_a?(TypeDeclaration) ? query_arg.var : query_arg %}
         def self.{{name.id}} : Query::Builder
-          __scope_query__ = Query::Builder.new(self.table_name)
-          {{query_var_name.id}} = __scope_query__
+          {{query_var_name.id}} = Query::Builder.new(self.table_name)
           {{block.body}}
-          __scope_query__
         end
       {% else %}
         # Scope with arguments (first arg is query builder, rest are user args)
+        # Since Builder is immutable, the block body returns the modified builder
         {% query_arg = block.args[0] %}
         {% query_var_name = query_arg.is_a?(TypeDeclaration) ? query_arg.var : query_arg %}
         {% user_args = block.args[1..-1] %}
@@ -548,8 +549,7 @@ module Ralph
             {% end %}
           {% end %}
         ) : Query::Builder
-          __scope_query__ = Query::Builder.new(self.table_name)
-          {{query_var_name.id}} = __scope_query__
+          {{query_var_name.id}} = Query::Builder.new(self.table_name)
           # Assign scope args to their expected names
           {% for arg, idx in user_args %}
             {% if arg.is_a?(TypeDeclaration) %}
@@ -559,7 +559,6 @@ module Ralph
             {% end %}
           {% end %}
           {{block.body}}
-          __scope_query__
         end
       {% end %}
     end
@@ -569,59 +568,53 @@ module Ralph
     # This is useful for one-off query customizations that don't need
     # to be defined as named scopes.
     #
+    # The block receives a Builder and should return the modified Builder
+    # (since Builder is immutable, each method returns a new instance)
+    #
     # Example:
     # ```
     # User.scoped { |q| q.where("active = ?", true).order("name", :asc) }
     # User.scoped { |q| q.where("age > ?", 18) }.limit(10)
     # ```
-    def self.scoped(&block : Query::Builder ->) : Query::Builder
+    def self.scoped(&block : Query::Builder -> Query::Builder) : Query::Builder
       query = Query::Builder.new(self.table_name)
       block.call(query)
-      query
     end
 
     # Build a query with GROUP BY clause
     def self.group_by(*columns : String) : Query::Builder
-      query = Query::Builder.new(self.table_name)
-      query.group(*columns)
-      query
+      Query::Builder.new(self.table_name).group(*columns)
     end
 
     # Build a query with GROUP BY clause and block
-    def self.group_by(*columns : String, &block : Query::Builder ->) : Query::Builder
-      query = Query::Builder.new(self.table_name)
-      query.group(*columns)
+    # The block receives a Builder and should return the modified Builder
+    def self.group_by(*columns : String, &block : Query::Builder -> Query::Builder) : Query::Builder
+      query = Query::Builder.new(self.table_name).group(*columns)
       block.call(query)
-      query
     end
 
     # Build a query with DISTINCT
     def self.distinct : Query::Builder
-      query = Query::Builder.new(self.table_name)
-      query.distinct
+      Query::Builder.new(self.table_name).distinct
     end
 
     # Build a query with DISTINCT and block
-    def self.distinct(&block : Query::Builder ->) : Query::Builder
-      query = Query::Builder.new(self.table_name)
-      query.distinct
+    # The block receives a Builder and should return the modified Builder
+    def self.distinct(&block : Query::Builder -> Query::Builder) : Query::Builder
+      query = Query::Builder.new(self.table_name).distinct
       block.call(query)
-      query
     end
 
     # Build a query with DISTINCT on specific columns
     def self.distinct(*columns : String) : Query::Builder
-      query = Query::Builder.new(self.table_name)
-      query.distinct(*columns)
-      query
+      Query::Builder.new(self.table_name).distinct(*columns)
     end
 
     # Build a query with DISTINCT on specific columns and block
-    def self.distinct(*columns : String, &block : Query::Builder ->) : Query::Builder
-      query = Query::Builder.new(self.table_name)
-      query.distinct(*columns)
+    # The block receives a Builder and should return the modified Builder
+    def self.distinct(*columns : String, &block : Query::Builder -> Query::Builder) : Query::Builder
+      query = Query::Builder.new(self.table_name).distinct(*columns)
       block.call(query)
-      query
     end
 
     # Join an association by name
@@ -668,14 +661,13 @@ module Ralph
       end
 
       query.join(table_name, on_clause, join_type, as_alias)
-      query
     end
 
     # Find the first record matching conditions
     def self.first : self?
       query = Query::Builder.new(self.table_name)
-      query.limit(1)
-      query.order(@@primary_key, :asc)
+        .limit(1)
+        .order(@@primary_key, :asc)
 
       result = Ralph.database.query_one(query.build_select)
       return nil unless result
@@ -688,8 +680,8 @@ module Ralph
     # Find the last record
     def self.last : self?
       query = Query::Builder.new(self.table_name)
-      query.limit(1)
-      query.order(@@primary_key, :desc)
+        .limit(1)
+        .order(@@primary_key, :desc)
 
       result = Ralph.database.query_one(query.build_select)
       return nil unless result
@@ -707,8 +699,8 @@ module Ralph
     # ```
     def self.find_by(column : String, value) : self?
       query = Query::Builder.new(self.table_name)
-      query.where("#{column} = ?", value)
-      query.limit(1)
+        .where("#{column} = ?", value)
+        .limit(1)
 
       result = Ralph.database.query_one(query.build_select, args: query.where_args)
       return nil unless result
@@ -726,7 +718,7 @@ module Ralph
     # ```
     def self.find_all_by(column : String, value) : Array(self)
       query = Query::Builder.new(self.table_name)
-      query.where("#{column} = ?", value)
+        .where("#{column} = ?", value)
 
       results = Ralph.database.query_all(query.build_select, args: query.where_args)
       records = [] of self
@@ -750,7 +742,7 @@ module Ralph
     def self.find_all_by_conditions(conditions : Hash(String, DB::Any)) : Array(self)
       query = Query::Builder.new(self.table_name)
       conditions.each do |column, value|
-        query.where("\"#{column}\" = ?", value)
+        query = query.where("\"#{column}\" = ?", value)
       end
 
       results = Ralph.database.query_all(query.build_select, args: query.where_args)
@@ -770,9 +762,9 @@ module Ralph
     def self.find_by_conditions(conditions : Hash(String, DB::Any)) : self?
       query = Query::Builder.new(self.table_name)
       conditions.each do |column, value|
-        query.where("\"#{column}\" = ?", value)
+        query = query.where("\"#{column}\" = ?", value)
       end
-      query.limit(1)
+      query = query.limit(1)
 
       result = Ralph.database.query_one(query.build_select, args: query.where_args)
       return nil unless result
@@ -887,7 +879,7 @@ module Ralph
     # Count records matching a column value
     def self.count_by(column : String, value) : Int64
       query = Query::Builder.new(self.table_name)
-      query.where("#{column} = ?", value)
+        .where("#{column} = ?", value)
 
       result = Ralph.database.scalar(query.build_count, args: query.where_args)
       return 0_i64 unless result
@@ -1050,7 +1042,7 @@ module Ralph
       return self if new_record?
 
       query = Query::Builder.new(self.class.table_name)
-      query.where("#{self.class.primary_key} = ?", primary_key_value)
+        .where("#{self.class.primary_key} = ?", primary_key_value)
 
       result = Ralph.database.query_one(query.build_select, args: query.where_args)
       return self unless result
@@ -1148,7 +1140,7 @@ module Ralph
     # Update an existing record
     private def update_record
       query = Query::Builder.new(self.class.table_name)
-      query.where("#{self.class.primary_key} = ?", primary_key_value)
+        .where("#{self.class.primary_key} = ?", primary_key_value)
 
       data = to_h
       data.delete(self.class.primary_key)
