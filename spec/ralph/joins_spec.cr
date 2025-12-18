@@ -40,8 +40,8 @@ module Ralph
     column name, String
     column email, String?
 
-    has_many posts
-    has_one profile
+    has_many posts, class_name: "JoinAssocPost"
+    has_one profile, class_name: "JoinAssocProfile"
 
   end
 
@@ -54,8 +54,8 @@ module Ralph
     column user_id, Int64?
     column author_id, Int64?
 
-    belongs_to user
-    has_many comments
+    belongs_to user, class_name: "JoinAssocUser"
+    has_many comments, class_name: "JoinAssocComment"
 
   end
 
@@ -66,7 +66,18 @@ module Ralph
     column body, String
     column post_id, Int64?
 
-    belongs_to post
+    belongs_to post, class_name: "JoinAssocPost"
+
+  end
+
+  class JoinAssocProfile < Model
+    table "profile"
+
+    column id, Int64, primary: true
+    column bio, String?
+    column join_assoc_user_id, Int64?
+
+    belongs_to join_assoc_user, class_name: "JoinAssocUser"
 
   end
 
@@ -100,6 +111,14 @@ module Ralph
         post_id INTEGER
       )
       SQL
+
+      Ralph.database.execute <<-SQL
+      CREATE TABLE IF NOT EXISTS profile (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bio TEXT,
+        join_assoc_user_id INTEGER
+      )
+      SQL
     end
 
     after_all do
@@ -111,6 +130,7 @@ module Ralph
       Ralph.database.execute("DELETE FROM join_test_users")
       Ralph.database.execute("DELETE FROM join_test_posts")
       Ralph.database.execute("DELETE FROM join_test_comments")
+      Ralph.database.execute("DELETE FROM profile")
     end
 
     describe "Basic Joins" do
@@ -207,9 +227,9 @@ module Ralph
         sql = query.build_select
 
         sql.should contain("INNER JOIN")
-        # Association metadata uses convention-based table names
-        sql.should contain("\"user\"")
-        sql.should contain("\"user\".\"id\" = \"join_test_posts\".\"user_id\"")
+        # Association metadata uses class_name.underscore for table names
+        sql.should contain("\"join_assoc_user\"")
+        sql.should contain("\"join_assoc_user\".\"id\" = \"join_test_posts\".\"user_id\"")
       end
 
       it "joins has_many association" do
@@ -220,7 +240,7 @@ module Ralph
         sql = query.build_select
 
         sql.should contain("INNER JOIN")
-        # Association metadata uses the association name for table
+        # has_many uses the association name as the table name
         sql.should contain("\"posts\"")
         sql.should contain("\"posts\".\"join_assoc_user_id\" = \"join_test_users\".\"id\"")
       end
@@ -230,10 +250,10 @@ module Ralph
         sql = query.build_select
 
         sql.should contain("INNER JOIN")
-        # has_one uses the association name as table name
-        sql.should contain("\"profile\"")
+        # has_one uses class_name.underscore as table name
+        sql.should contain("\"join_assoc_profile\"")
         # has_one uses the model's foreign key pointing to self
-        sql.should contain("\"profile\".\"join_assoc_user_id\" = \"join_test_users\".\"id\"")
+        sql.should contain("\"join_assoc_profile\".\"join_assoc_user_id\" = \"join_test_users\".\"id\"")
       end
 
       it "joins association with LEFT JOIN type" do
@@ -241,7 +261,7 @@ module Ralph
         sql = query.build_select
 
         sql.should contain("LEFT JOIN")
-        sql.should contain("\"user\"")
+        sql.should contain("\"join_assoc_user\"")
       end
 
       it "joins association with alias" do
@@ -261,12 +281,12 @@ module Ralph
         user = JoinAssocUser.create(name: "Alice")
         post = JoinAssocPost.create(title: "Hello", user_id: user.id)
 
-        query = JoinAssocPost.join_assoc(:user).where("\"user\".\"name\" = ?", "Alice")
+        query = JoinAssocPost.join_assoc(:user).where("\"join_assoc_user\".\"name\" = ?", "Alice")
         sql = query.build_select
 
         sql.should contain("INNER JOIN")
         sql.should contain("WHERE")
-        sql.should contain("\"user\".\"name\"")
+        sql.should contain("\"join_assoc_user\".\"name\"")
       end
     end
 

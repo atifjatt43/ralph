@@ -304,6 +304,14 @@ module Ralph
 
         # Polymorphic getter - returns the associated record (any model type)
         def {{name}} : Ralph::Model?
+          # Check if preloaded first
+          if _has_preloaded?({{name_str}})
+            return _get_preloaded_one({{name_str}})
+          end
+
+          # Track N+1 queries if enabled
+          Ralph::EagerLoading.track_query(self.class.to_s, {{name_str}})
+
           foreign_key_value = @{{foreign_key}}
           type_value = @{{type_column}}
 
@@ -342,6 +350,14 @@ module Ralph
 
         # Getter for the associated record
         def {{name}} : {{class_name.id}}?
+          # Check if preloaded first
+          if _has_preloaded?({{name_str}})
+            return _get_preloaded_one({{name_str}}).as({{class_name.id}}?)
+          end
+
+          # Track N+1 queries if enabled
+          Ralph::EagerLoading.track_query(self.class.to_s, {{name_str}})
+
           # Get the foreign key value
           foreign_key_value = @{{foreign_key}}
 
@@ -490,6 +506,49 @@ module Ralph
           end
 
           __register_counter_cache_{{name}}
+        {% end %}
+
+        # Generate preload method for this belongs_to association
+        {% if is_polymorphic %}
+          def self._preload_{{name}}(models : Array(self)) : Nil
+            # For polymorphic belongs_to, we can't preload easily since types vary
+            # Mark as preloaded but with nil to prevent N+1 tracking
+            models.each { |m| m._set_preloaded_one({{name_str}}, nil) }
+          end
+        {% else %}
+          def self._preload_{{name}}(models : Array(self)) : Nil
+            return if models.empty?
+
+            # Collect all foreign key values
+            fk_values = models.compact_map do |model|
+              model.{{foreign_key}}.as(Int64?)
+            end.uniq
+
+            return if fk_values.empty?
+
+            # Fetch all associated records
+            query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+              .where_in({{primary_key}}, fk_values.map(&.as(Ralph::Query::DBValue)))
+
+            records = {{class_name.id}}._preload_fetch_all(query)
+            records_by_pk = Hash(Int64, {{class_name.id}}).new
+
+            records.each do |record|
+              if pk = record.id
+                records_by_pk[pk] = record
+              end
+            end
+
+            # Assign to models
+            models.each do |model|
+              fk_value = model.{{foreign_key}}.as(Int64?)
+              if fk_value && (record = records_by_pk[fk_value]?)
+                model._set_preloaded_one({{name_str}}, record)
+              else
+                model._set_preloaded_one({{name_str}}, nil)
+              end
+            end
+          end
         {% end %}
       {% end %}
     end
@@ -647,6 +706,14 @@ module Ralph
       {% if is_polymorphic %}
         # Polymorphic has_one: filter by type AND id
         def {{name}} : {{class_name.id}}?
+          # Check if preloaded first
+          if _has_preloaded?({{name_str}})
+            return _get_preloaded_one({{name_str}}).as({{class_name.id}}?)
+          end
+
+          # Track N+1 queries if enabled
+          Ralph::EagerLoading.track_query(self.class.to_s, {{name_str}})
+
           pk_value = self.id
           return nil if pk_value.nil?
 
@@ -664,6 +731,14 @@ module Ralph
       {% else %}
         # Regular has_one: Getter for the associated record
         def {{name}} : {{class_name.id}}?
+          # Check if preloaded first
+          if _has_preloaded?({{name_str}})
+            return _get_preloaded_one({{name_str}}).as({{class_name.id}}?)
+          end
+
+          # Track N+1 queries if enabled
+          Ralph::EagerLoading.track_query(self.class.to_s, {{name_str}})
+
           # Get the primary key value from this record
           {% if primary_key == "id" %}
             pk_value = self.id
@@ -787,6 +862,51 @@ module Ralph
           {% end %}
         end
       {% end %}
+
+      # Generate preload method for this has_one association
+      def self._preload_{{name}}(models : Array(self)) : Nil
+        return if models.empty?
+
+        pk_values = models.compact_map(&.id).uniq
+        return if pk_values.empty?
+
+        {% if is_polymorphic %}
+          type_column = {{as_name}}.not_nil! + "_type"
+          id_column = {{as_name}}.not_nil! + "_id"
+          model_type = {{type_str}}
+
+          query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+            .where("\"#{type_column}\" = ?", model_type)
+            .where_in(id_column, pk_values.map(&.as(Ralph::Query::DBValue)))
+        {% else %}
+          query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+            .where_in({{foreign_key_str}}, pk_values.map(&.as(Ralph::Query::DBValue)))
+        {% end %}
+
+        records = {{class_name.id}}._preload_fetch_all(query)
+        records_by_fk = Hash(Int64, {{class_name.id}}).new
+
+        records.each do |record|
+          {% if is_polymorphic %}
+            fk_attr = record._get_attribute({{as_name}}.not_nil! + "_id")
+          {% else %}
+            fk_attr = record._get_attribute({{foreign_key_str}})
+          {% end %}
+          fk_value = fk_attr.as(Int64?) if fk_attr.is_a?(Int64 | Nil)
+          if fk_value
+            records_by_fk[fk_value] = record
+          end
+        end
+
+        models.each do |model|
+          pk_value = model.id
+          if pk_value && (record = records_by_fk[pk_value]?)
+            model._set_preloaded_one({{name_str}}, record)
+          else
+            model._set_preloaded_one({{name_str}}, nil)
+          end
+        end
+      end
     end
 
     # Define a has_many association
@@ -968,6 +1088,15 @@ module Ralph
       {% if is_through %}
         # Through association getter - follows the chain: self -> through -> source
         def {{name}} : Array({{class_name.id}})
+          # Check if preloaded first
+          if _has_preloaded?({{name_str}})
+            preloaded = _get_preloaded_many({{name_str}})
+            return preloaded.map(&.as({{class_name.id}})) if preloaded
+          end
+
+          # Track N+1 queries if enabled
+          Ralph::EagerLoading.track_query(self.class.to_s, {{name_str}})
+
           # Get the primary key value from this record
           {% if primary_key == "id" %}
             pk_value = self.id
@@ -1036,6 +1165,15 @@ module Ralph
       {% elsif is_polymorphic %}
         # Polymorphic has_many: filter by type AND id
         def {{name}} : Array({{class_name.id}})
+          # Check if preloaded first
+          if _has_preloaded?({{name_str}})
+            preloaded = _get_preloaded_many({{name_str}})
+            return preloaded.map(&.as({{class_name.id}})) if preloaded
+          end
+
+          # Track N+1 queries if enabled
+          Ralph::EagerLoading.track_query(self.class.to_s, {{name_str}})
+
           pk_value = self.id
           return [] of {{class_name.id}} if pk_value.nil?
 
@@ -1081,6 +1219,15 @@ module Ralph
       {% else %}
         # Regular has_many: Getter for the associated records collection
         def {{name}} : Array({{class_name.id}})
+          # Check if preloaded first
+          if _has_preloaded?({{name_str}})
+            preloaded = _get_preloaded_many({{name_str}})
+            return preloaded.map(&.as({{class_name.id}})) if preloaded
+          end
+
+          # Track N+1 queries if enabled
+          Ralph::EagerLoading.track_query(self.class.to_s, {{name_str}})
+
           # Get the primary key value from this record
           {% if primary_key == "id" %}
             pk_value = self.id
@@ -1264,6 +1411,56 @@ module Ralph
           {% else %}
             true
           {% end %}
+        end
+      {% end %}
+
+      # Generate preload method for this has_many association
+      {% unless is_through %}
+        def self._preload_{{name}}(models : Array(self)) : Nil
+          return if models.empty?
+
+          pk_values = models.compact_map(&.id).uniq
+          return if pk_values.empty?
+
+          {% if is_polymorphic %}
+            type_column = {{as_name}}.not_nil! + "_type"
+            id_column = {{as_name}}.not_nil! + "_id"
+            model_type = {{type_str}}
+
+            query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+              .where("\"#{type_column}\" = ?", model_type)
+              .where_in(id_column, pk_values.map(&.as(Ralph::Query::DBValue)))
+          {% else %}
+            query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
+              .where_in({{foreign_key_str}}, pk_values.map(&.as(Ralph::Query::DBValue)))
+          {% end %}
+
+          # Fetch records and group by foreign key
+          records = {{class_name.id}}._preload_fetch_all(query)
+          records_by_fk = Hash(Int64, Array({{class_name.id}})).new
+
+          records.each do |record|
+            {% if is_polymorphic %}
+              fk_attr = record._get_attribute({{as_name}}.not_nil! + "_id")
+            {% else %}
+              fk_attr = record._get_attribute({{foreign_key_str}})
+            {% end %}
+            fk_value = fk_attr.as(Int64?) if fk_attr.is_a?(Int64 | Nil)
+            if fk_value
+              records_by_fk[fk_value] ||= [] of {{class_name.id}}
+              records_by_fk[fk_value] << record
+            end
+          end
+
+          models.each do |model|
+            pk_value = model.id
+            if pk_value
+              fetched_records = records_by_fk[pk_value]? || [] of {{class_name.id}}
+              model._set_preloaded_many({{name_str}}, fetched_records.map(&.as(Ralph::Model)))
+            else
+              model._set_preloaded_many({{name_str}}, [] of Ralph::Model)
+            end
+          end
         end
       {% end %}
     end

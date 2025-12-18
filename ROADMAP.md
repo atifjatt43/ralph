@@ -7,7 +7,7 @@ This roadmap outlines the planned development path for Ralph to become a product
 **Current Version:** 0.1.0
 
 **What's Working:**
-- ✅ **ALL IMMEDIATE MVP FEATURES COMPLETE** - Phase 1 + Phase 2.1 Advanced Clauses + Phase 2.2 Aggregates + Phase 3.1 Basic Associations (incl. Polymorphic) + Phase 3.2 Association Options + Phase 3.3 Association Features + Phase 4.1 Transactions + Phase 2.3 Join Improvements + Phase 7.1 CLI Enhancements
+- ✅ **ALL IMMEDIATE MVP FEATURES COMPLETE** - Phase 1 + Phase 2.1 Advanced Clauses + Phase 2.2 Aggregates + Phase 3.1 Basic Associations (incl. Polymorphic) + Phase 3.2 Association Options + Phase 3.3 Association Features + Phase 3.4 Eager Loading + Phase 4.1 Transactions + Phase 2.3 Join Improvements + Phase 7.1 CLI Enhancements
 - ✅ Phase 1: Core Model Features (CRUD, Validations, Callbacks, Attributes)
 - ✅ Phase 2.1: Advanced Clauses (GROUP BY, HAVING, DISTINCT)
 - ✅ Phase 2.2: Aggregates (count, sum, avg, min, max)
@@ -22,7 +22,7 @@ This roadmap outlines the planned development path for Ralph to become a product
 - Migration system with schema DSL
 - CLI with database operations and generators
 - Model base class with macros
-- **Comprehensive test coverage (420 tests, all passing)**
+- **Comprehensive test coverage (437 tests, all passing)**
 
 ---
 
@@ -137,11 +137,11 @@ This roadmap outlines the planned development path for Ralph to become a product
 - [x] Through associations (`has_many :tags, through: :posts`)
 - [ ] Nested attributes (`accepts_nested_attributes_for`) - Deferred to Phase 9
 
-### 3.4 Eager Loading
-- [ ] Preloading (separate queries)
-- [ ] Eager loading (LEFT JOIN)
-- [ ] Nested includes (`includes(posts: :comments)`)
-- [ ] Automatic N+1 detection/warnings
+### 3.4 Eager Loading ✅
+- [x] Preloading (separate queries)
+- [x] Eager loading via `Model.preload(models, :association)`
+- [x] Nested includes (`Model.preload(models, {posts: :comments})`)
+- [x] Automatic N+1 detection/warnings (`Ralph::EagerLoading.enable_n_plus_one_warnings!`)
 
 ---
 
@@ -341,7 +341,7 @@ This roadmap outlines the planned development path for Ralph to become a product
 
 **Medium-term (3-6 months):**
 13. Phase 3.3 - Association Features ✅
-14. Phase 3.4 - Eager Loading (advanced)
+14. Phase 3.4 - Eager Loading ✅
 15. Phase 2.4 - Subqueries
 16. Phase 5.1 - PostgreSQL Backend
 
