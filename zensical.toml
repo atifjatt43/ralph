@@ -35,7 +35,8 @@ nav = [
         {"Schema Builder" = "migrations/schema-builder.md"}
     ]},
     {"CLI" = [
-        {"Commands" = "cli/commands.md"}
+        {"Commands" = "cli/commands.md"},
+        {"Customization" = "cli/customization.md"}
     ]},
     {"API Reference" = "api/index.md"}
 ]

@@ -8,8 +8,15 @@ module Ralph
         @fields : Array(String)
         @table_name : String
         @class_name : String
+        @models_dir : String
+        @migrations_dir : String
 
-        def initialize(name : String, fields : Array(String))
+        def initialize(
+          name : String,
+          fields : Array(String),
+          @models_dir : String = "./src/models",
+          @migrations_dir : String = "./db/migrations"
+        )
           @name = name
           @fields = fields
           @class_name = name.camelcase
@@ -20,15 +27,14 @@ module Ralph
           create_model_file
           create_migration_file
           puts "Created model: #{@class_name}"
-          puts "  - src/models/#{@name.underscore}.cr"
-          puts "  - db/migrations/XXXX_create_#{@table_name}.cr"
+          puts "  - #{@models_dir}/#{@name.underscore}.cr"
+          puts "  - #{@migrations_dir}/XXXX_create_#{@table_name}.cr"
         end
 
         private def create_model_file
-          model_dir = "./src/models"
-          FileUtils.mkdir_p(model_dir)
+          FileUtils.mkdir_p(@models_dir)
 
-          model_file = File.join(model_dir, "#{@name.underscore}.cr")
+          model_file = File.join(@models_dir, "#{@name.underscore}.cr")
 
           if File.exists?(model_file)
             puts "Model file already exists: #{model_file}"
@@ -41,11 +47,10 @@ module Ralph
         end
 
         private def create_migration_file
-          migrations_dir = "./db/migrations"
-          FileUtils.mkdir_p(migrations_dir)
+          FileUtils.mkdir_p(@migrations_dir)
 
           timestamp = Time.utc.to_s("%Y%m%d%H%M%S")
-          migration_file = File.join(migrations_dir, "#{timestamp}_create_#{@table_name}.cr")
+          migration_file = File.join(@migrations_dir, "#{timestamp}_create_#{@table_name}.cr")
 
           content = generate_migration_content
 

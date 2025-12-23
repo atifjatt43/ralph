@@ -12,11 +12,16 @@ module Ralph
     # - Checking migration status
     class Runner
       @database_url : String?
-      @migrations_dir : String = "./db/migrations"
+      @migrations_dir : String
+      @models_dir : String
       @environment : String = ENV["RALPH_ENV"]? || "development"
       @output : IO
 
-      def initialize(@output : IO = STDOUT)
+      def initialize(
+        @output : IO = STDOUT,
+        @migrations_dir : String = "./db/migrations",
+        @models_dir : String = "./src/models"
+      )
       end
 
       # Run the CLI with the given arguments
@@ -82,10 +87,11 @@ module Ralph
           ralph generate:scaffold NAME
 
         Options:
-          -e, --env ENV     Environment (default: development)
-          -d, --database URL Database URL
-          -m, --migrations DIR  Migrations directory (default: ./db/migrations)
-          -h, --help        Show help
+          -e, --env ENV          Environment (default: development)
+          -d, --database URL     Database URL
+          -m, --migrations DIR   Migrations directory (default: ./db/migrations)
+          --models DIR           Models directory (default: ./src/models)
+          -h, --help             Show help
 
         Examples:
           ralph db:migrate
@@ -93,6 +99,7 @@ module Ralph
           ralph db:reset
           ralph db:setup
           ralph g:model User name:string email:string
+          ralph g:model User name:string -m ./custom/migrations --models ./src/app/models
           ralph g:scaffold Post title:string body:text
         HELP
       end
@@ -145,29 +152,59 @@ module Ralph
         end
 
         subcommand = args[0]
+        remaining_args = args[1..]
+
+        # Parse options for generate commands (after the subcommand)
+        name : String? = nil
+        fields = [] of String
+        
+        # Separate name/fields from flags
+        non_flag_args = [] of String
+        i = 0
+        while i < remaining_args.size
+          arg = remaining_args[i]
+          if arg.starts_with?("-")
+            # Handle flags
+            case arg
+            when "-m", "--migrations"
+              i += 1
+              @migrations_dir = remaining_args[i] if i < remaining_args.size
+            when "--models"
+              i += 1
+              @models_dir = remaining_args[i] if i < remaining_args.size
+            end
+          else
+            non_flag_args << arg
+          end
+          i += 1
+        end
 
         case subcommand
         when "migration", "m"
-          if args.size < 2
+          if non_flag_args.empty?
             @output.puts "Error: migration name required"
-            @output.puts "Usage: ralph g:migration NAME"
+            @output.puts "Usage: ralph g:migration NAME [-m DIR]"
             exit 1
           end
-          create_migration(args[1])
+          create_migration(non_flag_args[0])
         when "model"
-          if args.size < 2
+          if non_flag_args.empty?
             @output.puts "Error: model name required"
-            @output.puts "Usage: ralph g:model NAME [field:type ...]"
+            @output.puts "Usage: ralph g:model NAME [field:type ...] [-m DIR] [--models DIR]"
             exit 1
           end
-          generate_model(args[1], args[2..]? || [] of String)
+          name = non_flag_args[0]
+          fields = non_flag_args[1..]
+          generate_model(name, fields)
         when "scaffold"
-          if args.size < 2
+          if non_flag_args.empty?
             @output.puts "Error: scaffold name required"
-            @output.puts "Usage: ralph g:scaffold NAME [field:type ...]"
+            @output.puts "Usage: ralph g:scaffold NAME [field:type ...] [-m DIR] [--models DIR]"
             exit 1
           end
-          generate_scaffold(args[1], args[2..]? || [] of String)
+          name = non_flag_args[0]
+          fields = non_flag_args[1..]
+          generate_scaffold(name, fields)
         else
           @output.puts "Unknown generate command: #{subcommand}"
           exit 1
@@ -180,6 +217,7 @@ module Ralph
           parser.on("-e ENV", "--env ENV", "Environment") { |e| @environment = e }
           parser.on("-d URL", "--database URL", "Database URL") { |d| @database_url = d }
           parser.on("-m DIR", "--migrations DIR", "Migrations directory") { |m| @migrations_dir = m }
+          parser.on("--models DIR", "Models directory") { |m| @models_dir = m }
           parser.on("-h", "--help", "Show help") { @output.puts parser; exit 0 }
           parser.invalid_option do |flag|
             @output.puts "Error: Unknown option: #{flag}"
@@ -363,13 +401,13 @@ module Ralph
 
       # Generate a model with migration
       private def generate_model(name : String, fields : Array(String))
-        generator = Generators::ModelGenerator.new(name, fields)
+        generator = Generators::ModelGenerator.new(name, fields, @models_dir, @migrations_dir)
         generator.run
       end
 
       # Generate a full scaffold
       private def generate_scaffold(name : String, fields : Array(String))
-        generator = Generators::ScaffoldGenerator.new(name, fields)
+        generator = Generators::ScaffoldGenerator.new(name, fields, @models_dir, @migrations_dir)
         generator.run
       end
     end

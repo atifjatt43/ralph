@@ -6,8 +6,15 @@ module Ralph
         @fields : Array(String)
         @table_name : String
         @class_name : String
+        @models_dir : String
+        @migrations_dir : String
 
-        def initialize(name : String, fields : Array(String))
+        def initialize(
+          name : String,
+          fields : Array(String),
+          @models_dir : String = "./src/models",
+          @migrations_dir : String = "./db/migrations"
+        )
           @name = name
           @fields = fields
           @class_name = name.camelcase
@@ -16,14 +23,14 @@ module Ralph
 
         def run
           # Generate the model first
-          model_gen = ModelGenerator.new(@name, @fields)
+          model_gen = ModelGenerator.new(@name, @fields, @models_dir, @migrations_dir)
           model_gen.run
 
           # Generate additional scaffold files
           puts "\nScaffold generation complete!"
           puts "Generated files:"
-          puts "  - Model: src/models/#{@name.underscore}.cr"
-          puts "  - Migration: db/migrations/XXXX_create_#{@table_name}.cr"
+          puts "  - Model: #{@models_dir}/#{@name.underscore}.cr"
+          puts "  - Migration: #{@migrations_dir}/XXXX_create_#{@table_name}.cr"
           puts "\nNext steps:"
           puts "  1. Review the generated model file"
           puts "  2. Run: ralph db:migrate"
