@@ -981,13 +981,17 @@ module Ralph
     # publisher.reset_counter_cache!("books_count", Book, "publisher_id")
     # ```
     def self.reset_counter_cache(id, counter_column : String, child_class, foreign_key : String)
-      # Count actual children
+      # Count actual children using scalar (handles both SQLite and Postgres)
       child_table = child_class.table_name
       count_sql = "SELECT COUNT(*) FROM \"#{child_table}\" WHERE \"#{foreign_key}\" = ?"
-      result = Ralph.database.query_one(count_sql, args: [id])
+      result = Ralph.database.scalar(count_sql, args: [id])
       return unless result
-      count = result.read(Int32)
-      result.close
+
+      count = case result
+              when Int32 then result.to_i64
+              when Int64 then result
+              else            0_i64
+              end
 
       # Update the counter
       sql = "UPDATE \"#{self.table_name}\" SET \"#{counter_column}\" = ? WHERE \"#{self.primary_key}\" = ?"

@@ -1225,7 +1225,8 @@ module Ralph
       # Build a COUNT query
       def build_count(column : String = "*") : String
         where = @wheres.empty? ? "" : " WHERE #{build_where_clauses}"
-        "SELECT COUNT(\"#{column}\") FROM \"#{@table}\"#{where}"
+        count_expr = column == "*" ? "COUNT(*)" : "COUNT(\"#{column}\")"
+        "SELECT #{count_expr} FROM \"#{@table}\"#{where}"
       end
 
       # Build a SUM query

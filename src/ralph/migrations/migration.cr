@@ -49,15 +49,14 @@ module Ralph
         end
       end
 
-      # Create a new table
       def create_table(name : String, &block : Schema::TableDefinition ->)
-        definition = Schema::TableDefinition.new(name)
+        dialect = Schema::Dialect.current
+        definition = Schema::TableDefinition.new(name, dialect)
         block.call(definition)
 
         sql = definition.to_sql
         @database.execute(sql)
 
-        # Create indexes if any
         definition.indexes.each do |index|
           @database.execute(index.to_sql)
         end
@@ -68,9 +67,10 @@ module Ralph
         @database.execute("DROP TABLE IF EXISTS \"#{name}\"")
       end
 
-      # Add a column to an existing table
       def add_column(table : String, name : String, type : Symbol, **options)
-        column_def = Schema::ColumnDefinition.new(name, type, **options)
+        dialect = Schema::Dialect.current
+        opts = options.to_h.transform_values(&.as(String | Int32 | Int64 | Float64 | Bool | Symbol | Nil))
+        column_def = Schema::ColumnDefinition.new(name, type, dialect, opts)
         sql = "ALTER TABLE \"#{table}\" ADD COLUMN #{column_def.to_sql}"
         @database.execute(sql)
       end

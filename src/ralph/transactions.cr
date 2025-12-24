@@ -109,41 +109,37 @@ module Ralph
     # ```
     def self.transaction
       Ralph::Transactions.transaction_depth += 1
+      db = Ralph.database
 
       begin
         if Ralph::Transactions.transaction_depth > 1
-          # Nested transaction - use savepoints
           savepoint_name = "savepoint_#{Ralph::Transactions.transaction_depth}"
 
           begin
-            Ralph.database.execute("SAVEPOINT #{savepoint_name}")
+            db.execute(db.savepoint_sql(savepoint_name))
             yield
-            Ralph.database.execute("RELEASE SAVEPOINT #{savepoint_name}")
+            db.execute(db.release_savepoint_sql(savepoint_name))
           rescue ex : Exception
-            Ralph.database.execute("ROLLBACK TO SAVEPOINT #{savepoint_name}")
-            Ralph.database.execute("RELEASE SAVEPOINT #{savepoint_name}")
+            db.execute(db.rollback_to_savepoint_sql(savepoint_name))
+            db.execute(db.release_savepoint_sql(savepoint_name))
             raise ex
           end
         else
-          # Top-level transaction - use raw SQL to avoid yield-in-proc issue
           Ralph::Transactions.transaction_committed = false
 
           begin
-            Ralph.database.execute("BEGIN")
+            db.execute(db.begin_transaction_sql)
 
             begin
               yield
-              Ralph.database.execute("COMMIT")
+              db.execute(db.commit_sql)
               Ralph::Transactions.transaction_committed = true
 
-              # Transaction committed successfully
               Ralph::Transactions.run_after_commit_callbacks
             rescue ex : Exception
-              # Transaction was rolled back
               begin
-                Ralph.database.execute("ROLLBACK")
+                db.execute(db.rollback_sql)
               rescue
-                # Ignore rollback errors
               end
               Ralph::Transactions.transaction_committed = false
               Ralph::Transactions.run_after_rollback_callbacks
@@ -154,7 +150,6 @@ module Ralph
       ensure
         Ralph::Transactions.transaction_depth -= 1 if Ralph::Transactions.transaction_depth > 0
 
-        # If we're back to depth 0, clear callbacks
         if Ralph::Transactions.transaction_depth == 0
           Ralph::Transactions.clear_transaction_callbacks
         end
