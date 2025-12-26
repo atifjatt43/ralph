@@ -136,7 +136,7 @@ describe Ralph::Query::Builder do
     builder = Ralph::Query::Builder.new("users")
     sql = builder.build_count
 
-    sql.should eq("SELECT COUNT(\"*\") FROM \"users\"")
+    sql.should eq("SELECT COUNT(*) FROM \"users\"")
   end
 
   it "builds COUNT with WHERE clause" do
@@ -144,7 +144,7 @@ describe Ralph::Query::Builder do
       .where("age > ?", 18)
     sql = builder.build_count
 
-    sql.should eq("SELECT COUNT(\"*\") FROM \"users\" WHERE age > $1")
+    sql.should eq("SELECT COUNT(*) FROM \"users\" WHERE age > $1")
   end
 
   it "builds COUNT on specific column" do

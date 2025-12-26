@@ -1,6 +1,5 @@
 require "../../spec_helper"
 
-# Unit tests for Migrations::Schema classes
 describe Ralph::Migrations::Schema::TableDefinition do
   it "creates TableDefinition" do
     definition = Ralph::Migrations::Schema::TableDefinition.new("test_table")
@@ -36,7 +35,9 @@ describe Ralph::Migrations::Schema::TableDefinition do
   end
 
   it "creates TableDefinition with all column types" do
-    definition = Ralph::Migrations::Schema::TableDefinition.new("items")
+    # Test with SQLite dialect explicitly for deterministic output
+    sqlite_dialect = Ralph::Migrations::Schema::Dialect::Sqlite.new
+    definition = Ralph::Migrations::Schema::TableDefinition.new("items", sqlite_dialect)
     definition.primary_key
     definition.string("name", size: 100)
     definition.text("description")
@@ -87,11 +88,32 @@ describe Ralph::Migrations::Schema::TableDefinition do
     definition.indexes.size.should eq(1)
     definition.indexes[0].column.should eq("user_id")
   end
+
+  it "uses SQLite dialect when explicitly specified" do
+    sqlite_dialect = Ralph::Migrations::Schema::Dialect::Sqlite.new
+    definition = Ralph::Migrations::Schema::TableDefinition.new("users", sqlite_dialect)
+    definition.primary_key
+
+    sql = definition.to_sql
+    sql.should contain("INTEGER PRIMARY KEY AUTOINCREMENT")
+  end
+
+  it "uses Postgres dialect when specified" do
+    postgres_dialect = Ralph::Migrations::Schema::Dialect::Postgres.new
+    definition = Ralph::Migrations::Schema::TableDefinition.new("users", postgres_dialect)
+    definition.primary_key
+
+    sql = definition.to_sql
+    sql.should contain("BIGSERIAL PRIMARY KEY")
+  end
 end
 
 describe Ralph::Migrations::Schema::ColumnDefinition do
+  dialect = Ralph::Migrations::Schema::Dialect::Sqlite.new
+
   it "creates ColumnDefinition with SQL" do
-    column = Ralph::Migrations::Schema::ColumnDefinition.new("title", :string, size: 100)
+    opts = {:size => 100} of Symbol => String | Int32 | Int64 | Float64 | Bool | Symbol | Nil
+    column = Ralph::Migrations::Schema::ColumnDefinition.new("title", :string, dialect, opts)
     sql = column.to_sql
 
     sql.should contain("\"title\"")
@@ -99,24 +121,41 @@ describe Ralph::Migrations::Schema::ColumnDefinition do
   end
 
   it "creates ColumnDefinition with NOT NULL" do
-    column = Ralph::Migrations::Schema::ColumnDefinition.new("email", :string, size: 255, null: false)
+    opts = {:size => 255, :null => false} of Symbol => String | Int32 | Int64 | Float64 | Bool | Symbol | Nil
+    column = Ralph::Migrations::Schema::ColumnDefinition.new("email", :string, dialect, opts)
     sql = column.to_sql
 
     sql.should contain("NOT NULL")
   end
 
   it "creates ColumnDefinition with default value" do
-    column = Ralph::Migrations::Schema::ColumnDefinition.new("status", :string, size: 50, default: "pending")
+    opts = {:size => 50, :default => "pending"} of Symbol => String | Int32 | Int64 | Float64 | Bool | Symbol | Nil
+    column = Ralph::Migrations::Schema::ColumnDefinition.new("status", :string, dialect, opts)
     sql = column.to_sql
 
     sql.should contain("DEFAULT 'pending'")
   end
 
   it "creates ColumnDefinition with integer default" do
-    column = Ralph::Migrations::Schema::ColumnDefinition.new("views", :integer, default: 0)
+    opts = {:default => 0} of Symbol => String | Int32 | Int64 | Float64 | Bool | Symbol | Nil
+    column = Ralph::Migrations::Schema::ColumnDefinition.new("views", :integer, dialect, opts)
     sql = column.to_sql
 
     sql.should contain("DEFAULT 0")
+  end
+
+  it "uses Postgres types when dialect is Postgres" do
+    pg_dialect = Ralph::Migrations::Schema::Dialect::Postgres.new
+    opts = {} of Symbol => String | Int32 | Int64 | Float64 | Bool | Symbol | Nil
+    
+    float_col = Ralph::Migrations::Schema::ColumnDefinition.new("price", :float, pg_dialect, opts)
+    float_col.to_sql.should contain("DOUBLE PRECISION")
+
+    uuid_col = Ralph::Migrations::Schema::ColumnDefinition.new("external_id", :uuid, pg_dialect, opts)
+    uuid_col.to_sql.should contain("UUID")
+
+    jsonb_col = Ralph::Migrations::Schema::ColumnDefinition.new("data", :jsonb, pg_dialect, opts)
+    jsonb_col.to_sql.should contain("JSONB")
   end
 end
 
@@ -133,5 +172,27 @@ describe Ralph::Migrations::Schema::IndexDefinition do
     sql = index.to_sql
 
     sql.should eq("CREATE UNIQUE INDEX IF NOT EXISTS \"unique_email\" ON \"users\" (\"email\")")
+  end
+end
+
+describe Ralph::Migrations::Schema::Dialect do
+  it "returns dialect matching current database backend" do
+    # The dialect is set based on the configured database backend
+    expected_dialect = Ralph.database.dialect
+    Ralph::Migrations::Schema::Dialect.current.identifier.should eq(expected_dialect)
+  end
+
+  it "can switch to Postgres dialect" do
+    original = Ralph::Migrations::Schema::Dialect.current
+    Ralph::Migrations::Schema::Dialect.current = Ralph::Migrations::Schema::Dialect::Postgres.new
+    Ralph::Migrations::Schema::Dialect.current.identifier.should eq(:postgres)
+    Ralph::Migrations::Schema::Dialect.current = original
+  end
+
+  it "can switch to SQLite dialect" do
+    original = Ralph::Migrations::Schema::Dialect.current
+    Ralph::Migrations::Schema::Dialect.current = Ralph::Migrations::Schema::Dialect::Sqlite.new
+    Ralph::Migrations::Schema::Dialect.current.identifier.should eq(:sqlite)
+    Ralph::Migrations::Schema::Dialect.current = original
   end
 end

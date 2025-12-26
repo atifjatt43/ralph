@@ -29,21 +29,17 @@ module Ralph
       RalphTestHelper.setup_test_database
 
       # Create test tables
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS trans_test_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255)
-      )
-      SQL
+      TestSchema.create_table("trans_test_users") do |t|
+        t.primary_key
+        t.string("name")
+        t.string("email")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS trans_test_posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        user_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("trans_test_posts") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("user_id")
+      end
     end
 
     after_all do

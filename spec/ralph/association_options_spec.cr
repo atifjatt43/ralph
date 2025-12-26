@@ -266,150 +266,112 @@ module Ralph
       RalphTestHelper.setup_test_database
 
       # Create tables for class_name tests
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_persons (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_persons") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_blog_posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        author_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_blog_posts") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("author_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_user_images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url VARCHAR(255) NOT NULL,
-        owner_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_user_images") do |t|
+        t.primary_key
+        t.string("url")
+        t.bigint("owner_id")
+      end
 
       # Create tables for foreign_key tests
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_companies (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_companies") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL,
-        employer_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_employees") do |t|
+        t.primary_key
+        t.string("name")
+        t.bigint("employer_id")
+      end
 
       # Create tables for dependent tests
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_publishers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_publishers") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_books (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        publisher_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_books") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("publisher_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_libraries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_libraries") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_magazines (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        library_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_magazines") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("library_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_authors (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_authors") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_essays (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        author_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_essays") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("author_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_restricted_publishers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_restricted_publishers") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_documents (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        restricted_publisher_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_documents") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("restricted_publisher_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_strict_publishers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_strict_publishers") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_papers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        strict_publisher_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_papers") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("strict_publisher_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_users") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_profiles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bio VARCHAR(500),
-        user_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_profiles") do |t|
+        t.primary_key
+        t.string("bio", size: 500)
+        t.bigint("user_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_accounts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_accounts") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_opts_account_settings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        theme VARCHAR(255),
-        account_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_opts_account_settings") do |t|
+        t.primary_key
+        t.string("theme")
+        t.bigint("account_id")
+      end
     end
 
     after_all do

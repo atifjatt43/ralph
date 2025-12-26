@@ -100,36 +100,28 @@ module Ralph
       RalphTestHelper.setup_test_database
 
       # Create tables for associations
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_test_authors (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("assoc_test_authors") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_test_profiles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bio_text VARCHAR(500),
-        author_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_test_profiles") do |t|
+        t.primary_key
+        t.string("bio_text", size: 500)
+        t.bigint("author_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_test_articles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        author_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_test_articles") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("author_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS assoc_test_comments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        body VARCHAR(500) NOT NULL,
-        article_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("assoc_test_comments") do |t|
+        t.primary_key
+        t.string("body", size: 500)
+        t.bigint("article_id")
+      end
 
       # Insert test data
       author1 = AssociationTests::Author.create(name: "Alice")

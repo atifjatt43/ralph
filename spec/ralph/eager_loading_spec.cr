@@ -102,51 +102,39 @@ module Ralph
       RalphTestHelper.setup_test_database
 
       # Create tables
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS eager_test_publishers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("eager_test_publishers") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS eager_test_books (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        publisher_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("eager_test_books") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("publisher_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS eager_test_chapters (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        book_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("eager_test_chapters") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("book_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS eager_test_writers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("eager_test_writers") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS eager_test_biographies (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        content TEXT,
-        writer_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("eager_test_biographies") do |t|
+        t.primary_key
+        t.text("content")
+        t.bigint("writer_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS eager_test_articles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        writer_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("eager_test_articles") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("writer_id")
+      end
 
       EagerLoadingTests.setup_test_data
     end

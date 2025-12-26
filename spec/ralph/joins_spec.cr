@@ -86,39 +86,31 @@ module Ralph
       RalphTestHelper.setup_test_database
 
       # Create test tables
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS join_test_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255)
-      )
-      SQL
+      TestSchema.create_table("join_test_users") do |t|
+        t.primary_key
+        t.string("name")
+        t.string("email")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS join_test_posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        content TEXT,
-        user_id INTEGER,
-        author_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("join_test_posts") do |t|
+        t.primary_key
+        t.string("title")
+        t.text("content")
+        t.bigint("user_id")
+        t.bigint("author_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS join_test_comments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        body TEXT NOT NULL,
-        post_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("join_test_comments") do |t|
+        t.primary_key
+        t.text("body")
+        t.bigint("post_id")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS profile (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bio TEXT,
-        join_assoc_user_id INTEGER
-      )
-      SQL
+      TestSchema.create_table("profile") do |t|
+        t.primary_key
+        t.text("bio")
+        t.bigint("join_assoc_user_id")
+      end
     end
 
     after_all do

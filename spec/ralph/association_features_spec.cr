@@ -162,81 +162,63 @@ module Ralph
       RalphTestHelper.setup_test_database
 
       # Create tables for counter cache tests
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_publishers (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name VARCHAR(255) NOT NULL,
-          books_count INTEGER DEFAULT 0,
-          updated_at TIMESTAMP
-        )
-      SQL
+      TestSchema.create_table("af_publishers") do |t|
+        t.primary_key
+        t.string("name")
+        t.integer("books_count", default: 0)
+        t.timestamp("updated_at")
+      end
 
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_books (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title VARCHAR(255) NOT NULL,
-          published BOOLEAN DEFAULT 0,
-          publisher_id INTEGER NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_books") do |t|
+        t.primary_key
+        t.string("title")
+        t.boolean("published", default: false)
+        t.bigint("publisher_id")
+      end
 
       # Create tables for association scoping tests
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_libraries (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name VARCHAR(255) NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_libraries") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_magazines (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name VARCHAR(255) NOT NULL,
-          published BOOLEAN DEFAULT 0,
-          year INTEGER DEFAULT 2024,
-          library_id INTEGER NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_magazines") do |t|
+        t.primary_key
+        t.string("name")
+        t.boolean("published", default: false)
+        t.integer("year", default: 2024)
+        t.bigint("library_id")
+      end
 
       # Create tables for through association tests
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_students (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name VARCHAR(255) NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_students") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_courses (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title VARCHAR(255) NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_courses") do |t|
+        t.primary_key
+        t.string("title")
+      end
 
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_enrollments (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          grade VARCHAR(10),
-          student_id INTEGER NOT NULL,
-          course_id INTEGER NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_enrollments") do |t|
+        t.primary_key
+        t.string("grade", size: 10)
+        t.bigint("student_id")
+        t.bigint("course_id")
+      end
 
       # Create tables for auto FK tests
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_authors (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name VARCHAR(255) NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_authors") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-        CREATE TABLE IF NOT EXISTS af_articles (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title VARCHAR(255) NOT NULL,
-          author_id INTEGER NOT NULL
-        )
-      SQL
+      TestSchema.create_table("af_articles") do |t|
+        t.primary_key
+        t.string("title")
+        t.bigint("author_id")
+      end
     end
 
     after_all do

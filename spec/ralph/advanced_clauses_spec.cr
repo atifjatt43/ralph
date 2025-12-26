@@ -18,18 +18,15 @@ module Ralph
     before_all do
       RalphTestHelper.setup_test_database
 
-      # Create posts table with test data
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS posts_advanced (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL,
-        category VARCHAR(100),
-        views INTEGER DEFAULT 0,
-        published BOOLEAN
-      )
-      SQL
+      TestSchema.drop_table("posts_advanced")
+      TestSchema.create_table("posts_advanced") do |t|
+        t.primary_key
+        t.string("title")
+        t.string("category", size: 100)
+        t.integer("views", default: 0)
+        t.boolean("published")
+      end
 
-      # Insert test data
       AdvancedClausesTestModel.create(title: "Post 1", category: "tech", views: 100, published: true)
       AdvancedClausesTestModel.create(title: "Post 2", category: "tech", views: 200, published: true)
       AdvancedClausesTestModel.create(title: "Post 3", category: "tech", views: 150, published: false)

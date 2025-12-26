@@ -126,76 +126,58 @@ module Ralph
       RalphTestHelper.setup_test_database
 
       # Create tables for has_many polymorphic tests
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("poly_test_posts") do |t|
+        t.primary_key
+        t.string("title")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_articles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("poly_test_articles") do |t|
+        t.primary_key
+        t.string("title")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_comments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        body VARCHAR(500) NOT NULL,
-        commentable_id INTEGER,
-        commentable_type VARCHAR(255)
-      )
-      SQL
+      TestSchema.create_table("poly_test_comments") do |t|
+        t.primary_key
+        t.string("body", size: 500)
+        t.bigint("commentable_id")
+        t.string("commentable_type")
+      end
 
       # Create tables for has_one polymorphic tests
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("poly_test_users") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_companies (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("poly_test_companies") do |t|
+        t.primary_key
+        t.string("name")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_profiles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bio VARCHAR(500),
-        profileable_id INTEGER,
-        profileable_type VARCHAR(255)
-      )
-      SQL
+      TestSchema.create_table("poly_test_profiles") do |t|
+        t.primary_key
+        t.string("bio", size: 500)
+        t.bigint("profileable_id")
+        t.string("profileable_type")
+      end
 
       # Create tables for dependent option tests
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_photos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("poly_test_photos") do |t|
+        t.primary_key
+        t.string("url")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_videos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url VARCHAR(255) NOT NULL
-      )
-      SQL
+      TestSchema.create_table("poly_test_videos") do |t|
+        t.primary_key
+        t.string("url")
+      end
 
-      Ralph.database.execute <<-SQL
-      CREATE TABLE IF NOT EXISTS poly_test_tags (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255) NOT NULL,
-        taggable_id INTEGER,
-        taggable_type VARCHAR(255)
-      )
-      SQL
+      TestSchema.create_table("poly_test_tags") do |t|
+        t.primary_key
+        t.string("name")
+        t.bigint("taggable_id")
+        t.string("taggable_type")
+      end
     end
 
     after_all do
