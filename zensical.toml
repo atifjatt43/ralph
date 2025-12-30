@@ -21,6 +21,7 @@ nav = [
     {"Models" = [
         {"Introduction" = "models/introduction.md"},
         {"CRUD Operations" = "models/crud-operations.md"},
+        {"Advanced Types" = "models/types.md"},
         {"Associations" = "models/associations.md"},
         {"Validations" = "models/validations.md"},
         {"Callbacks" = "models/callbacks.md"},

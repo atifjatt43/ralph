@@ -45,13 +45,26 @@ column name, Type, primary: false, default: nil
 
 Ralph uses standard Crystal types, which it maps to the underlying database types:
 
-| Crystal Type      | SQLite Type | Notes                        |
-| :---------------- | :---------- | :--------------------------- |
-| `Int64` / `Int32` | `INTEGER`   | Use `Int64` for primary keys |
-| `String`          | `TEXT`      |                              |
-| `Bool`            | `INTEGER`   | Stored as 0 or 1             |
-| `Time`            | `DATETIME`  |                              |
-| `Float64`         | `REAL`      |                              |
+| Crystal Type      | SQLite Type | PostgreSQL Type | Notes                        |
+| :---------------- | :---------- | :-------------- | :--------------------------- |
+| `Int64` / `Int32` | `INTEGER`   | `BIGINT` / `INT` | Use `Int64` for primary keys |
+| `String`          | `TEXT`      | `VARCHAR` / `TEXT` |                              |
+| `Bool`            | `INTEGER`   | `BOOLEAN`   | SQLite: 0 or 1               |
+| `Time`            | `DATETIME`  | `TIMESTAMP` |                              |
+| `Float64`         | `REAL`      | `DOUBLE PRECISION` |                              |
+
+### Advanced Types
+
+Ralph provides built-in support for advanced database types with automatic backend adaptation:
+
+| Crystal Type      | Purpose | PostgreSQL | SQLite | Documentation |
+| :---------------- | :------ | :--------- | :----- | :------------ |
+| `Enum`            | Enumerated values | Native ENUM or VARCHAR | VARCHAR with CHECK | [Types Guide](./types.md#enum-types) |
+| `JSON::Any`       | JSON documents | JSONB or JSON | TEXT with json_valid | [Types Guide](./types.md#jsonjsonb-types) |
+| `UUID`            | Unique identifiers | Native UUID | CHAR(36) | [Types Guide](./types.md#uuid-types) |
+| `Array(T)`        | Homogeneous arrays | Native arrays | JSON arrays | [Types Guide](./types.md#array-types) |
+
+For comprehensive documentation on advanced types including usage examples, query operators, and custom type creation, see the **[Advanced Types Guide](./types.md)**.
 
 ### Nullable Columns
 
