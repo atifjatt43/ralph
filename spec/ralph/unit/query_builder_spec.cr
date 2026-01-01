@@ -239,4 +239,103 @@ describe Ralph::Query::Builder do
       merged.build_select.should eq("SELECT * FROM \"users\" WHERE active = $1 AND age > $2 ORDER BY \"name\" ASC")
     end
   end
+
+  describe "Row Locking (FOR UPDATE, FOR SHARE)" do
+    it "adds FOR UPDATE clause" do
+      builder = Ralph::Query::Builder.new("users")
+        .where("id = ?", 1)
+        .for_update
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" WHERE id = $1 FOR UPDATE")
+    end
+
+    it "adds FOR UPDATE NOWAIT clause" do
+      builder = Ralph::Query::Builder.new("users")
+        .where("id = ?", 1)
+        .for_update(:nowait)
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" WHERE id = $1 FOR UPDATE NOWAIT")
+    end
+
+    it "adds FOR UPDATE SKIP LOCKED clause" do
+      builder = Ralph::Query::Builder.new("users")
+        .where("active = ?", true)
+        .for_update(:skip_locked)
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" WHERE active = $1 FOR UPDATE SKIP LOCKED")
+    end
+
+    it "adds FOR SHARE clause" do
+      builder = Ralph::Query::Builder.new("users")
+        .where("id = ?", 1)
+        .for_share
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" WHERE id = $1 FOR SHARE")
+    end
+
+    it "adds FOR SHARE SKIP LOCKED clause" do
+      builder = Ralph::Query::Builder.new("users")
+        .where("active = ?", true)
+        .for_share(:skip_locked)
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" WHERE active = $1 FOR SHARE SKIP LOCKED")
+    end
+
+    it "supports generic lock method" do
+      builder = Ralph::Query::Builder.new("users")
+        .lock(:update, option: :nowait)
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" FOR UPDATE NOWAIT")
+    end
+
+    it "supports PostgreSQL-specific NO KEY UPDATE" do
+      builder = Ralph::Query::Builder.new("users")
+        .lock(:no_key_update)
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" FOR NO KEY UPDATE")
+    end
+
+    it "supports PostgreSQL-specific KEY SHARE" do
+      builder = Ralph::Query::Builder.new("users")
+        .lock(:key_share)
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" FOR KEY SHARE")
+    end
+
+    it "supports locking specific tables" do
+      builder = Ralph::Query::Builder.new("users")
+        .join("orders", "users.id = orders.user_id")
+        .lock(:update, tables: ["users", "orders"])
+
+      sql = builder.build_select
+      sql.should contain("FOR UPDATE OF \"users\", \"orders\"")
+    end
+
+    it "does not mutate original builder when adding lock" do
+      base = Ralph::Query::Builder.new("users")
+      with_lock = base.for_update
+
+      base.build_select.should eq("SELECT * FROM \"users\"")
+      with_lock.build_select.should eq("SELECT * FROM \"users\" FOR UPDATE")
+    end
+
+    it "applies lock after ORDER BY, LIMIT, OFFSET" do
+      builder = Ralph::Query::Builder.new("users")
+        .order("id", :asc)
+        .limit(10)
+        .offset(5)
+        .for_update
+
+      sql = builder.build_select
+      sql.should eq("SELECT * FROM \"users\" ORDER BY \"id\" ASC LIMIT 10 OFFSET 5 FOR UPDATE")
+    end
+  end
 end

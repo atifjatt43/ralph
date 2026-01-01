@@ -7,9 +7,9 @@ This roadmap outlines the planned development path for Ralph to become a product
 **Current Version:** 0.1.0
 
 **What's Working:**
-- ✅ **ALL IMMEDIATE MVP FEATURES COMPLETE** - Phase 1 + Phase 2.1 Advanced Clauses + Phase 2.2 Aggregates + Phase 3.1 Basic Associations (incl. Polymorphic) + Phase 3.2 Association Options + Phase 3.3 Association Features + Phase 3.4 Eager Loading + Phase 4.1 Transactions + Phase 2.3 Join Improvements + Phase 7.1 CLI Enhancements + Phase 6.1 Built-in Types + Phase 6.2 Custom Types
+- ✅ **ALL IMMEDIATE MVP FEATURES COMPLETE** - Phase 1 + Phase 2.1 Advanced Clauses + Phase 2.2 Aggregates + Phase 3.1 Basic Associations (incl. Polymorphic) + Phase 3.2 Association Options + Phase 3.3 Association Features + Phase 3.4 Eager Loading + Phase 4.1 Transactions + Phase 2.3 Join Improvements + Phase 7.1 CLI Enhancements + Phase 6.1 Built-in Types + Phase 6.2 Custom Types + Phase 4.4 Schema Features (partial)
 - ✅ Phase 1: Core Model Features (CRUD, Validations, Callbacks, Attributes)
-- ✅ Phase 2.1: Advanced Clauses (GROUP BY, HAVING, DISTINCT)
+- ✅ Phase 2.1: Advanced Clauses (GROUP BY, HAVING, DISTINCT, FOR UPDATE/SHARE locking)
 - ✅ Phase 2.2: Aggregates (count, sum, avg, min, max)
 - ✅ Phase 3.1: Basic Associations (belongs_to, has_one, has_many, polymorphic)
 - ✅ Phase 3.2: Association Options (class_name, foreign_key, dependent behaviors)
@@ -20,13 +20,15 @@ This roadmap outlines the planned development path for Ralph to become a product
 - ✅ Phase 5.1: PostgreSQL Backend
 - ✅ Phase 6.1: Built-in Types (Enum, JSON/JSONB, UUID, Arrays)
 - ✅ Phase 6.2: Custom Types (Type system infrastructure, backend-agnostic type support)
+- ✅ Phase 4.4: Schema Features (foreign keys, change_column, rename_table, explicit null: parameter)
 - Pluggable backend architecture with SQLite and PostgreSQL implementation
 - Query builder with SELECT, INSERT, UPDATE, DELETE
-- Migration system with schema DSL
+- Migration system with schema DSL (including FK constraints)
 - CLI with database operations and generators
 - Model base class with macros
 - Advanced type system with backend-specific support
-- **Comprehensive test coverage (497 tests, all passing)**
+- Validation errors with structured error codes for i18n support
+- **Comprehensive test coverage (528 tests, all passing)**
 
 ---
 
@@ -80,8 +82,8 @@ This roadmap outlines the planned development path for Ralph to become a product
 - [x] `having` clause for GROUP BY filtering
 - [x] `group` clause for aggregation
 - [x] Distinct select (`distinct` / `distinct(column)`)
-- [ ] `for_update` - SELECT FOR UPDATE locking
-- [ ] `lock` clause variants
+- [x] `for_update` - SELECT FOR UPDATE locking
+- [x] `lock` clause variants (FOR SHARE, NOWAIT, SKIP LOCKED)
 
 ### 2.2 Aggregates ✅
 - [x] `count` / `count(column)`
@@ -169,14 +171,15 @@ This roadmap outlines the planned development path for Ralph to become a product
 - [ ] Per-model database connection
 - [ ] Cross-database associations
 
-### 4.4 Schema Features
-- [ ] Add/drop columns
-- [ ] Rename columns/tables
-- [ ] Change column types
-- [ ] Add/drop indexes
-- [ ] Foreign key constraints
+### 4.4 Schema Features ✅ PARTIAL
+- [x] Add/drop columns (`add_column`, `remove_column`)
+- [x] Rename columns/tables (`rename_column`, `rename_table`)
+- [x] Change column types/null/default (`change_column`, `change_column_type`, `change_column_null`, `change_column_default`)
+- [x] Add/drop indexes (`add_index`, `remove_index`)
+- [x] Foreign key constraints (`add_foreign_key`, `remove_foreign_key`, `reference` with `on_delete`/`on_update`)
+- [x] Explicit NULL/NOT NULL on all column types (`null: false` parameter)
 - [ ] Check constraints
-- [ ] Unique constraints
+- [ ] Unique constraints (partial - available via `add_index(..., unique: true)`)
 
 ---
 

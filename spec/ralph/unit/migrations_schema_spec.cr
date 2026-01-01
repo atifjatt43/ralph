@@ -196,3 +196,171 @@ describe Ralph::Migrations::Schema::Dialect do
     Ralph::Migrations::Schema::Dialect.current = original
   end
 end
+
+describe "Schema DSL null: parameter" do
+  dialect = Ralph::Migrations::Schema::Dialect::Sqlite.new
+
+  it "creates NOT NULL column with null: false" do
+    definition = Ralph::Migrations::Schema::TableDefinition.new("users", dialect)
+    definition.primary_key
+    definition.string("name", null: false)
+
+    sql = definition.to_sql
+    sql.should contain("\"name\" VARCHAR(255) NOT NULL")
+  end
+
+  it "creates nullable column by default (null: true)" do
+    definition = Ralph::Migrations::Schema::TableDefinition.new("users", dialect)
+    definition.primary_key
+    definition.string("name")
+
+    sql = definition.to_sql
+    sql.should contain("\"name\" VARCHAR(255)")
+    sql.should_not contain("NOT NULL")
+  end
+
+  it "supports null: parameter on all column types" do
+    definition = Ralph::Migrations::Schema::TableDefinition.new("test", dialect)
+    definition.string("s", null: false)
+    definition.text("t", null: false)
+    definition.integer("i", null: false)
+    definition.bigint("b", null: false)
+    definition.float("f", null: false)
+    definition.boolean("bo", null: false)
+    definition.date("d", null: false)
+    definition.timestamp("ts", null: false)
+
+    sql = definition.to_sql
+    sql.scan(/NOT NULL/).size.should eq(8)
+  end
+
+  it "combines null: false with default value" do
+    definition = Ralph::Migrations::Schema::TableDefinition.new("users", dialect)
+    definition.string("status", null: false, default: "active")
+
+    sql = definition.to_sql
+    sql.should contain("NOT NULL")
+    sql.should contain("DEFAULT 'active'")
+  end
+end
+
+describe Ralph::Migrations::Schema::ForeignKeyDefinition do
+  it "generates inline foreign key SQL" do
+    fk = Ralph::Migrations::Schema::ForeignKeyDefinition.new(
+      from_table: "posts",
+      from_column: "user_id",
+      to_table: "users",
+      to_column: "id"
+    )
+
+    sql = fk.to_inline_sql
+    sql.should contain("CONSTRAINT")
+    sql.should contain("FOREIGN KEY (\"user_id\")")
+    sql.should contain("REFERENCES \"users\" (\"id\")")
+  end
+
+  it "generates ON DELETE CASCADE" do
+    fk = Ralph::Migrations::Schema::ForeignKeyDefinition.new(
+      from_table: "posts",
+      from_column: "user_id",
+      to_table: "users",
+      to_column: "id",
+      on_delete: :cascade
+    )
+
+    sql = fk.to_inline_sql
+    sql.should contain("ON DELETE CASCADE")
+  end
+
+  it "generates ON UPDATE SET NULL" do
+    fk = Ralph::Migrations::Schema::ForeignKeyDefinition.new(
+      from_table: "posts",
+      from_column: "user_id",
+      to_table: "users",
+      to_column: "id",
+      on_update: :nullify
+    )
+
+    sql = fk.to_inline_sql
+    sql.should contain("ON UPDATE SET NULL")
+  end
+
+  it "generates ADD CONSTRAINT SQL" do
+    fk = Ralph::Migrations::Schema::ForeignKeyDefinition.new(
+      from_table: "posts",
+      from_column: "user_id",
+      to_table: "users",
+      to_column: "id",
+      on_delete: :restrict
+    )
+
+    sql = fk.to_add_sql
+    sql.should contain("ALTER TABLE \"posts\" ADD CONSTRAINT")
+    sql.should contain("ON DELETE RESTRICT")
+  end
+
+  it "generates DROP CONSTRAINT SQL" do
+    fk = Ralph::Migrations::Schema::ForeignKeyDefinition.new(
+      from_table: "posts",
+      from_column: "user_id",
+      to_table: "users",
+      to_column: "id"
+    )
+
+    sql = fk.to_drop_sql
+    sql.should eq("ALTER TABLE \"posts\" DROP CONSTRAINT \"fk_posts_user_id\"")
+  end
+
+  it "uses custom constraint name" do
+    fk = Ralph::Migrations::Schema::ForeignKeyDefinition.new(
+      from_table: "posts",
+      from_column: "user_id",
+      to_table: "users",
+      to_column: "id",
+      name: "my_custom_fk"
+    )
+
+    fk.constraint_name.should eq("my_custom_fk")
+    fk.to_drop_sql.should contain("\"my_custom_fk\"")
+  end
+end
+
+describe "TableDefinition foreign_key method" do
+  dialect = Ralph::Migrations::Schema::Dialect::Sqlite.new
+
+  it "adds foreign key constraint via foreign_key method" do
+    definition = Ralph::Migrations::Schema::TableDefinition.new("posts", dialect)
+    definition.primary_key
+    definition.bigint("user_id", null: false)
+    definition.foreign_key("users", on_delete: :cascade)
+
+    sql = definition.to_sql
+    sql.should contain("FOREIGN KEY")
+    sql.should contain("ON DELETE CASCADE")
+  end
+
+  it "adds inline FK via reference with on_delete" do
+    definition = Ralph::Migrations::Schema::TableDefinition.new("posts", dialect)
+    definition.primary_key
+    definition.reference("user", null: false, on_delete: :cascade)
+
+    sql = definition.to_sql
+    sql.should contain("\"user_id\"")
+    sql.should contain("FOREIGN KEY")
+    sql.should contain("ON DELETE CASCADE")
+  end
+end
+
+describe "timestamps_not_null" do
+  dialect = Ralph::Migrations::Schema::Dialect::Sqlite.new
+
+  it "creates NOT NULL timestamp columns" do
+    definition = Ralph::Migrations::Schema::TableDefinition.new("posts", dialect)
+    definition.primary_key
+    definition.timestamps_not_null
+
+    sql = definition.to_sql
+    sql.should contain("\"created_at\" TIMESTAMP NOT NULL")
+    sql.should contain("\"updated_at\" TIMESTAMP NOT NULL")
+  end
+end

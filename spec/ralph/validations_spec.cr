@@ -141,5 +141,73 @@ module Ralph
         model.errors.empty?.should be_true
       end
     end
+
+    describe "structured errors (error codes)" do
+      it "provides error codes via errors_for" do
+        model = BlockValidationModel.new(name: "", email: "invalid")
+        model.valid?
+
+        name_errors = model.errors.errors_for("name")
+        name_errors.size.should eq(1)
+        # Custom message errors infer code from message
+        name_errors[0].code.should eq(:blank)
+      end
+
+      it "returns error details for i18n" do
+        model = BlockValidationModel.new(name: "", email: "invalid")
+        model.valid?
+
+        details = model.errors.details
+        details.has_key?("name").should be_true
+        details["name"][0][:error].should eq(:blank)
+      end
+
+      it "provides codes_for helper method" do
+        model = BlockValidationModel.new(name: "", email: "invalid")
+        model.valid?
+
+        model.errors.codes_for("name").should eq([:blank])
+      end
+
+      it "has_error? checks for specific error code" do
+        model = BlockValidationModel.new(name: "", email: "invalid")
+        model.valid?
+
+        model.errors.has_error?("name", :blank).should be_true
+        model.errors.has_error?("name", :taken).should be_false
+      end
+
+      it "iterates over errors with each_error" do
+        model = BlockValidationModel.new(name: "", email: "invalid")
+        model.valid?
+
+        error_pairs = [] of Tuple(String, Symbol)
+        model.errors.each_error do |attr, err|
+          error_pairs << {attr, err.code}
+        end
+
+        error_pairs.should contain({"name", :blank})
+      end
+
+      it "merges errors from another errors object" do
+        errors1 = Validations::Errors.new
+        errors1.add("name", :blank)
+
+        errors2 = Validations::Errors.new
+        errors2.add("email", :invalid)
+
+        errors1.merge!(errors2)
+        errors1.include?("name").should be_true
+        errors1.include?("email").should be_true
+      end
+
+      it "supports messages hash for backward compatibility" do
+        model = BlockValidationModel.new(name: "", email: "invalid")
+        model.valid?
+
+        messages = model.errors.messages
+        messages["name"].should eq(["can't be blank"])
+      end
+    end
   end
 end

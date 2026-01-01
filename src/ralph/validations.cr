@@ -37,10 +37,6 @@ module Ralph
     # validates_presence_of :email, message: "is required"
     # ```
     macro validates_presence_of(attribute, message = nil)
-      {%
-        msg = message || "can't be blank"
-      %}
-
       def _ralph_validate_presence_{{attribute.id}} : Nil
         %value = @{{attribute.id}}
         %is_blank = case %value
@@ -51,7 +47,11 @@ module Ralph
         end
 
         if %is_blank
-          errors.add({{attribute.id.stringify}}, {{msg}})
+          {% if message %}
+            errors.add({{attribute.id.stringify}}, :blank, {{message}})
+          {% else %}
+            errors.add({{attribute.id.stringify}}, :blank)
+          {% end %}
         end
       end
     end
@@ -79,18 +79,30 @@ module Ralph
             {% range_min = range.begin %}
             {% range_max = range.end %}
             if %length < {{range_min}} || %length > {{range_max}}
-              errors.add({{attribute.id.stringify}}, {{message || "is the wrong length (should be within #{range_min}..#{range_max})"}})
+              {% if message %}
+                errors.add({{attribute.id.stringify}}, :wrong_length, {{message}}, count: {{range_max}} - {{range_min}})
+              {% else %}
+                errors.add({{attribute.id.stringify}}, :wrong_length, minimum: {{range_min}}, maximum: {{range_max}})
+              {% end %}
             end
           {% else %}
             {% if min_val %}
               if %length < {{min_val}}
-                errors.add({{attribute.id.stringify}}, {{message || "is too short (minimum is #{min_val} characters)"}})
+                {% if message %}
+                  errors.add({{attribute.id.stringify}}, :too_short, {{message}}, count: {{min_val}})
+                {% else %}
+                  errors.add({{attribute.id.stringify}}, :too_short, count: {{min_val}})
+                {% end %}
               end
             {% end %}
 
             {% if max_val %}
               if %length > {{max_val}}
-                errors.add({{attribute.id.stringify}}, {{message || "is too long (maximum is #{max_val} characters)"}})
+                {% if message %}
+                  errors.add({{attribute.id.stringify}}, :too_long, {{message}}, count: {{max_val}})
+                {% else %}
+                  errors.add({{attribute.id.stringify}}, :too_long, count: {{max_val}})
+                {% end %}
               end
             {% end %}
           {% end %}
@@ -108,7 +120,11 @@ module Ralph
       def _ralph_validate_format_{{attribute.id}} : Nil
         %value = @{{attribute.id}}
         if %value.is_a?(String) && !%value.matches?({{pattern}})
-          errors.add({{attribute.id.stringify}}, {{message || "is invalid"}})
+          {% if message %}
+            errors.add({{attribute.id.stringify}}, :invalid, {{message}})
+          {% else %}
+            errors.add({{attribute.id.stringify}}, :invalid)
+          {% end %}
         end
       end
     end
@@ -129,7 +145,11 @@ module Ralph
         end
 
         if %is_numeric.nil? || (%is_numeric.is_a?(Bool) && !%is_numeric)
-          errors.add({{attribute.id.stringify}}, {{message || "is not a number"}})
+          {% if message %}
+            errors.add({{attribute.id.stringify}}, :not_a_number, {{message}})
+          {% else %}
+            errors.add({{attribute.id.stringify}}, :not_a_number)
+          {% end %}
         end
       end
     end
@@ -144,7 +164,11 @@ module Ralph
       def _ralph_validate_inclusion_{{attribute.id}} : Nil
         %value = @{{attribute.id}}
         unless {{allow}}.includes?(%value)
-          errors.add({{attribute.id.stringify}}, {{message || "is not included in the list"}})
+          {% if message %}
+            errors.add({{attribute.id.stringify}}, :inclusion, {{message}})
+          {% else %}
+            errors.add({{attribute.id.stringify}}, :inclusion)
+          {% end %}
         end
       end
     end
@@ -159,7 +183,11 @@ module Ralph
       def _ralph_validate_exclusion_{{attribute.id}} : Nil
         %value = @{{attribute.id}}
         if {{forbid}}.includes?(%value)
-          errors.add({{attribute.id.stringify}}, {{message || "is reserved"}})
+          {% if message %}
+            errors.add({{attribute.id.stringify}}, :exclusion, {{message}})
+          {% else %}
+            errors.add({{attribute.id.stringify}}, :exclusion)
+          {% end %}
         end
       end
     end
@@ -190,7 +218,11 @@ module Ralph
         %result = Ralph.database.query_one(%query.build_select, args: %query.where_args)
         if %result
           %result.close
-          errors.add({{attribute.id.stringify}}, {{message || "has already been taken"}})
+          {% if message %}
+            errors.add({{attribute.id.stringify}}, :taken, {{message}})
+          {% else %}
+            errors.add({{attribute.id.stringify}}, :taken)
+          {% end %}
         end
       end
     end
