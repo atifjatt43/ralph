@@ -9,11 +9,8 @@ Ralph is an Active Record-style ORM for Crystal with a focus on developer experi
 ## Build & Development Commands
 
 ```bash
-# Build the CLI binary
-shards build
-
-# Run the CLI
-./bin/ralph
+# Install dependencies (for library development/testing)
+shards install
 
 # Run tests
 crystal spec
@@ -24,8 +21,12 @@ crystal spec spec/path/to/file_spec.cr
 # Type check without running
 crystal build --no-codegen src/ralph.cr
 
-# Install dependencies
-shards install
+# Build the CLI binary (uses separate shard file with adapter deps)
+shards install --shard-file=shard.cli.yml
+crystal build src/bin/ralph.cr -o bin/ralph
+
+# Run the CLI
+./bin/ralph
 ```
 
 ## CLI Commands

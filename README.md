@@ -24,6 +24,13 @@ Add this to your application's `shard.yml`:
 dependencies:
   ralph:
     github: watzon/ralph
+
+  # Add the database driver(s) you need:
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+  # OR
+  pg:
+    github: will/crystal-pg
 ```
 
 Run `shards install`
@@ -210,9 +217,10 @@ Run tests:
 crystal spec
 ```
 
-Build the CLI:
+Build the CLI (requires separate shard file with all adapter dependencies):
 
 ```bash
+shards install --shard-file=shard.cli.yml
 crystal build src/bin/ralph.cr -o bin/ralph
 ```
 
