@@ -1,0 +1,35 @@
+name: website
+version: 0.1.0
+
+authors:
+  - Chris Watson <cawatson1993@gmail.com>
+
+description: |
+  A blog example using Ralph ORM and Kemal web framework.
+  Demonstrates CRUD operations, associations, validations, and authentication.
+
+targets:
+  website:
+    main: src/website.cr
+
+crystal: '>= 1.18.2'
+
+license: MIT
+
+dependencies:
+  ralph:
+    path: ../..
+
+  kemal:
+    github: kemalcr/kemal
+    branch: master
+
+  kemal-session:
+    github: kemalcr/kemal-session
+
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+    version: ~> 0.22.0
+
+  markd:
+    github: icyleaf/markd

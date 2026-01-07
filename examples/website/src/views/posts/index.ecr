@@ -1,0 +1,46 @@
+<div class="flex justify-between items-center mb-10 pb-6 border-b border-cream">
+  <h1 class="font-sans text-3xl font-semibold text-ink"><%= page_title || "Latest Posts" %></h1>
+  <% if current_user %>
+    <a href="/posts/new" class="font-sans text-sm font-medium px-4 py-2 bg-accent text-paper rounded hover:bg-accent-hover">Write a Post</a>
+  <% end %>
+</div>
+
+<% if posts.empty? %>
+  <div class="text-center py-16 text-ink-faded">
+    <p class="mb-6">No posts yet.</p>
+    <% if current_user %>
+      <a href="/posts/new" class="font-sans text-sm font-medium px-4 py-2 bg-accent text-paper rounded hover:bg-accent-hover">Write the first post</a>
+    <% else %>
+      <p><a href="/login" class="text-ink-light hover:text-accent">Login</a> or <a href="/register" class="text-ink-light hover:text-accent">register</a> to start writing.</p>
+    <% end %>
+  </div>
+<% else %>
+  <div class="flex flex-col gap-10">
+    <% posts.each do |post| %>
+      <article class="pb-10 border-b border-cream last:border-b-0">
+        <h2 class="font-sans text-2xl font-semibold mb-2">
+          <a href="/posts/<%= post.id %>" class="text-ink hover:text-accent"><%= h(post.title) %></a>
+          <% unless post.published %>
+            <span class="inline-block ml-2 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide bg-blue-50 text-blue-700 rounded">Draft</span>
+          <% end %>
+        </h2>
+        <div class="font-sans text-sm text-ink-faded mb-4 flex gap-4 flex-wrap items-center">
+          <% if show_author %>
+            <% author = post.user %>
+            <% if author %>
+              <span class="text-ink-light">by <%= h(author.username) %></span>
+            <% end %>
+          <% end %>
+          <span><%= format_time(post.created_at) %></span>
+        </div>
+        <p class="text-ink-light mb-3"><%= h(post.excerpt(200)) %></p>
+        <div class="flex items-center gap-6">
+          <a href="/posts/<%= post.id %>" class="font-sans text-sm text-accent hover:text-accent-hover">Read more &rarr;</a>
+          <% if current_user && current_user.not_nil!.id == post.user_id %>
+            <a href="/posts/<%= post.id %>/edit" class="font-sans text-sm text-ink-faded hover:text-ink">Edit</a>
+          <% end %>
+        </div>
+      </article>
+    <% end %>
+  </div>
+<% end %>

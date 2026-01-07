@@ -1,0 +1,29 @@
+<div class="max-w-sm mx-auto">
+  <h1 class="font-sans text-3xl font-semibold text-ink text-center mb-10">Login</h1>
+
+  <% if error %>
+    <div class="bg-red-50 border border-red-600 rounded p-4 mb-6">
+      <ul class="list-disc list-inside text-red-800 text-sm"><li><%= error %></li></ul>
+    </div>
+  <% end %>
+
+  <form action="/login" method="post">
+    <div class="mb-6">
+      <label class="block font-sans text-sm font-medium text-ink-light mb-1" for="email">Email</label>
+      <input class="w-full px-3 py-2 font-serif text-ink bg-paper border border-cream rounded focus:outline-none focus:border-accent" type="email" id="email" name="email" value="<%= email %>" required placeholder="you@example.com" autofocus>
+    </div>
+
+    <div class="mb-6">
+      <label class="block font-sans text-sm font-medium text-ink-light mb-1" for="password">Password</label>
+      <input class="w-full px-3 py-2 font-serif text-ink bg-paper border border-cream rounded focus:outline-none focus:border-accent" type="password" id="password" name="password" required placeholder="Your password">
+    </div>
+
+    <div class="mt-10 flex justify-end">
+      <button type="submit" class="font-sans text-sm font-medium px-4 py-2 bg-accent text-paper rounded hover:bg-accent-hover">Login</button>
+    </div>
+  </form>
+
+  <p class="text-center mt-6 text-sm text-ink-faded">
+    Don't have an account? <a href="/register" class="text-ink-light hover:text-accent">Register here</a>
+  </p>
+</div>
