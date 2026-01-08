@@ -1,7 +1,12 @@
+---
+hide:
+  - navigation
+---
+
 # Ralph
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/watzon/ralph/main/assets/logo.png" alt="Ralph Logo" width="200" />
+  <img src="assets/images/ralph.png" alt="Ralph Logo" width="200" />
   <p><strong>A modern, type-safe Active Record ORM for Crystal.</strong></p>
 </div>
 
@@ -68,3 +73,4 @@ Run `shards install` to get started.
 - [**Migrations**](migrations/introduction.md) - Manage your database schema versioning.
 - [**CLI Reference**](cli/commands.md) - Commands for generators and database management.
 - [**API Reference**](api/index.md) - Complete API documentation for every module.
+- [**Roadmap**](roadmap.md) - Planned features and project direction.

@@ -5,41 +5,66 @@
 site_name = "Ralph"
 site_description = "Active Record-style ORM for Crystal with type safety and developer experience"
 site_author = "watzon"
-site_url = "https://watzon.github.io/ralph/"
+site_url = "https://ralph-docs.wtz.nz/"
 repo_url = "https://github.com/watzon/ralph"
 edit_uri = "edit/main/docs/"
-copyright = "Copyright &copy; 2025 watzon"
+copyright = "Copyright &copy; 2026 Chris Watson"
 
-extra_css = ["stylesheets/extra.css"]
+extra_css = ["assets/extra.css"]
 
 nav = [
     {"Home" = "index.md"},
-    {"Guides" = [
+    {"Guide" = [
+        "guides/getting-started.md",
         {"Getting Started" = "guides/getting-started.md"},
-        {"Configuration" = "guides/configuration.md"}
+        {"Configuration" = "guides/configuration.md"},
     ]},
     {"Models" = [
+        "models/introduction.md",
         {"Introduction" = "models/introduction.md"},
         {"CRUD Operations" = "models/crud-operations.md"},
         {"Advanced Types" = "models/types.md"},
         {"Associations" = "models/associations.md"},
         {"Validations" = "models/validations.md"},
         {"Callbacks" = "models/callbacks.md"},
-        {"Scopes" = "models/scopes.md"}
+        {"Scopes" = "models/scopes.md"},
     ]},
     {"Query Builder" = [
+        "query-builder/introduction.md",
         {"Introduction" = "query-builder/introduction.md"},
-        {"Advanced" = "query-builder/advanced.md"}
+        {"Advanced" = "query-builder/advanced.md"},
     ]},
     {"Migrations" = [
+        "migrations/introduction.md",
         {"Introduction" = "migrations/introduction.md"},
-        {"Schema Builder" = "migrations/schema-builder.md"}
+        {"Schema Builder" = "migrations/schema-builder.md"},
     ]},
     {"CLI" = [
+        "cli/commands.md",
         {"Commands" = "cli/commands.md"},
-        {"Customization" = "cli/customization.md"}
+        {"Customization" = "cli/customization.md"},
     ]},
-    {"API Reference" = "api/index.md"}
+    {"API Reference" = [
+        "api/index.md",
+        {"Overview" = "api/index.md"},
+        {"Core" = [
+            {"Ralph::Model" = "api/ralph-model.md"},
+            {"Ralph::Associations" = "api/ralph-associations.md"},
+            {"Ralph::Transactions" = "api/ralph-transactions.md"},
+        ]},
+        {"Database" = [
+            {"Ralph::Database" = "api/ralph-database.md"},
+            {"SqliteBackend" = "api/ralph-database-sqlitebackend.md"},
+            {"PostgresBackend" = "api/ralph-database-postgresbackend.md"},
+        ]},
+        {"Types" = [
+            {"AssociationMetadata" = "api/ralph-associationmetadata.md"},
+            {"ColumnMetadata" = "api/ralph-columnmetadata.md"},
+            {"DependentBehavior" = "api/ralph-dependentbehavior.md"},
+            {"Settings" = "api/ralph-settings.md"},
+        ]},
+    ]},
+    {"Roadmap" = "roadmap.md"},
 ]
 
 [project.theme]
@@ -52,6 +77,7 @@ features = [
     "navigation.instant",
     "navigation.instant.prefetch",
     "navigation.tracking",
+    "navigation.tabs",
     "navigation.sections",
     "navigation.path",
     "navigation.top",
