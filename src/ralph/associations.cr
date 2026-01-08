@@ -165,90 +165,105 @@ module Ralph
     # Define a belongs_to association
     #
     # Options:
-    # - class_name: Specify the class of the association (e.g., "User" instead of inferring from name)
     # - foreign_key: Specify a custom foreign key column (e.g., "author_id" instead of "user_id")
     # - primary_key: Specify the primary key on the associated model (defaults to "id")
-    # - polymorphic: If true, this association can belong to multiple model types
     # - touch: If true, updates parent's updated_at on save; can also be a column name
     # - counter_cache: If true, maintains a count column on the parent model
-    #   - true: Uses default column name (e.g., `posts_count` for `belongs_to :post`)
+    #   - true: Uses default column name (e.g., `posts_count` for `belongs_to Post`)
     #   - String: Uses custom column name (e.g., `counter_cache: "comment_count"`)
     # - optional: If true, the foreign key can be nil (default: false)
     #
+    # For polymorphic associations, use the special form:
+    #   belongs_to polymorphic: :commentable
+    #
+    # Supports two syntaxes:
+    #   belongs_to User                  # Association name inferred as 'user'
+    #   belongs_to author : User         # Explicit association name
+    #
     # Usage:
     # ```
-    # belongs_to user
-    # belongs_to author, class_name: "User"
-    # belongs_to author, class_name: "User", foreign_key: "writer_id"
-    # belongs_to author, class_name: "User", primary_key: "uuid"
-    # belongs_to commentable, polymorphic: true          # Creates commentable_id and commentable_type columns
-    # belongs_to user, touch: true                       # Updates user.updated_at on save
-    # belongs_to user, touch: :last_post_at              # Updates user.last_post_at on save
-    # belongs_to publisher, counter_cache: true          # Maintains publisher.books_count (inferred from child table)
-    # belongs_to publisher, counter_cache: "total_books" # Uses custom column name
+    # belongs_to User                                   # user, user_id
+    # belongs_to author : User                          # author, author_id (explicit name)
+    # belongs_to author : User, foreign_key: :writer_id # author, writer_id
+    # belongs_to User, primary_key: :uuid               # user, user_id (looks up by uuid)
+    # belongs_to polymorphic: :commentable              # commentable_id, commentable_type columns
+    # belongs_to User, touch: true                      # Updates user.updated_at on save
+    # belongs_to User, touch: :last_post_at             # Updates user.last_post_at on save
+    # belongs_to User, counter_cache: true              # Maintains user.posts_count
+    # belongs_to User, counter_cache: "total_books"     # Uses custom column name
     # ```
-    macro belongs_to(name, **options)
-      {%
-        name_str = name.id.stringify
+    macro belongs_to(klass_or_decl = nil, **options)
+      {% # Handle polymorphic: :name form (special case - no class)
 
-        # Handle polymorphic option
-        polymorphic_opt = options[:polymorphic]
-        is_polymorphic = polymorphic_opt == true
+ polymorphic_opt = options[:polymorphic]
+ is_polymorphic = polymorphic_opt != nil && polymorphic_opt != false
 
-        # Handle class_name option
-        class_name_opt = options[:class_name]
-        class_name_override = class_name_opt != nil
-        class_name = class_name_opt ? class_name_opt.id.stringify : name_str.camelcase
+ if is_polymorphic
+   # Polymorphic form: belongs_to polymorphic: :commentable
+   name_str = polymorphic_opt.id.stringify
+   class_name = "Ralph::Model"
+   class_name_override = false
+ elsif klass_or_decl.is_a?(TypeDeclaration)
+   # Type declaration form: belongs_to author : User
+   name_str = klass_or_decl.var.id.stringify
+   class_name = klass_or_decl.type.id.stringify
+   class_name_override = true
+ else
+   # Simple form: belongs_to User
+   class_name = klass_or_decl.id.stringify
+   class_name_override = true
+   # Convert ClassName to class_name (e.g., User -> user, BlogPost -> blog_post)
+   name_str = class_name.split("::").last.underscore
+ end
 
-        # Handle foreign_key option
-        foreign_key_opt = options[:foreign_key]
-        foreign_key_override = foreign_key_opt != nil
-        foreign_key = foreign_key_opt ? foreign_key_opt.id : "#{name.id}_id".id
-        foreign_key_str = foreign_key.id.stringify
+ # Handle foreign_key option
+ foreign_key_opt = options[:foreign_key]
+ foreign_key_override = foreign_key_opt != nil
+ foreign_key = foreign_key_opt ? foreign_key_opt.id : "#{name_str.id}_id".id
+ foreign_key_str = foreign_key.id.stringify
 
-        # For polymorphic, we also need a type column
-        type_column = "#{name.id}_type".id
-        type_column_str = type_column.id.stringify
+ # For polymorphic, we also need a type column
+ type_column = "#{name_str.id}_type".id
+ type_column_str = type_column.id.stringify
 
-        # Handle primary_key option
-        primary_key_opt = options[:primary_key]
-        primary_key_override = primary_key_opt != nil
-        primary_key = primary_key_opt ? primary_key_opt.id.stringify : "id"
+ # Handle primary_key option
+ primary_key_opt = options[:primary_key]
+ primary_key_override = primary_key_opt != nil
+ primary_key = primary_key_opt ? primary_key_opt.id.stringify : "id"
 
-        # Handle touch option
-        touch_opt = options[:touch]
-        touch_column = if touch_opt == true
-                         "updated_at"
-                       elsif touch_opt
-                         touch_opt.id.stringify
-                       else
-                         nil
-                       end
+ # Handle touch option
+ touch_opt = options[:touch]
+ touch_column = if touch_opt == true
+                  "updated_at"
+                elsif touch_opt
+                  touch_opt.id.stringify
+                else
+                  nil
+                end
 
-        # Handle counter_cache option
-        # When true, infers column name from the child's table name (e.g., books -> books_count)
-        # When a string, uses that as the column name
-        counter_cache_opt = options[:counter_cache]
-        # Get the child table name (this class) for inferring the counter column
-        # We need to get it from @type which represents the current class being defined
-        child_table_name = @type.name.stringify.split("::").last.underscore + "s"
-        counter_cache_col = if counter_cache_opt == true
-                              child_table_name + "_count"
-                            elsif counter_cache_opt
-                              counter_cache_opt.id.stringify
-                            else
-                              nil
-                            end
+ # Handle counter_cache option
+ # When true, infers column name from the child's table name (e.g., books -> books_count)
+ # When a string, uses that as the column name
+ counter_cache_opt = options[:counter_cache]
+ # Get the child table name (this class) for inferring the counter column
+ # We need to get it from @type which represents the current class being defined
+ child_table_name = @type.name.stringify.split("::").last.underscore + "s"
+ counter_cache_col = if counter_cache_opt == true
+                       child_table_name + "_count"
+                     elsif counter_cache_opt
+                       counter_cache_opt.id.stringify
+                     else
+                       nil
+                     end
 
-        # Handle optional option
-        optional_opt = options[:optional]
-        is_optional = optional_opt == true
+ # Handle optional option
+ optional_opt = options[:optional]
+ is_optional = optional_opt == true
 
-        type_str = @type.stringify
+ type_str = @type.stringify
 
-        # Table name derived from class_name (not used for polymorphic)
-        table_name = is_polymorphic ? "" : class_name.underscore
-      %}
+ # Table name derived from class_name (not used for polymorphic)
+ table_name = is_polymorphic ? "" : class_name.split("::").last.underscore %}
 
       # Register the association metadata
       {% if @type.has_constant?("_ralph_associations") %}
@@ -304,7 +319,7 @@ module Ralph
         column {{type_column}}, String?
 
         # Polymorphic getter - returns the associated record (any model type)
-        def {{name}} : Ralph::Model?
+        def {{name_str.id}} : Ralph::Model?
           # Check if preloaded first
           if _has_preloaded?({{name_str}})
             return _get_preloaded_one({{name_str}})
@@ -323,7 +338,7 @@ module Ralph
         end
 
         # Polymorphic setter - accepts any Ralph::Model
-        def {{name}}=(record : Ralph::Model?)
+        def {{name_str.id}}=(record : Ralph::Model?)
           _old_fk = @{{foreign_key}}
           _old_type = @{{type_column}}
 
@@ -353,7 +368,7 @@ module Ralph
         {% end %}
 
         # Getter for the associated record
-        def {{name}} : {{class_name.id}}?
+        def {{name_str.id}} : {{class_name.id}}?
           # Check if preloaded first
           if _has_preloaded?({{name_str}})
             return _get_preloaded_one({{name_str}}).as({{class_name.id}}?)
@@ -376,7 +391,7 @@ module Ralph
         end
 
         # Setter for the associated record
-        def {{name}}=(record : {{class_name.id}}?)
+        def {{name_str.id}}=(record : {{class_name.id}}?)
           _old_fk = @{{foreign_key}}
 
           if record
@@ -416,13 +431,13 @@ module Ralph
         end
 
         # Build a new associated record
-        def build_{{name}}(**attrs) : {{class_name.id}}
+        def build_{{name_str.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           record
         end
 
         # Create a new associated record and save it
-        def create_{{name}}(**attrs) : {{class_name.id}}
+        def create_{{name_str.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           record.save
           {% if primary_key == "id" %}
@@ -440,8 +455,8 @@ module Ralph
 
         # Touch the parent association (update timestamp)
         {% if touch_column %}
-          def _touch_{{name}}_association!
-            parent_record = {{name}}
+          def _touch_{{name_str.id}}_association!
+            parent_record = {{name_str.id}}
             return unless parent_record
 
             parent_table = {{class_name.id}}.table_name
@@ -458,7 +473,7 @@ module Ralph
         {% if counter_cache_col %}
           # Increment the parent's counter cache after this record is created
           @[Ralph::Callbacks::AfterCreate]
-          def _increment_{{name}}_counter_cache
+          def _increment_{{name_str.id}}_counter_cache
             fk_value = @{{foreign_key}}
             return if fk_value.nil?
 
@@ -470,7 +485,7 @@ module Ralph
 
           # Decrement the parent's counter cache after this record is destroyed
           @[Ralph::Callbacks::AfterDestroy]
-          def _decrement_{{name}}_counter_cache
+          def _decrement_{{name_str.id}}_counter_cache
             fk_value = @{{foreign_key}}
             return if fk_value.nil?
 
@@ -483,7 +498,7 @@ module Ralph
           # Handle counter cache updates when the foreign key changes (re-parenting)
           # This decrements the old parent's counter and increments the new parent's counter
           @[Ralph::Callbacks::BeforeUpdate]
-          def _update_{{name}}_counter_cache_on_reassignment
+          def _update_{{name_str.id}}_counter_cache_on_reassignment
             return unless {{foreign_key}}_changed?
 
             old_fk = {{foreign_key}}_was
@@ -505,7 +520,7 @@ module Ralph
           end
 
           # Register the counter cache so the parent model can provide reset methods
-          def self.__register_counter_cache_{{name}}
+          def self.__register_counter_cache_{{name_str.id}}
             Ralph::Associations.register_counter_cache(
               {{type_str}},
               {{class_name}},
@@ -515,18 +530,18 @@ module Ralph
             )
           end
 
-          __register_counter_cache_{{name}}
+          __register_counter_cache_{{name_str.id}}
         {% end %}
 
         # Generate preload method for this belongs_to association
         {% if is_polymorphic %}
-          def self._preload_{{name}}(models : Array(self)) : Nil
+          def self._preload_{{name_str.id}}(models : Array(self)) : Nil
             # For polymorphic belongs_to, we can't preload easily since types vary
             # Mark as preloaded but with nil to prevent N+1 tracking
             models.each { |m| m._set_preloaded_one({{name_str}}, nil) }
           end
         {% else %}
-          def self._preload_{{name}}(models : Array(self)) : Nil
+          def self._preload_{{name_str.id}}(models : Array(self)) : Nil
             return if models.empty?
 
             # Collect all foreign key values (as strings for type flexibility)
@@ -569,10 +584,9 @@ module Ralph
     # Define a has_one association
     #
     # Options:
-    # - class_name: Specify the class of the association (e.g., "Profile" instead of inferring from name)
     # - foreign_key: Specify a custom foreign key on the associated model (e.g., "owner_id" instead of "user_id")
     # - primary_key: Specify the primary key on this model (defaults to "id")
-    # - as: For polymorphic associations, specify the name of the polymorphic interface
+    # - polymorphic: For polymorphic associations, specify the name of the polymorphic interface on the child
     # - dependent: Specify what happens to associated records when this record is destroyed
     #   - :destroy - Destroy associated records (runs callbacks)
     #   - :delete - Delete associated records (skips callbacks)
@@ -580,39 +594,48 @@ module Ralph
     #   - :restrict_with_error - Prevent destruction if associations exist (adds error)
     #   - :restrict_with_exception - Prevent destruction if associations exist (raises exception)
     #
+    # Supports two syntaxes:
+    #   has_one Profile                  # Association name inferred as 'profile'
+    #   has_one user_profile : Profile   # Explicit association name
+    #
     # Usage:
     # ```
-    # has_one profile
-    # has_one avatar, class_name: "UserAvatar"
-    # has_one avatar, class_name: "UserAvatar", foreign_key: "owner_id"
-    # has_one profile, dependent: :destroy
-    # has_one profile, as: :profileable # Polymorphic association
+    # has_one Profile                                     # profile
+    # has_one user_profile : Profile                      # user_profile (explicit name)
+    # has_one avatar : UserAvatar, foreign_key: :owner_id # avatar, owner_id on UserAvatar
+    # has_one Profile, dependent: :destroy                # destroys profile when user destroyed
+    # has_one Profile, polymorphic: :profileable          # polymorphic (Profile has profileable_id/type)
     # ```
-    macro has_one(name, **options)
-      {%
-        name_str = name.id.stringify
+    macro has_one(klass_or_decl, **options)
+      # Handle type declaration syntax: has_one profile : Profile
+      {% if klass_or_decl.is_a?(TypeDeclaration) %}
+        {% name_str = klass_or_decl.var.id.stringify %}
+        {% class_name = klass_or_decl.type.id.stringify %}
+      {% else %}
+        # Simple syntax: has_one Profile
+        {% class_name = klass_or_decl.id.stringify %}
+        {% name_str = class_name.split("::").last.underscore %}
+      {% end %}
 
-        # Handle class_name option
-        class_name_opt = options[:class_name]
-        class_name_override = class_name_opt != nil
-        class_name = class_name_opt ? class_name_opt.id.stringify : name_str.camelcase
+      {%
+        class_name_override = true
 
         # Get just the class name without namespace for the default foreign key
         type_name = @type.name.stringify.split("::").last.underscore
 
-        # Handle 'as' option for polymorphic associations
-        as_opt = options[:as]
-        is_polymorphic = as_opt != nil
-        as_name = as_opt ? as_opt.id.stringify : nil
+        # Handle 'polymorphic' option - the name of the polymorphic interface on the child model
+        polymorphic_opt = options[:polymorphic]
+        is_polymorphic = polymorphic_opt != nil
+        polymorphic_name = polymorphic_opt ? polymorphic_opt.id.stringify : nil
 
         # Handle foreign_key option
-        # For polymorphic, default to {as_name}_id
+        # For polymorphic, default to {polymorphic_name}_id
         foreign_key_opt = options[:foreign_key]
         foreign_key_override = foreign_key_opt != nil
         foreign_key = if foreign_key_opt
                         foreign_key_opt.id
-                      elsif is_polymorphic && as_name
-                        "#{as_name.id}_id".id
+                      elsif is_polymorphic && polymorphic_name
+                        "#{polymorphic_name.id}_id".id
                       else
                         "#{type_name.id}_id".id
                       end
@@ -630,7 +653,7 @@ module Ralph
         type_str = @type.stringify
 
         # Table name is the underscored class name
-        table_name = class_name.underscore
+        table_name = class_name.split("::").last.underscore
       %}
 
       # Register the association metadata
@@ -661,7 +684,7 @@ module Ralph
           {{foreign_key_override}},
           {{primary_key_override}},
           false,
-          {{as_name}},
+          {{polymorphic_name}},
           nil,
           nil,
           nil
@@ -694,7 +717,7 @@ module Ralph
           {{foreign_key_override}},
           {{primary_key_override}},
           false,
-          {{as_name}},
+          {{polymorphic_name}},
           nil,
           nil,
           nil
@@ -702,11 +725,11 @@ module Ralph
         Ralph::Associations.associations[{{type_str}}] = @@_ralph_associations
       {% end %}
 
-      # Register this model as a polymorphic parent if as: is specified
+      # Register this model as a polymorphic parent if polymorphic: is specified
       {% if is_polymorphic %}
         # Register at class load time using a class method
         # Uses string-based ID for flexible primary key type support
-        def self.__register_polymorphic_type_{{name}}
+        def self.__register_polymorphic_type_{{name_str.id}}
           Ralph::Associations.register_polymorphic_type(
             {{type_str}},
             ->(id_str : String) {
@@ -718,12 +741,12 @@ module Ralph
         end
 
         # Call registration immediately
-        __register_polymorphic_type_{{name}}
+        __register_polymorphic_type_{{name_str.id}}
       {% end %}
 
       {% if is_polymorphic %}
         # Polymorphic has_one: filter by type AND id
-        def {{name}} : {{class_name.id}}?
+        def {{name_str.id}} : {{class_name.id}}?
           # Check if preloaded first
           if _has_preloaded?({{name_str}})
             return _get_preloaded_one({{name_str}}).as({{class_name.id}}?)
@@ -735,8 +758,8 @@ module Ralph
           pk_value = self.id
           return nil if pk_value.nil?
 
-          type_column = {{as_name}}.not_nil! + "_type"
-          id_column = {{as_name}}.not_nil! + "_id"
+          type_column = {{polymorphic_name}}.not_nil! + "_type"
+          id_column = {{polymorphic_name}}.not_nil! + "_id"
           type_value = {{type_str}}
 
           # Use the find_by_conditions helper
@@ -749,7 +772,7 @@ module Ralph
         end
       {% else %}
         # Regular has_one: Getter for the associated record
-        def {{name}} : {{class_name.id}}?
+        def {{name_str.id}} : {{class_name.id}}?
           # Check if preloaded first
           if _has_preloaded?({{name_str}})
             return _get_preloaded_one({{name_str}}).as({{class_name.id}}?)
@@ -774,11 +797,11 @@ module Ralph
       {% if is_polymorphic %}
         {% # Compute column names at compile time
 
- poly_type_col = "#{as_name.id}_type".id
- poly_id_col = "#{as_name.id}_id".id %}
+ poly_type_col = "#{polymorphic_name.id}_type".id
+ poly_id_col = "#{polymorphic_name.id}_id".id %}
 
         # Setter for the associated record (polymorphic)
-        def {{name}}=(record : {{class_name.id}}?)
+        def {{name_str.id}}=(record : {{class_name.id}}?)
           if record
             record.{{poly_type_col}} = {{type_str}}
             # Get PK and convert to String (works for Int64, String, UUID, etc.)
@@ -789,7 +812,7 @@ module Ralph
         end
 
         # Build a new associated record (polymorphic)
-        def build_{{name}}(**attrs) : {{class_name.id}}
+        def build_{{name_str.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           record.{{poly_type_col}} = {{type_str}}
           # Get PK and convert to String (works for Int64, String, UUID, etc.)
@@ -799,7 +822,7 @@ module Ralph
         end
 
         # Create a new associated record and save it (polymorphic)
-        def create_{{name}}(**attrs) : {{class_name.id}}
+        def create_{{name_str.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           record.{{poly_type_col}} = {{type_str}}
           # Get PK and convert to String (works for Int64, String, UUID, etc.)
@@ -810,7 +833,7 @@ module Ralph
         end
       {% else %}
         # Setter for the associated record
-        def {{name}}=(record : {{class_name.id}}?)
+        def {{name_str.id}}=(record : {{class_name.id}}?)
           if record
             pk_value = __get_by_key_name({{primary_key}})
             record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
@@ -819,7 +842,7 @@ module Ralph
         end
 
         # Build a new associated record
-        def build_{{name}}(**attrs) : {{class_name.id}}
+        def build_{{name_str.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           pk_value = __get_by_key_name({{primary_key}})
           record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
@@ -827,7 +850,7 @@ module Ralph
         end
 
         # Create a new associated record and save it
-        def create_{{name}}(**attrs) : {{class_name.id}}
+        def create_{{name_str.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           pk_value = __get_by_key_name({{primary_key}})
           record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
@@ -838,8 +861,8 @@ module Ralph
 
       # Handle dependent behavior for has_one
       {% if dependent_sym != "none" %}
-        def _handle_dependent_{{name}} : Bool
-          associated = {{name}}
+        def _handle_dependent_{{name_str.id}} : Bool
+          associated = {{name_str.id}}
           return true if associated.nil?
 
           {% if dependent_sym == "destroy" %}
@@ -854,8 +877,8 @@ module Ralph
           {% elsif dependent_sym == "nullify" %}
             {% if is_polymorphic %}
               # Set both polymorphic columns to NULL
-              type_column = {{as_name}}.not_nil! + "_type"
-              id_column = {{as_name}}.not_nil! + "_id"
+              type_column = {{polymorphic_name}}.not_nil! + "_type"
+              id_column = {{polymorphic_name}}.not_nil! + "_id"
               sql = "UPDATE \"#{{{class_name.id}}.table_name}\" SET \"#{id_column}\" = NULL, \"#{type_column}\" = NULL WHERE \"#{{{class_name.id}}.primary_key}\" = ?"
               Ralph.database.execute(sql, args: [associated.id])
             {% else %}
@@ -876,7 +899,7 @@ module Ralph
       {% end %}
 
       # Generate preload method for this has_one association
-      def self._preload_{{name}}(models : Array(self)) : Nil
+      def self._preload_{{name_str.id}}(models : Array(self)) : Nil
         return if models.empty?
 
         # Collect primary key values (as strings for flexible type support)
@@ -887,8 +910,8 @@ module Ralph
         return if pk_values.empty?
 
         {% if is_polymorphic %}
-          type_column = {{as_name}}.not_nil! + "_type"
-          id_column = {{as_name}}.not_nil! + "_id"
+          type_column = {{polymorphic_name}}.not_nil! + "_type"
+          id_column = {{polymorphic_name}}.not_nil! + "_id"
           model_type = {{type_str}}
 
           query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
@@ -905,7 +928,7 @@ module Ralph
 
         records.each do |record|
           {% if is_polymorphic %}
-            fk_attr = record._get_attribute({{as_name}}.not_nil! + "_id")
+            fk_attr = record._get_attribute({{polymorphic_name}}.not_nil! + "_id")
           {% else %}
             fk_attr = record._get_attribute({{foreign_key_str}})
           {% end %}
@@ -931,7 +954,7 @@ module Ralph
     # - class_name: Specify the class of the association (e.g., "Post" instead of inferring from name)
     # - foreign_key: Specify a custom foreign key on the associated model (e.g., "owner_id" instead of "user_id")
     # - primary_key: Specify the primary key on this model (defaults to "id")
-    # - as: For polymorphic associations, specify the name of the polymorphic interface
+    # - polymorphic: For polymorphic associations, specify the name of the polymorphic interface on the child
     # - through: For through associations, specify the intermediate association name
     # - source: For through associations, specify the source association on the through model
     # - dependent: Specify what happens to associated records when this record is destroyed
@@ -944,78 +967,94 @@ module Ralph
     # Note: For counter caching, use `counter_cache: true` on the `belongs_to` side of the association.
     # This automatically generates increment/decrement/update callbacks on the child model.
     #
+    # Supports two syntaxes:
+    #   has_many Post                    # Association name inferred as 'posts'
+    #   has_many posts : Post            # Explicit association name
+    #
     # Usage:
     # ```
-    # has_many posts
-    # has_many articles, class_name: "BlogPost"
-    # has_many articles, class_name: "BlogPost", foreign_key: "writer_id"
-    # has_many posts, dependent: :destroy
-    # has_many posts, dependent: :delete_all
-    # has_many comments, as: :commentable              # Polymorphic association
-    # has_many tags, through: :post_tags               # Through association
-    # has_many tags, through: :post_tags, source: :tag # Through with custom source
+    # has_many Post                                         # posts
+    # has_many articles : Post                              # articles (explicit name)
+    # has_many articles : BlogPost, foreign_key: :writer_id # articles, writer_id
+    # has_many Post, dependent: :destroy                    # destroys posts when parent destroyed
+    # has_many Post, dependent: :delete_all                 # deletes without callbacks
+    # has_many Comment, polymorphic: :commentable           # polymorphic (Comment has commentable_id/type)
+    # has_many Tag, through: :post_tags                     # through association
+    # has_many Tag, through: :post_tags, source: :tag       # through with custom source
     # ```
-    macro has_many(name, scope_block = nil, **options)
-      {% # Singularize the class name (e.g., "posts" -> "Post")
+    macro has_many(klass_or_decl, scope_block = nil, **options)
+      # Handle type declaration syntax: has_many posts : Post
+      {% if klass_or_decl.is_a?(TypeDeclaration) %}
+        {% name_str = klass_or_decl.var.id.stringify %}
+        {% class_name = klass_or_decl.type.id.stringify %}
+        {% singular_name = name_str.ends_with?("s") ? name_str[0...-1] : name_str %}
+      {% else %}
+        # Simple syntax: has_many Post or has_many Post, ->(q) { ... }, as: :custom_name
+        {% class_name = klass_or_decl.id.stringify %}
+        {% singular_name = class_name.split("::").last.underscore %}
+        # Check if 'as:' option is provided for custom naming (used with scopes)
+        {% if options[:as] %}
+          {% name_str = options[:as].id.stringify %}
+          {% singular_name = name_str.ends_with?("s") ? name_str[0...-1] : name_str %}
+        {% else %}
+          {% name_str = singular_name + "s" %}
+        {% end %}
+      {% end %}
 
- name_str = name.id.stringify
- singular_name = name_str[0...-1] # Remove trailing 's'
+      {%
+        class_name_override = true
 
- # Handle class_name option
- class_name_opt = options[:class_name]
- class_name_override = class_name_opt != nil
- class_name = class_name_opt ? class_name_opt.id.stringify : singular_name.camelcase
+        # Get just the class name without namespace for the default foreign key
+        type_name = @type.name.stringify.split("::").last.underscore
 
- # Get just the class name without namespace for the default foreign key
- type_name = @type.name.stringify.split("::").last.underscore
+        # Handle 'polymorphic' option - the name of the polymorphic interface on the child model
+        polymorphic_opt = options[:polymorphic]
+        is_polymorphic = polymorphic_opt != nil
+        polymorphic_name = polymorphic_opt ? polymorphic_opt.id.stringify : nil
 
- # Handle 'as' option for polymorphic associations
- as_opt = options[:as]
- is_polymorphic = as_opt != nil
- as_name = as_opt ? as_opt.id.stringify : nil
+        # Handle 'through' option for through associations
+        through_opt = options[:through]
+        is_through = through_opt != nil
+        through_name = through_opt ? through_opt.id.stringify : nil
 
- # Handle 'through' option for through associations
- through_opt = options[:through]
- is_through = through_opt != nil
- through_name = through_opt ? through_opt.id.stringify : nil
+        # Handle 'source' option for through associations
+        source_opt = options[:source]
+        source_name = source_opt ? source_opt.id.stringify : singular_name
 
- # Handle 'source' option for through associations
- source_opt = options[:source]
- source_name = source_opt ? source_opt.id.stringify : singular_name
+        # Handle foreign_key option
+        # For polymorphic, default to {polymorphic_name}_id
+        foreign_key_opt = options[:foreign_key]
+        foreign_key_override = foreign_key_opt != nil
+        foreign_key = if foreign_key_opt
+                        foreign_key_opt.id
+                      elsif is_polymorphic && polymorphic_name
+                        "#{polymorphic_name.id}_id".id
+                      elsif is_through
+                        # For through associations, FK doesn't apply directly
+                        "".id
+                      else
+                        "#{type_name.id}_id".id
+                      end
+        foreign_key_str = foreign_key.id.stringify
 
- # Handle foreign_key option
- # For polymorphic, default to {as_name}_id
- foreign_key_opt = options[:foreign_key]
- foreign_key_override = foreign_key_opt != nil
- foreign_key = if foreign_key_opt
-                 foreign_key_opt.id
-               elsif is_polymorphic && as_name
-                 "#{as_name.id}_id".id
-               elsif is_through
-                 # For through associations, FK doesn't apply directly
-                 "".id
-               else
-                 "#{type_name.id}_id".id
-               end
- foreign_key_str = foreign_key.id.stringify
+        # Handle primary_key option
+        primary_key_opt = options[:primary_key]
+        primary_key_override = primary_key_opt != nil
+        primary_key = primary_key_opt ? primary_key_opt.id.stringify : "id"
 
- # Handle primary_key option
- primary_key_opt = options[:primary_key]
- primary_key_override = primary_key_opt != nil
- primary_key = primary_key_opt ? primary_key_opt.id.stringify : "id"
+        # Handle dependent option
+        # Note: has_many uses :delete_all instead of :delete for consistency with Rails
+        dependent_opt = options[:dependent]
+        dependent_sym = dependent_opt ? dependent_opt.id.stringify : "none"
 
- # Handle dependent option
- # Note: has_many uses :delete_all instead of :delete for consistency with Rails
- dependent_opt = options[:dependent]
- dependent_sym = dependent_opt ? dependent_opt.id.stringify : "none"
+        type_str = @type.stringify
 
- type_str = @type.stringify
+        # Table name is the underscored class name (usually plural, matching the association name)
+        table_name = name_str
 
- # Table name is the underscored class name (usually plural, matching the association name)
- table_name = name_str
-
- # Check if we have a scope block
- has_scope = scope_block != nil %}
+        # Check if we have a scope block
+        has_scope = scope_block != nil
+      %}
 
       # Register the association metadata
       {% if @type.has_constant?("_ralph_associations") %}
@@ -1045,7 +1084,7 @@ module Ralph
           {{foreign_key_override}},
           {{primary_key_override}},
           false,
-          {{as_name}},
+          {{polymorphic_name}},
           nil,
           nil,
           nil
@@ -1078,7 +1117,7 @@ module Ralph
           {{foreign_key_override}},
           {{primary_key_override}},
           false,
-          {{as_name}},
+          {{polymorphic_name}},
           nil,
           nil,
           nil
@@ -1086,7 +1125,7 @@ module Ralph
         Ralph::Associations.associations[{{type_str}}] = @@_ralph_associations
       {% end %}
 
-      # Register this model as a polymorphic parent if as: is specified
+      # Register this model as a polymorphic parent if polymorphic: is specified
       {% if is_polymorphic %}
         # Register at class load time using a class method
         # Uses string-based ID for flexible primary key type support
@@ -1107,7 +1146,7 @@ module Ralph
 
       {% if is_through %}
         # Through association getter - follows the chain: self -> through -> source
-        def {{name}} : Array({{class_name.id}})
+        def {{name_str.id}} : Array({{class_name.id}})
           # Check if preloaded first
           if _has_preloaded?({{name_str}})
             preloaded = _get_preloaded_many({{name_str}})
@@ -1155,7 +1194,7 @@ module Ralph
         end
 
         # Unscoped through association getter
-        def {{name}}_unscoped : Array({{class_name.id}})
+        def {{name_str.id}}_unscoped : Array({{class_name.id}})
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
@@ -1184,7 +1223,7 @@ module Ralph
         end
       {% elsif is_polymorphic %}
         # Polymorphic has_many: filter by type AND id
-        def {{name}} : Array({{class_name.id}})
+        def {{name_str.id}} : Array({{class_name.id}})
           # Check if preloaded first
           if _has_preloaded?({{name_str}})
             preloaded = _get_preloaded_many({{name_str}})
@@ -1197,8 +1236,8 @@ module Ralph
           pk_value = self.id
           return [] of {{class_name.id}} if pk_value.nil?
 
-          type_column = {{as_name}}.not_nil! + "_type"
-          id_column = {{as_name}}.not_nil! + "_id"
+          type_column = {{polymorphic_name}}.not_nil! + "_type"
+          id_column = {{polymorphic_name}}.not_nil! + "_id"
           type_value = {{type_str}}
 
           {% if has_scope %}
@@ -1224,12 +1263,12 @@ module Ralph
         end
 
         # Unscoped polymorphic getter
-        def {{name}}_unscoped : Array({{class_name.id}})
+        def {{name_str.id}}_unscoped : Array({{class_name.id}})
           pk_value = self.id
           return [] of {{class_name.id}} if pk_value.nil?
 
-          type_column = {{as_name}}.not_nil! + "_type"
-          id_column = {{as_name}}.not_nil! + "_id"
+          type_column = {{polymorphic_name}}.not_nil! + "_type"
+          id_column = {{polymorphic_name}}.not_nil! + "_id"
           type_value = {{type_str}}
 
           # Polymorphic ID column stores values as String
@@ -1241,7 +1280,7 @@ module Ralph
         end
       {% else %}
         # Regular has_many: Getter for the associated records collection
-        def {{name}} : Array({{class_name.id}})
+        def {{name_str.id}} : Array({{class_name.id}})
           # Check if preloaded first
           if _has_preloaded?({{name_str}})
             preloaded = _get_preloaded_many({{name_str}})
@@ -1275,7 +1314,7 @@ module Ralph
         end
 
         # Unscoped getter - bypasses any association scope
-        def {{name}}_unscoped : Array({{class_name.id}})
+        def {{name_str.id}}_unscoped : Array({{class_name.id}})
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
@@ -1289,13 +1328,13 @@ module Ralph
       {% end %}
 
       # Check if any associated records exist
-      def {{name}}_any? : Bool
-        !{{name}}.empty?
+      def {{name_str.id}}_any? : Bool
+        !{{name_str.id}}.empty?
       end
 
       # Check if no associated records exist
-      def {{name}}_empty? : Bool
-        {{name}}.empty?
+      def {{name_str.id}}_empty? : Bool
+        {{name_str.id}}.empty?
       end
 
       {% if is_through %}
@@ -1315,8 +1354,8 @@ module Ralph
       {% elsif is_polymorphic %}
         {% # Compute column names at compile time
 
- poly_type_col = "#{as_name.id}_type".id
- poly_id_col = "#{as_name.id}_id".id %}
+ poly_type_col = "#{polymorphic_name.id}_type".id
+ poly_id_col = "#{polymorphic_name.id}_id".id %}
 
         # Build a new associated record (polymorphic)
         def build_{{singular_name.id}}(**attrs) : {{class_name.id}}
@@ -1361,20 +1400,20 @@ module Ralph
 
       # Handle dependent behavior for has_many
       {% if dependent_sym != "none" && !is_through %}
-        def _handle_dependent_{{name}} : Bool
+        def _handle_dependent_{{name_str.id}} : Bool
           {% if dependent_sym == "restrict_with_error" %}
-            if {{name}}_any?
+            if {{name_str.id}}_any?
               errors.add({{name_str}}, "cannot be deleted because dependent #{{{name_str}}} exist")
               return false
             end
             true
           {% elsif dependent_sym == "restrict_with_exception" %}
-            if {{name}}_any?
+            if {{name_str.id}}_any?
               raise Ralph::DeleteRestrictionError.new({{name_str}})
             end
             true
           {% elsif dependent_sym == "destroy" %}
-            {{name}}.each do |record|
+            {{name_str.id}}.each do |record|
               record.destroy
             end
             true
@@ -1384,8 +1423,8 @@ module Ralph
               pk_value = self.id
               return true if pk_value.nil?
 
-              type_column = {{as_name}}.not_nil! + "_type"
-              id_column = {{as_name}}.not_nil! + "_id"
+              type_column = {{polymorphic_name}}.not_nil! + "_type"
+              id_column = {{polymorphic_name}}.not_nil! + "_id"
               type_value = {{type_str}}
 
               sql = "DELETE FROM \"#{{{class_name.id}}.table_name}\" WHERE \"#{type_column}\" = ? AND \"#{id_column}\" = ?"
@@ -1408,8 +1447,8 @@ module Ralph
               pk_value = self.id
               return true if pk_value.nil?
 
-              type_column = {{as_name}}.not_nil! + "_type"
-              id_column = {{as_name}}.not_nil! + "_id"
+              type_column = {{polymorphic_name}}.not_nil! + "_type"
+              id_column = {{polymorphic_name}}.not_nil! + "_id"
               type_value = {{type_str}}
 
               sql = "UPDATE \"#{{{class_name.id}}.table_name}\" SET \"#{id_column}\" = NULL, \"#{type_column}\" = NULL WHERE \"#{type_column}\" = ? AND \"#{id_column}\" = ?"
@@ -1434,7 +1473,7 @@ module Ralph
 
       # Generate preload method for this has_many association
       {% unless is_through %}
-        def self._preload_{{name}}(models : Array(self)) : Nil
+        def self._preload_{{name_str.id}}(models : Array(self)) : Nil
           return if models.empty?
 
           {% if is_polymorphic %}
@@ -1443,8 +1482,8 @@ module Ralph
             pk_values = models.compact_map { |m| m.id.to_s if m.id }.uniq
             return if pk_values.empty?
 
-            type_column = {{as_name}}.not_nil! + "_type"
-            id_column = {{as_name}}.not_nil! + "_id"
+            type_column = {{polymorphic_name}}.not_nil! + "_type"
+            id_column = {{polymorphic_name}}.not_nil! + "_id"
             model_type = {{type_str}}
 
             query = Ralph::Query::Builder.new({{class_name.id}}.table_name)
@@ -1464,7 +1503,7 @@ module Ralph
 
           records.each do |record|
             {% if is_polymorphic %}
-              fk_attr = record._get_attribute({{as_name}}.not_nil! + "_id")
+              fk_attr = record._get_attribute({{polymorphic_name}}.not_nil! + "_id")
             {% else %}
               fk_attr = record._get_attribute({{foreign_key_str}})
             {% end %}

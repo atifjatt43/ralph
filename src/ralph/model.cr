@@ -425,49 +425,65 @@ module Ralph
 
     # Set the table name for this model
     macro table(name)
-      @@table_name = {{name}}
+      @@table_name = {{name.id.stringify}}
     end
 
     # Define a column on the model
-    macro column(name, type, primary = false, default = nil)
+    #
+    # Supports two syntaxes:
+    #   column id : Int64, primary: true           # Type declaration syntax (preferred)
+    #   column id, Int64, primary: true            # Legacy positional syntax
+    #
+    # Options:
+    #   primary: true   - Mark as primary key
+    #   default: value  - Default value for new records
+    macro column(decl_or_name, type = nil, primary = false, default = nil)
+      # Handle type declaration syntax: column id : Int64
+      {% if decl_or_name.is_a?(TypeDeclaration) %}
+        {% col_name = decl_or_name.var %}
+        {% col_type = decl_or_name.type %}
+        {% col_default = decl_or_name.value || default %}
+      {% else %}
+        # Legacy positional syntax: column id, Int64
+        {% col_name = decl_or_name %}
+        {% col_type = type %}
+        {% col_default = default %}
+      {% end %}
+
       {% if primary %}
-        {% if name.is_a?(StringLiteral) %}
-          @@primary_key = {{name.id}}
-        {% else %}
-          @@primary_key = {{name.stringify}}
-        {% end %}
+        @@primary_key = {{col_name.stringify}}
         # Track primary key type for association foreign key inference
-        @@primary_key_type = {{type.stringify}}
+        @@primary_key_type = {{col_type.stringify}}
 
         # Create type alias for associations to reference at compile time
         # This allows belongs_to/has_many to infer foreign key types automatically
         # Only define if not already defined by parent class with same type
         {% unless @type.has_constant?("PRIMARY_KEY_TYPE_DEFINED") %}
           PRIMARY_KEY_TYPE_DEFINED = true
-          alias PrimaryKeyType = {{type}}
+          alias PrimaryKeyType = {{col_type}}
         {% end %}
       {% end %}
 
       # Register column metadata
-      {% unless @type.has_constant?("_ralph_column_{{name}}") %}
-        @@columns[{{name.stringify}}] = Ralph::ColumnMetadata.new({{name.stringify}}, {{type}}, {{primary}}, {{default}})
+      {% unless @type.has_constant?("_ralph_column_{{col_name}}") %}
+        @@columns[{{col_name.stringify}}] = Ralph::ColumnMetadata.new({{col_name.stringify}}, {{col_type}}, {{primary}}, {{col_default}})
       {% end %}
 
       # Define the property with nilable type to allow uninitialized state
-      @{{name}} : {{type}} | Nil
+      @{{col_name}} : {{col_type}} | Nil
 
       # Getter
-      def {{name}}
-        {% if default %}
-          @{{name}} ||= {{default}}
+      def {{col_name}}
+        {% if col_default %}
+          @{{col_name}} ||= {{col_default}}
         {% else %}
-          @{{name}}
+          @{{col_name}}
         {% end %}
       end
 
       # Setter
-      def {{name}}=(value)
-        @{{name}} = value
+      def {{col_name}}=(value)
+        @{{col_name}} = value
       end
     end
 
