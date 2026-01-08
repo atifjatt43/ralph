@@ -4,12 +4,12 @@ require "../../ralph/test_helper"
 module Ralph
   # Test model with timestamps
   class TimestampedModel < Model
+    include Ralph::Timestamps
+
     table "timestamped_records"
 
     column id, Int64, primary: true
     column name, String
-
-    timestamps
   end
 
   # Test model without timestamps for comparison
