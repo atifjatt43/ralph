@@ -38,7 +38,7 @@
 # user.destroy
 # ```
 module Ralph
-  VERSION = "0.1.0"
+  VERSION = "1.0.0-beta.1"
 
   # Configure the ORM with a block
   def self.configure(&)
