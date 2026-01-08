@@ -550,7 +550,7 @@ module Ralph
       it "can find records via registry" do
         post = PolymorphicTests::Post.create(title: "Registry test")
 
-        found = Ralph::Associations.find_polymorphic("Ralph::PolymorphicTests::Post", post.id.not_nil!)
+        found = Ralph::Associations.find_polymorphic("Ralph::PolymorphicTests::Post", post.id.not_nil!.to_s)
 
         found.should_not be_nil
         found.should be_a(PolymorphicTests::Post)
@@ -558,7 +558,7 @@ module Ralph
       end
 
       it "returns nil for unknown types" do
-        found = Ralph::Associations.find_polymorphic("UnknownClass", 1_i64)
+        found = Ralph::Associations.find_polymorphic("UnknownClass", "1")
         found.should be_nil
       end
     end
