@@ -4,6 +4,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg)](https://github.com/RichardLitt/standard-readme)
 
+<div align="center">
+  <img src="./docs/assets/images/ralph.png" alt="Ralph Logo" width="200">
+</div>
+
 An Active Record-style ORM for Crystal with a focus on developer experience, type safety, and explicit behavior.
 
 Ralph provides a familiar Active Record API with models, associations, validations, callbacks, and migrations. It supports SQLite and PostgreSQL backends with a type system that handles cross-database compatibility automatically.
