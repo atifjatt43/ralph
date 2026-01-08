@@ -8,61 +8,61 @@ module Ralph
     class Publisher < Model
       table "eager_test_publishers"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
-      has_many books
+      has_many Book
     end
 
     class Book < Model
       table "eager_test_books"
 
-      column id, Int64
-      column title, String
-      column publisher_id, Int64
+      column id : Int64
+      column title : String
+      column publisher_id : Int64
 
-      belongs_to publisher
-      has_many chapters
+      belongs_to Publisher
+      has_many Chapter
     end
 
     class Chapter < Model
       table "eager_test_chapters"
 
-      column id, Int64
-      column title, String
-      column book_id, Int64
+      column id : Int64
+      column title : String
+      column book_id : Int64
 
-      belongs_to book
+      belongs_to Book
     end
 
     class Writer < Model
       table "eager_test_writers"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
-      has_one biography
-      has_many articles
+      has_one Biography
+      has_many Article
     end
 
     class Biography < Model
       table "eager_test_biographies"
 
-      column id, Int64
-      column content, String
-      column writer_id, Int64
+      column id : Int64
+      column content : String
+      column writer_id : Int64
 
-      belongs_to writer
+      belongs_to Writer
     end
 
     class Article < Model
       table "eager_test_articles"
 
-      column id, Int64
-      column title, String
-      column writer_id, Int64
+      column id : Int64
+      column title : String
+      column writer_id : Int64
 
-      belongs_to writer
+      belongs_to Writer
     end
 
     # Store test data

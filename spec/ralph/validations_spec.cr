@@ -6,9 +6,9 @@ module Ralph
   class BlockValidationModel < Model
     table "users"
 
-    column id, Int64
-    column name, String
-    column email, String
+    column id : Int64
+    column name : String
+    column email : String
 
     validate :name, "can't be blank" do
       !name.to_s.empty?
@@ -23,9 +23,9 @@ module Ralph
   class CustomValidationModel < Model
     table "users"
 
-    column id, Int64
-    column name, String
-    column age, Int32 | Nil
+    column id : Int64
+    column name : String
+    column age : Int32 | Nil
 
     @[ValidationMethod]
     private def check_name_not_reserved

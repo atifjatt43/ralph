@@ -6,31 +6,31 @@ module Ralph
   class DefaultValueModel < Model
     table "users"
 
-    column id, Int64
-    column name, String
-    column email, String
-    column age, Int32 | Nil
+    column id : Int64
+    column name : String
+    column email : String
+    column age : Int32 | Nil
   end
 
   # Test model with default values defined
   class ModelWithDefaults < Model
     table "users"
 
-    column id, Int64
-    column name, String, default: "Anonymous"
-    column email, String, default: "anonymous@example.com"
-    column age, Int32 | Nil, default: 18
+    column id : Int64
+    column name : String, default: "Anonymous"
+    column email : String, default: "anonymous@example.com"
+    column age : Int32 | Nil, default: 18
   end
 
   # Test model for conditional callbacks
   class ConditionalCallbackModel < Model
     table "users"
 
-    column id, Int64
-    column name, String
-    column email, String
-    column active, Bool | Nil
-    column skip_callback, Bool | Nil
+    column id : Int64
+    column name : String
+    column email : String
+    column active : Bool | Nil
+    column skip_callback : Bool | Nil
 
     @_conditional_callback_log : Array(String) = [] of String
 

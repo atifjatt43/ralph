@@ -6,11 +6,11 @@ module Ralph
   class AdvancedClausesTestModel < Model
     table "posts_advanced"
 
-    column id, Int64
-    column title, String
-    column category, String
-    column views, Int32
-    column published, Bool | Nil
+    column id : Int64
+    column title : String
+    column category : String
+    column views : Int32
+    column published : Bool | Nil
   end
 
   describe "Advanced Query Clauses" do

@@ -8,17 +8,17 @@ module Ralph
     class User < Model
       table "trans_test_users"
 
-      column id, Int64, primary: true
-      column name, String
-      column email, String?
+      column id : Int64, primary: true
+      column name : String
+      column email : String?
     end
 
     class Post < Model
       table "trans_test_posts"
 
-      column id, Int64, primary: true
-      column title, String
-      column user_id, Int64?
+      column id : Int64, primary: true
+      column title : String
+      column user_id : Int64?
     end
   end
 

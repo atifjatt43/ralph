@@ -6,28 +6,28 @@ module Ralph
     class Organization < Model
       table "flex_pk_organizations"
 
-      column id, String, primary: true
-      column name, String
+      column id : String, primary: true
+      column name : String
 
-      has_many teams
+      has_many Team
     end
 
     class Team < Model
       table "flex_pk_teams"
 
-      column id, Int64, primary: true
-      column name, String
+      column id : Int64, primary: true
+      column name : String
 
-      belongs_to organization
-      has_many members
+      belongs_to Organization
+      has_many Member
     end
 
     class Member < Model
       table "flex_pk_members"
 
-      column id, Int64, primary: true
-      column name, String
-      column team_id, Int64
+      column id : Int64, primary: true
+      column name : String
+      column team_id : Int64
     end
   end
 

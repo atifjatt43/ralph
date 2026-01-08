@@ -8,16 +8,16 @@ module Ralph
 
     table "timestamped_records"
 
-    column id, Int64, primary: true
-    column name, String
+    column id : Int64, primary: true
+    column name : String
   end
 
   # Test model without timestamps for comparison
   class NonTimestampedModel < Model
     table "non_timestamped_records"
 
-    column id, Int64, primary: true
-    column name, String
+    column id : Int64, primary: true
+    column name : String
   end
 
   describe "Timestamps" do

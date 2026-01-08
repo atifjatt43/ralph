@@ -7,9 +7,9 @@ module Ralph
   # Presence validation test models
   class PresenceTestModel < Model
     table "users"
-    column id, Int64
-    column name, String
-    column email, String
+    column id : Int64
+    column name : String
+    column email : String
 
     validates_presence_of :name
     validates_presence_of :email
@@ -17,8 +17,8 @@ module Ralph
 
   class PresenceCustomMessageModel < Model
     table "users"
-    column id, Int64
-    column name, String
+    column id : Int64
+    column name : String
 
     validates_presence_of :name, message: "is required"
   end
@@ -26,9 +26,9 @@ module Ralph
   # Length validation test models
   class LengthTestModel < Model
     table "users"
-    column id, Int64
-    column name, String
-    column email, String
+    column id : Int64
+    column name : String
+    column email : String
 
     validates_length_of :name, min: 3, max: 50
     validates_length_of :email, minimum: 8
@@ -36,16 +36,16 @@ module Ralph
 
   class LengthRangeModel < Model
     table "users"
-    column id, Int64
-    column name, String
+    column id : Int64
+    column name : String
 
     validates_length_of :name, range: 3..20
   end
 
   class LengthCustomMessageModel < Model
     table "users"
-    column id, Int64
-    column name, String
+    column id : Int64
+    column name : String
 
     validates_length_of :name, min: 5, message: "is too short"
   end
@@ -53,9 +53,9 @@ module Ralph
   # Format validation test models
   class FormatTestModel < Model
     table "users"
-    column id, Int64
-    column email, String
-    column name, String
+    column id : Int64
+    column email : String
+    column name : String
 
     validates_format_of :email, pattern: /@/
     validates_format_of :name, pattern: /^[a-zA-Z0-9_]+$/
@@ -63,8 +63,8 @@ module Ralph
 
   class FormatCustomMessageModel < Model
     table "users"
-    column id, Int64
-    column email, String
+    column id : Int64
+    column email : String
 
     validates_format_of :email, pattern: /@/, message: "must contain @"
   end
@@ -72,16 +72,16 @@ module Ralph
   # Numericality validation test models
   class NumericalityTestModel < Model
     table "users"
-    column id, Int64
-    column age, Int32 | Nil
+    column id : Int64
+    column age : Int32 | Nil
 
     validates_numericality_of :age
   end
 
   class NumericalityCustomMessageModel < Model
     table "users"
-    column id, Int64
-    column age, Int32 | Nil
+    column id : Int64
+    column age : Int32 | Nil
 
     validates_numericality_of :age, message: "must be numeric"
   end
@@ -89,9 +89,9 @@ module Ralph
   # Inclusion validation test models
   class InclusionTestModel < Model
     table "users"
-    column id, Int64
-    column name, String
-    column email, String
+    column id : Int64
+    column name : String
+    column email : String
 
     validates_inclusion_of :name, allow: ["draft", "published", "archived"]
     validates_inclusion_of :email, allow: ["user", "admin"]
@@ -99,8 +99,8 @@ module Ralph
 
   class InclusionCustomMessageModel < Model
     table "users"
-    column id, Int64
-    column name, String
+    column id : Int64
+    column name : String
 
     validates_inclusion_of :name, allow: ["active", "inactive"], message: "is not a valid status"
   end
@@ -108,9 +108,9 @@ module Ralph
   # Exclusion validation test models
   class ExclusionTestModel < Model
     table "users"
-    column id, Int64
-    column name, String
-    column email, String
+    column id : Int64
+    column name : String
+    column email : String
 
     validates_exclusion_of :name, forbid: ["admin", "root", "system"]
     validates_exclusion_of :email, forbid: ["blocked@example.com"]
@@ -118,8 +118,8 @@ module Ralph
 
   class ExclusionCustomMessageModel < Model
     table "users"
-    column id, Int64
-    column name, String
+    column id : Int64
+    column name : String
 
     validates_exclusion_of :name, forbid: ["admin"], message: "is not allowed"
   end
@@ -127,9 +127,9 @@ module Ralph
   # Uniqueness validation test models
   class UniquenessTestModel < Model
     table "users"
-    column id, Int64
-    column email, String
-    column name, String
+    column id : Int64
+    column email : String
+    column name : String
 
     validates_uniqueness_of :email
     validates_uniqueness_of :name
@@ -137,17 +137,17 @@ module Ralph
 
   class UniquenessCustomMessageModel < Model
     table "users"
-    column id, Int64
-    column email, String
-    column name, String
+    column id : Int64
+    column email : String
+    column name : String
 
     validates_uniqueness_of :email, message: "is already taken"
   end
 
   class UniquenessNilModel < Model
     table "users"
-    column id, Int64
-    column age, Int32 | Nil
+    column id : Int64
+    column age : Int32 | Nil
 
     validates_uniqueness_of :age
   end
@@ -156,9 +156,9 @@ module Ralph
   class ValidationCallbackTestModel < Model
     table "users"
 
-    column id, Int64
-    column name, String
-    column email, String
+    column id : Int64
+    column name : String
+    column email : String
 
     @_validation_callback_log : Array(String) = [] of String
 

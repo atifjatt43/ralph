@@ -9,17 +9,17 @@ module Ralph
 
     table "soft_delete_records"
 
-    column id, Int64, primary: true
-    column name, String
-    column email, String?
+    column id : Int64, primary: true
+    column name : String
+    column email : String?
   end
 
   # Test model without soft deletes for comparison
   class HardDeleteModel < Model
     table "hard_delete_records"
 
-    column id, Int64, primary: true
-    column name, String
+    column id : Int64, primary: true
+    column name : String
   end
 
   # Test model with soft deletes and callbacks
@@ -28,9 +28,9 @@ module Ralph
 
     table "soft_delete_callback_records"
 
-    column id, Int64, primary: true
-    column name, String
-    column callback_log, String?
+    column id : Int64, primary: true
+    column name : String
+    column callback_log : String?
 
     @[BeforeDestroy]
     def log_before_destroy

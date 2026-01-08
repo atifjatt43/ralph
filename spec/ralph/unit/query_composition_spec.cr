@@ -389,11 +389,11 @@ module Ralph
   class ScopeTestUser < Model
     table "scope_test_users"
 
-    column id, Int64, primary: true
-    column name, String
-    column age, Int32
-    column active, Bool
-    column role, String?
+    column id : Int64, primary: true
+    column name : String
+    column age : Int32
+    column active : Bool
+    column role : String?
 
     scope :active, ->(q : Query::Builder) { q.where("active = ?", true) }
     scope :adults, ->(q : Query::Builder) { q.where("age >= ?", 18) }

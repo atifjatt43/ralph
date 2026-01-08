@@ -8,11 +8,11 @@ module Ralph
     class Author < Model
       table "assoc_test_authors"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
-      has_one profile
-      has_many articles
+      has_one Profile
+      has_many Article
 
       @@author1 : Author?
       @@author2 : Author?
@@ -34,17 +34,17 @@ module Ralph
     class Profile < Model
       table "assoc_test_profiles"
 
-      column id, Int64
-      column bio_text, String
-      column author_id, Int64
+      column id : Int64
+      column bio_text : String
+      column author_id : Int64
     end
 
     class Article < Model
       table "assoc_test_articles"
 
-      column id, Int64
-      column title, String
-      column author_id, Int64
+      column id : Int64
+      column title : String
+      column author_id : Int64
 
       @@article1 : Article?
       @@article2 : Article?
@@ -72,10 +72,10 @@ module Ralph
     class Comment < Model
       table "assoc_test_comments"
 
-      column id, Int64
-      column body, String
+      column id : Int64
+      column body : String
 
-      belongs_to article
+      belongs_to Article
 
       @@comment1 : Comment?
       @@comment2 : Comment?

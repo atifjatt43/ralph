@@ -6,72 +6,72 @@ module Ralph
   class JoinTestUser < Model
     table "join_test_users"
 
-    column id, Int64, primary: true
-    column name, String
-    column email, String?
+    column id : Int64, primary: true
+    column name : String
+    column email : String?
   end
 
   class JoinTestPost < Model
     table "join_test_posts"
 
-    column id, Int64, primary: true
-    column title, String
-    column content, String?
-    column user_id, Int64?
-    column author_id, Int64?
+    column id : Int64, primary: true
+    column title : String
+    column content : String?
+    column user_id : Int64?
+    column author_id : Int64?
   end
 
   class JoinTestComment < Model
     table "join_test_comments"
 
-    column id, Int64, primary: true
-    column body, String
-    column post_id, Int64?
+    column id : Int64, primary: true
+    column body : String
+    column post_id : Int64?
   end
 
   # Test models with associations
   class JoinAssocUser < Model
     table "join_test_users"
 
-    column id, Int64, primary: true
-    column name, String
-    column email, String?
+    column id : Int64, primary: true
+    column name : String
+    column email : String?
 
-    has_many posts, class_name: "JoinAssocPost"
-    has_one profile, class_name: "JoinAssocProfile"
+    has_many posts : JoinAssocPost
+    has_one profile : JoinAssocProfile
   end
 
   class JoinAssocPost < Model
     table "join_test_posts"
 
-    column id, Int64, primary: true
-    column title, String
-    column content, String?
-    column user_id, Int64?
-    column author_id, Int64?
+    column id : Int64, primary: true
+    column title : String
+    column content : String?
+    column user_id : Int64?
+    column author_id : Int64?
 
-    belongs_to user, class_name: "JoinAssocUser"
-    has_many comments, class_name: "JoinAssocComment"
+    belongs_to user : JoinAssocUser
+    has_many comments : JoinAssocComment
   end
 
   class JoinAssocComment < Model
     table "join_test_comments"
 
-    column id, Int64, primary: true
-    column body, String
-    column post_id, Int64?
+    column id : Int64, primary: true
+    column body : String
+    column post_id : Int64?
 
-    belongs_to post, class_name: "JoinAssocPost"
+    belongs_to post : JoinAssocPost
   end
 
   class JoinAssocProfile < Model
     table "profile"
 
-    column id, Int64, primary: true
-    column bio, String?
-    column join_assoc_user_id, Int64?
+    column id : Int64, primary: true
+    column bio : String?
+    column join_assoc_user_id : Int64?
 
-    belongs_to join_assoc_user, class_name: "JoinAssocUser"
+    belongs_to join_assoc_user : JoinAssocUser
   end
 
   describe "Joins" do

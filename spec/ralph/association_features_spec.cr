@@ -22,25 +22,25 @@ module Ralph
     class Publisher < Model
       table "af_publishers"
 
-      column id, Int64, primary: true
-      column name, String
-      column books_count, Int32, default: 0
-      column updated_at, Time?
+      column id : Int64, primary: true
+      column name : String
+      column books_count : Int32, default: 0
+      column updated_at : Time?
 
-      has_many books
+      has_many Book
     end
 
     class Book < Model
       table "af_books"
 
-      column id, Int64, primary: true
-      column title, String
-      column published, Bool, default: false
-      column publisher_id, Int64
+      column id : Int64, primary: true
+      column title : String
+      column published : Bool, default: false
+      column publisher_id : Int64
 
       # counter_cache: true automatically generates increment/decrement callbacks
       # touch: true updates parent's updated_at on save
-      belongs_to publisher, counter_cache: true, touch: true
+      belongs_to Publisher, counter_cache: true, touch: true
 
       # Touch parent after save (still need this for touch to work with our callback system)
       @[Ralph::Callbacks::AfterSave]
@@ -60,29 +60,29 @@ module Ralph
     class Library < Model
       table "af_libraries"
 
-      column id, Int64, primary: true
-      column name, String
+      column id : Int64, primary: true
+      column name : String
 
       # Regular has_many
-      has_many magazines
+      has_many Magazine
 
       # Scoped has_many - only published magazines
-      has_many published_magazines, ->(q : Ralph::Query::Builder) { q.where("\"published\" = ?", true) }, class_name: "Ralph::AssociationFeaturesTests::Magazine"
+      has_many Ralph::AssociationFeaturesTests::Magazine, ->(q : Ralph::Query::Builder) { q.where("\"published\" = ?", true) }, as: :published_magazines
 
       # Scoped has_many - only recent magazines
-      has_many recent_magazines, ->(q : Ralph::Query::Builder) { q.where("\"year\" > ?", 2020) }, class_name: "Ralph::AssociationFeaturesTests::Magazine"
+      has_many Ralph::AssociationFeaturesTests::Magazine, ->(q : Ralph::Query::Builder) { q.where("\"year\" > ?", 2020) }, as: :recent_magazines
     end
 
     class Magazine < Model
       table "af_magazines"
 
-      column id, Int64, primary: true
-      column name, String
-      column published, Bool, default: false
-      column year, Int32, default: 2024
-      column library_id, Int64
+      column id : Int64, primary: true
+      column name : String
+      column published : Bool, default: false
+      column year : Int32, default: 2024
+      column library_id : Int64
 
-      belongs_to library
+      belongs_to Library
     end
 
     # =========================================================================
@@ -92,33 +92,33 @@ module Ralph
     class Student < Model
       table "af_students"
 
-      column id, Int64, primary: true
-      column name, String
+      column id : Int64, primary: true
+      column name : String
 
-      has_many enrollments
-      has_many courses, through: :enrollments, source: :course
+      has_many Enrollment
+      has_many Course, through: :enrollments, source: :course
     end
 
     class Course < Model
       table "af_courses"
 
-      column id, Int64, primary: true
-      column title, String
+      column id : Int64, primary: true
+      column title : String
 
-      has_many enrollments
-      has_many students, through: :enrollments, source: :student
+      has_many Enrollment
+      has_many Student, through: :enrollments, source: :student
     end
 
     class Enrollment < Model
       table "af_enrollments"
 
-      column id, Int64, primary: true
-      column grade, String?
-      column student_id, Int64
-      column course_id, Int64
+      column id : Int64, primary: true
+      column grade : String?
+      column student_id : Int64
+      column course_id : Int64
 
-      belongs_to student
-      belongs_to course
+      belongs_to Student
+      belongs_to Course
     end
 
     # =========================================================================
@@ -128,20 +128,20 @@ module Ralph
     class Author < Model
       table "af_authors"
 
-      column id, Int64, primary: true
-      column name, String
+      column id : Int64, primary: true
+      column name : String
 
-      has_many articles
+      has_many Article
     end
 
     class Article < Model
       table "af_articles"
 
-      column id, Int64, primary: true
-      column title, String
-      column author_id, Int64
+      column id : Int64, primary: true
+      column title : String
+      column author_id : Int64
 
-      belongs_to author
+      belongs_to Author
     end
   end
 

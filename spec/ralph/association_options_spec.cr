@@ -10,31 +10,31 @@ module Ralph
     class Person < Model
       table "assoc_opts_persons"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
-      # Use class_name to reference a differently-named model
-      has_many written_articles, class_name: "BlogPost", foreign_key: "author_id"
-      has_one avatar, class_name: "UserImage", foreign_key: "owner_id"
+      # Use type declaration syntax to specify custom association names
+      has_many written_articles : BlogPost, foreign_key: :author_id
+      has_one avatar : UserImage, foreign_key: :owner_id
     end
 
     class BlogPost < Model
       table "assoc_opts_blog_posts"
 
-      column id, Int64
-      column title, String
-      column author_id, Int64?
+      column id : Int64
+      column title : String
+      column author_id : Int64?
 
-      # Use class_name to reference Person as "writer"
-      belongs_to writer, class_name: "Person", foreign_key: "author_id"
+      # Use type declaration syntax to reference Person as "writer"
+      belongs_to writer : Person, foreign_key: :author_id
     end
 
     class UserImage < Model
       table "assoc_opts_user_images"
 
-      column id, Int64
-      column url, String
-      column owner_id, Int64?
+      column id : Int64
+      column url : String
+      column owner_id : Int64?
     end
 
     # ========================================
@@ -44,22 +44,22 @@ module Ralph
     class Company < Model
       table "assoc_opts_companies"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # Custom foreign key on the employees table
-      has_many workers, class_name: "Employee", foreign_key: "employer_id"
+      has_many workers : Employee, foreign_key: :employer_id
     end
 
     class Employee < Model
       table "assoc_opts_employees"
 
-      column id, Int64
-      column name, String
-      column employer_id, Int64?
+      column id : Int64
+      column name : String
+      column employer_id : Int64?
 
       # Custom foreign_key to match company's has_many
-      belongs_to employer, class_name: "Company", foreign_key: "employer_id"
+      belongs_to employer : Company, foreign_key: :employer_id
     end
 
     # ========================================
@@ -69,19 +69,19 @@ module Ralph
     class Publisher < Model
       table "assoc_opts_publishers"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # dependent: :destroy - runs callbacks on each book
-      has_many books, dependent: :destroy
+      has_many Book, dependent: :destroy
     end
 
     class Book < Model
       table "assoc_opts_books"
 
-      column id, Int64
-      column title, String
-      column publisher_id, Int64?
+      column id : Int64
+      column title : String
+      column publisher_id : Int64?
 
       @@destroyed_titles = [] of String
 
@@ -102,19 +102,19 @@ module Ralph
     class Library < Model
       table "assoc_opts_libraries"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # dependent: :delete_all - deletes without callbacks
-      has_many magazines, dependent: :delete_all
+      has_many Magazine, dependent: :delete_all
     end
 
     class Magazine < Model
       table "assoc_opts_magazines"
 
-      column id, Int64
-      column title, String
-      column library_id, Int64?
+      column id : Int64
+      column title : String
+      column library_id : Int64?
 
       @@destroyed_titles = [] of String
 
@@ -135,55 +135,55 @@ module Ralph
     class Author < Model
       table "assoc_opts_authors"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # dependent: :nullify - sets foreign key to NULL
-      has_many essays, dependent: :nullify
+      has_many Essay, dependent: :nullify
     end
 
     class Essay < Model
       table "assoc_opts_essays"
 
-      column id, Int64
-      column title, String
-      column author_id, Int64?
+      column id : Int64
+      column title : String
+      column author_id : Int64?
     end
 
     class RestrictedPublisher < Model
       table "assoc_opts_restricted_publishers"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # dependent: :restrict_with_error - prevents destroy if associations exist
-      has_many documents, class_name: "Document", foreign_key: "restricted_publisher_id", dependent: :restrict_with_error
+      has_many documents : Document, foreign_key: :restricted_publisher_id, dependent: :restrict_with_error
     end
 
     class Document < Model
       table "assoc_opts_documents"
 
-      column id, Int64
-      column title, String
-      column restricted_publisher_id, Int64?
+      column id : Int64
+      column title : String
+      column restricted_publisher_id : Int64?
     end
 
     class StrictPublisher < Model
       table "assoc_opts_strict_publishers"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # dependent: :restrict_with_exception - raises exception if associations exist
-      has_many papers, class_name: "Paper", foreign_key: "strict_publisher_id", dependent: :restrict_with_exception
+      has_many papers : Paper, foreign_key: :strict_publisher_id, dependent: :restrict_with_exception
     end
 
     class Paper < Model
       table "assoc_opts_papers"
 
-      column id, Int64
-      column title, String
-      column strict_publisher_id, Int64?
+      column id : Int64
+      column title : String
+      column strict_publisher_id : Int64?
     end
 
     # ========================================
@@ -193,19 +193,19 @@ module Ralph
     class User < Model
       table "assoc_opts_users"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # dependent: :destroy for has_one
-      has_one profile, dependent: :destroy
+      has_one Profile, dependent: :destroy
     end
 
     class Profile < Model
       table "assoc_opts_profiles"
 
-      column id, Int64
-      column bio, String
-      column user_id, Int64?
+      column id : Int64
+      column bio : String
+      column user_id : Int64?
 
       @@destroyed_bios = [] of String
 
@@ -226,19 +226,19 @@ module Ralph
     class Account < Model
       table "assoc_opts_accounts"
 
-      column id, Int64
-      column name, String
+      column id : Int64
+      column name : String
 
       # dependent: :nullify for has_one
-      has_one settings, class_name: "AccountSettings", foreign_key: "account_id", dependent: :nullify
+      has_one settings : AccountSettings, foreign_key: :account_id, dependent: :nullify
     end
 
     class AccountSettings < Model
       table "assoc_opts_account_settings"
 
-      column id, Int64
-      column theme, String
-      column account_id, Int64?
+      column id : Int64
+      column theme : String
+      column account_id : Int64?
     end
   end
 

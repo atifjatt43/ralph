@@ -10,28 +10,28 @@ module Ralph
     class Comment < Model
       table "poly_test_comments"
 
-      column id, Int64, primary: true
-      column body, String
+      column id : Int64, primary: true
+      column body : String
 
-      belongs_to commentable, polymorphic: true
+      belongs_to polymorphic: :commentable
     end
 
     class Post < Model
       table "poly_test_posts"
 
-      column id, Int64, primary: true
-      column title, String
+      column id : Int64, primary: true
+      column title : String
 
-      has_many comments, as: :commentable
+      has_many Ralph::PolymorphicTests::Comment, polymorphic: :commentable
     end
 
     class Article < Model
       table "poly_test_articles"
 
-      column id, Int64, primary: true
-      column title, String
+      column id : Int64, primary: true
+      column title : String
 
-      has_many comments, as: :commentable
+      has_many Ralph::PolymorphicTests::Comment, polymorphic: :commentable
     end
 
     # ========================================
@@ -41,28 +41,28 @@ module Ralph
     class Profile < Model
       table "poly_test_profiles"
 
-      column id, Int64, primary: true
-      column bio, String
+      column id : Int64, primary: true
+      column bio : String
 
-      belongs_to profileable, polymorphic: true
+      belongs_to polymorphic: :profileable
     end
 
     class User < Model
       table "poly_test_users"
 
-      column id, Int64, primary: true
-      column name, String
+      column id : Int64, primary: true
+      column name : String
 
-      has_one profile, as: :profileable
+      has_one Ralph::PolymorphicTests::Profile, polymorphic: :profileable
     end
 
     class Company < Model
       table "poly_test_companies"
 
-      column id, Int64, primary: true
-      column name, String
+      column id : Int64, primary: true
+      column name : String
 
-      has_one profile, as: :profileable
+      has_one Ralph::PolymorphicTests::Profile, polymorphic: :profileable
     end
 
     # ========================================
@@ -72,10 +72,10 @@ module Ralph
     class Tag < Model
       table "poly_test_tags"
 
-      column id, Int64, primary: true
-      column name, String
+      column id : Int64, primary: true
+      column name : String
 
-      belongs_to taggable, polymorphic: true
+      belongs_to polymorphic: :taggable
 
       @@destroyed_names = [] of String
 
@@ -96,19 +96,19 @@ module Ralph
     class Photo < Model
       table "poly_test_photos"
 
-      column id, Int64, primary: true
-      column url, String
+      column id : Int64, primary: true
+      column url : String
 
-      has_many tags, as: :taggable, dependent: :destroy
+      has_many Ralph::PolymorphicTests::Tag, polymorphic: :taggable, dependent: :destroy
     end
 
     class Video < Model
       table "poly_test_videos"
 
-      column id, Int64, primary: true
-      column url, String
+      column id : Int64, primary: true
+      column url : String
 
-      has_many tags, as: :taggable, dependent: :delete_all
+      has_many Ralph::PolymorphicTests::Tag, polymorphic: :taggable, dependent: :delete_all
     end
 
     # ========================================
@@ -119,20 +119,20 @@ module Ralph
     class StringPKPost < Model
       table "poly_test_string_posts"
 
-      column id, String, primary: true
-      column title, String
+      column id : String, primary: true
+      column title : String
 
-      has_many comments, class_name: "Ralph::PolymorphicTests::Comment", as: :commentable
+      has_many Ralph::PolymorphicTests::Comment, class_name: "Ralph::PolymorphicTests::Comment", polymorphic: :commentable
     end
 
     # Parent with UUID primary key
     class UUIDPost < Model
       table "poly_test_uuid_posts"
 
-      column id, UUID, primary: true
-      column title, String
+      column id : UUID, primary: true
+      column title : String
 
-      has_many comments, class_name: "Ralph::PolymorphicTests::Comment", as: :commentable
+      has_many Ralph::PolymorphicTests::Comment, class_name: "Ralph::PolymorphicTests::Comment", polymorphic: :commentable
     end
   end
 

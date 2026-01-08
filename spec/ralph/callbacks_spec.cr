@@ -6,9 +6,9 @@ module Ralph
   class CallbackTestModel < Model
     table "users"
 
-    column id, Int64
-    column name, String
-    column email, String
+    column id : Int64
+    column name : String
+    column email : String
 
     # Callback tracking (using underscore prefix to avoid being treated as a column)
     @_callback_log : Array(String) = [] of String

@@ -6,11 +6,11 @@ module Ralph
   class UserTestModel < Model
     table "users"
 
-    column id, Int64
-    column name, String
-    column email, String
-    column age, Int32 | Nil
-    column created_at, Time | Nil
+    column id : Int64
+    column name : String
+    column email : String
+    column age : Int32 | Nil
+    column created_at : Time | Nil
   end
 
   # Integration tests for Model CRUD operations
