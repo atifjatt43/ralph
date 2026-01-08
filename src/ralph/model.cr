@@ -973,7 +973,7 @@ module Ralph
     #   u.name = "Alice"
     #   u.role = "user"
     # end
-    # user.save  # Must save manually
+    # user.save # Must save manually
     # ```
     def self.find_or_initialize_by(conditions : Hash(String, DB::Any), &block : self ->) : self
       existing = find_by_conditions(conditions)

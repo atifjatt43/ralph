@@ -57,12 +57,12 @@ require "../../postgres_spec_helper"
 
         found_titles = [] of String
         result.each do
-          found_titles << result.read(Int64).to_s  # id
-          found_titles << result.read(String)       # title
-          result.read(String?)                       # content
-          result.read(String?)                       # author
-          result.read(Array(String)?)               # tags
-          result.read(Time?)                        # created_at
+          found_titles << result.read(Int64).to_s # id
+          found_titles << result.read(String)     # title
+          result.read(String?)                    # content
+          result.read(String?)                    # author
+          result.read(Array(String)?)             # tags
+          result.read(Time?)                      # created_at
         end
         result.close
 

@@ -1111,7 +1111,7 @@ module Ralph
       #
       # ```
       # query.where_search("title", "crystal")
-      #      .order_by_search_rank("title", "crystal")
+      #   .order_by_search_rank("title", "crystal")
       # # Orders results by relevance to "crystal"
       # ```
       #
@@ -1143,7 +1143,7 @@ module Ralph
       #
       # ```
       # query.where_search("content", "crystal programming")
-      #      .order_by_search_rank_cd("content", "crystal programming")
+      #   .order_by_search_rank_cd("content", "crystal programming")
       # ```
       def order_by_search_rank_cd(column : String, query : String, config : String = "english", normalization : Int32 = 0) : Builder
         ensure_postgres!("Search rank with cover density")
@@ -1160,7 +1160,7 @@ module Ralph
       #
       # ```
       # query.where_search("content", "crystal")
-      #      .select_search_headline("content", "crystal")
+      #   .select_search_headline("content", "crystal")
       # # Returns content like: "Learn about <b>Crystal</b> programming language"
       # ```
       #
@@ -1186,7 +1186,7 @@ module Ralph
         start_tag : String = "<b>",
         stop_tag : String = "</b>",
         fragment_delimiter : String = " ... ",
-        as alias_name : String = "headline"
+        as alias_name : String = "headline",
       ) : Builder
         ensure_postgres!("Search headline")
 

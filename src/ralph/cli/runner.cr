@@ -268,23 +268,23 @@ module Ralph
         {% begin %}
           case url
           {% if @top_level.has_constant?("Ralph") &&
-                Ralph::Database.has_constant?("SqliteBackend") %}
+                  Ralph::Database.has_constant?("SqliteBackend") %}
           when .starts_with?("sqlite3://"), .starts_with?("sqlite://")
             Database::SqliteBackend.new(url)
           {% end %}
           {% if @top_level.has_constant?("Ralph") &&
-                Ralph::Database.has_constant?("PostgresBackend") %}
+                  Ralph::Database.has_constant?("PostgresBackend") %}
           when .starts_with?("postgres://"), .starts_with?("postgresql://")
             Database::PostgresBackend.new(url)
           {% end %}
           else
             supported = [] of String
             {% if @top_level.has_constant?("Ralph") &&
-                  Ralph::Database.has_constant?("SqliteBackend") %}
+                    Ralph::Database.has_constant?("SqliteBackend") %}
               supported << "sqlite3://"
             {% end %}
             {% if @top_level.has_constant?("Ralph") &&
-                  Ralph::Database.has_constant?("PostgresBackend") %}
+                    Ralph::Database.has_constant?("PostgresBackend") %}
               supported << "postgres://"
             {% end %}
             raise "Unsupported database URL: #{url}. Supported: #{supported.join(", ")}"
@@ -323,14 +323,14 @@ module Ralph
         {% begin %}
           case url
           {% if @top_level.has_constant?("Ralph") &&
-                Ralph::Database.has_constant?("SqliteBackend") %}
+                  Ralph::Database.has_constant?("SqliteBackend") %}
           when /^sqlite3?:\/\/(.+)$/
             path = $1
             FileUtils.mkdir_p(File.dirname(path))
             @output.puts "Created database: #{path}"
           {% end %}
           {% if @top_level.has_constant?("Ralph") &&
-                Ralph::Database.has_constant?("PostgresBackend") %}
+                  Ralph::Database.has_constant?("PostgresBackend") %}
           when /^postgres(?:ql)?:\/\//
             # Extract database name from URL
             db_name = extract_postgres_db_name(url)
@@ -366,7 +366,7 @@ module Ralph
         {% begin %}
           case url
           {% if @top_level.has_constant?("Ralph") &&
-                Ralph::Database.has_constant?("SqliteBackend") %}
+                  Ralph::Database.has_constant?("SqliteBackend") %}
           when /^sqlite3?:\/\/(.+)$/
             path = $1
             if File.exists?(path)
@@ -377,7 +377,7 @@ module Ralph
             end
           {% end %}
           {% if @top_level.has_constant?("Ralph") &&
-                Ralph::Database.has_constant?("PostgresBackend") %}
+                  Ralph::Database.has_constant?("PostgresBackend") %}
           when /^postgres(?:ql)?:\/\//
             # Extract database name from URL
             db_name = extract_postgres_db_name(url)
