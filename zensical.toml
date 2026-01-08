@@ -34,6 +34,8 @@ nav = [
     {"Migrations" = [
         "migrations/introduction.md",
         {"Schema Builder" = "migrations/schema-builder.md"},
+        {"Programmatic API" = "migrations/programmatic-api.md"},
+        {"Error Handling" = "migrations/error-handling.md"},
     ]},
     {"CLI" = [
         "cli/commands.md",

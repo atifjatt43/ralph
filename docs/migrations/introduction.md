@@ -77,6 +77,53 @@ To see which migrations are currently applied:
 ralph db:status
 ```
 
+## Raw SQL Execution
+
+For operations not covered by the migration DSL, use the `execute` method:
+
+```crystal
+class AddFullTextSearch_20240115100000 < Ralph::Migrations::Migration
+  migration_version 20240115100000
+
+  def up : Nil
+    # PostgreSQL extension
+    execute "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+    
+    # Custom function
+    execute <<-SQL
+      CREATE OR REPLACE FUNCTION update_updated_at()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    SQL
+    
+    # Apply trigger
+    execute <<-SQL
+      CREATE TRIGGER set_updated_at
+      BEFORE UPDATE ON posts
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at();
+    SQL
+  end
+
+  def down : Nil
+    execute "DROP TRIGGER IF EXISTS set_updated_at ON posts"
+    execute "DROP FUNCTION IF EXISTS update_updated_at()"
+    execute "DROP EXTENSION IF EXISTS pg_trgm"
+  end
+end
+```
+
+## Migration Ordering
+
+Migrations are executed in the order they were registered with `Migrator.register`. The convention is to use timestamp-prefixed filenames (`20240101120000_create_users.cr`) which, when loaded alphabetically via `require "./db/migrations/*"`, ensures correct ordering.
+
+!!! tip "Consistent Ordering"
+    Always use the CLI generator (`ralph g:migration`) to create migrations. This ensures timestamps are generated correctly and migrations run in the proper order.
+
 ## Best Practices
 
 ### 1. Make Migrations Reversible
@@ -86,6 +133,22 @@ Always ensure your `down` method correctly reverses every action taken in the `u
 ### 2. Avoid Data Migrations in Schema Migrations
 
 While you _can_ use migrations to move or transform data, it's often better to keep schema changes and data changes separate. If a data migration fails, it can leave your database in an inconsistent state.
+
+```crystal
+# Acceptable: Simple data backfill
+def up : Nil
+  add_column :users, :role, :string, default: "member"
+end
+
+# Risky: Complex data transformation
+def up : Nil
+  add_column :users, :full_name, :string
+  # Avoid this - if it fails partway through, you're in trouble
+  execute "UPDATE users SET full_name = first_name || ' ' || last_name"
+  remove_column :users, :first_name
+  remove_column :users, :last_name
+end
+```
 
 ### 3. Use `ralph db:reset` for Local Development
 
@@ -101,6 +164,20 @@ _Warning: This will drop your database and all its data!_
 
 Once a migration has been committed and shared with other developers or deployed to production, you should never modify it. Instead, create a new migration to make further changes.
 
+### 5. Test Migrations Both Ways
+
+Before committing, verify that both `up` and `down` work correctly:
+
+```bash
+ralph db:migrate      # Apply
+ralph db:rollback     # Roll back
+ralph db:migrate      # Re-apply (should work identically)
+```
+
+### 6. Keep Migrations Small and Focused
+
+Each migration should do one logical thing. Instead of creating multiple tables in one migration, create separate migrations for each table. This makes rollbacks more granular and debugging easier.
+
 ## Workflow Example
 
 1. **Generate**: `ralph g:migration AddRoleToUsers`
@@ -108,3 +185,9 @@ Once a migration has been committed and shared with other developers or deployed
 3. **Migrate**: `ralph db:migrate`
 4. **Test**: Verify your models can now use the `role` column.
 5. **Commit**: Add the migration file to your version control (e.g., Git).
+
+## Next Steps
+
+- [Schema Builder](schema-builder.md) - Learn the full DSL for creating and modifying tables
+- [Programmatic API](programmatic-api.md) - Run migrations from code, auto-migrate on startup
+- [Error Handling](error-handling.md) - Understanding and handling migration errors

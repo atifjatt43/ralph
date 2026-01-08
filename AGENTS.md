@@ -55,6 +55,7 @@ ralph/
 │       └── integration/      # Full database operations
 ├── examples/website/         # Kemal-based example app
 ├── docs/                     # Documentation markdown
+├── zensical.toml             # Docs site config (nav, theme, extensions)
 └── justfile                  # Build commands (use `just`)
 ```
 
