@@ -124,15 +124,49 @@ Ralph automatically handles the conversion between Crystal's camelCase (for prop
 
 Wait, Crystal usually uses `snake_case` for variables and methods too! Ralph follows Crystal's standard naming conventions. If you define a column as `firstName`, it will map to `first_name` in the database if using standard migration generators, but the ORM itself uses the exact name provided in the `column` macro for the SQL.
 
+## Automatic Timestamps
+
+Ralph provides a `timestamps` macro that automatically manages `created_at` and `updated_at` columns:
+
+```crystal
+class Post < Ralph::Model
+  table :posts
+
+  column id : Int64, primary: true
+  column title : String
+  column body : String
+
+  timestamps  # adds created_at and updated_at
+end
+```
+
+This macro:
+- Adds `created_at : Time?` column - set automatically when a record is first created
+- Adds `updated_at : Time?` column - set automatically on every save (create or update)
+
+```crystal
+post = Post.create(title: "Hello", body: "World")
+post.created_at  # => 2026-01-08 12:00:00 UTC
+post.updated_at  # => 2026-01-08 12:00:00 UTC
+
+post.title = "Updated Title"
+post.save
+post.created_at  # => 2026-01-08 12:00:00 UTC (unchanged)
+post.updated_at  # => 2026-01-08 12:05:00 UTC (updated)
+```
+
+> **Note:** Your database table must include `created_at` and `updated_at` columns (typically `TIMESTAMP` or `DATETIME` types) for this to work. See the [Migrations Guide](../migrations/schema-builder.md) for how to add these columns.
+
 ## Model Configuration Order
 
 For clarity and to ensure macros work correctly, it is recommended to define your model in the following order:
 
 1. Table name (`table :name`)
 2. Primary key and columns (`column ...`)
-3. Validations (`validates_...`)
-4. Associations (`belongs_to`, `has_many`, etc.)
-5. Custom methods and logic
+3. Timestamps (`timestamps`)
+4. Validations (`validates_...`)
+5. Associations (`belongs_to`, `has_many`, etc.)
+6. Custom methods and logic
 
 ```crystal
 class User < Ralph::Model
@@ -140,6 +174,8 @@ class User < Ralph::Model
 
   column id : Int64, primary: true
   column email : String
+
+  timestamps
 
   validates_presence_of :email
 

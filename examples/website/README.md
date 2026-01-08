@@ -5,6 +5,7 @@ A blog application demonstrating Ralph ORM with Kemal, featuring **UUID primary 
 ## Features
 
 - **UUID Primary Keys**: All models (User, Post, Comment) use UUID strings as primary keys instead of auto-incrementing integers. This demonstrates Ralph's flexible primary key type support.
+- **Automatic Timestamps**: All models use the `timestamps` macro for automatic `created_at`/`updated_at` management.
 - **Type-Safe Associations**: Foreign keys automatically match the associated model's primary key type (String for UUIDs).
 - User authentication with bcrypt password hashing
 - Posts with draft/published states
@@ -51,11 +52,13 @@ class User < Ralph::Model
   column id, String, primary: true
   column username, String
   
+  # Automatic timestamp management
+  timestamps
+  
   # UUID generated before create
   @[Ralph::Callbacks::BeforeCreate]
-  def set_uuid_and_timestamps
+  def set_uuid
     self.id = UUID.random.to_s if id.nil? || id.try(&.empty?)
-    # ...
   end
 end
 
@@ -63,6 +66,9 @@ class Post < Ralph::Model
   table "posts"
   
   column id, String, primary: true
+  
+  # Automatic timestamps (created_at, updated_at)
+  timestamps
   
   # Foreign key is automatically String to match User's PK type
   belongs_to user, class_name: "Blog::User"

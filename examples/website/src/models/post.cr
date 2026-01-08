@@ -10,8 +10,9 @@ module Blog
     column title, String
     column body, String
     column published, Bool, default: false
-    column created_at, Time?
-    column updated_at, Time?
+
+    # Automatic timestamp management
+    timestamps
 
     validates_presence_of :title
     validates_presence_of :body
@@ -27,19 +28,11 @@ module Blog
     scope :recent, ->(q : Ralph::Query::Builder) { q.order("created_at", :desc).limit(10) }
 
     @[Ralph::Callbacks::BeforeCreate]
-    def set_uuid_and_timestamps
+    def set_uuid
       # Generate UUID if not already set
       # Column macro makes id nilable internally, so check for nil or empty
       current_id = id
       self.id = UUID.random.to_s if current_id.nil? || current_id.empty?
-      now = Time.utc
-      self.created_at = now
-      self.updated_at = now
-    end
-
-    @[Ralph::Callbacks::BeforeUpdate]
-    def update_timestamp
-      self.updated_at = Time.utc
     end
 
     # Helper to truncate body for previews

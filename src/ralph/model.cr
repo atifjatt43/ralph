@@ -115,6 +115,13 @@ module Ralph
             \{% end %}
           \{% end %}
 
+          # Run timestamp before_save hook (if timestamps macro was used)
+          \{% for meth in @type.methods %}
+            \{% if meth.name == "_ralph_timestamp_before_save" %}
+              _ralph_timestamp_before_save
+            \{% end %}
+          \{% end %}
+
           result = if new_record?
             # Run before_create callbacks
             \{% for meth in @type.methods %}
@@ -141,6 +148,13 @@ module Ralph
                 \{% else %}
                   \{{meth.name}}
                 \{% end %}
+              \{% end %}
+            \{% end %}
+
+            # Run timestamp before_create hook (if timestamps macro was used)
+            \{% for meth in @type.methods %}
+              \{% if meth.name == "_ralph_timestamp_before_create" %}
+                _ralph_timestamp_before_create
               \{% end %}
             \{% end %}
 
@@ -409,6 +423,48 @@ module Ralph
     # Set the table name for this model
     macro table(name)
       @@table_name = {{name}}
+    end
+
+    # Define automatic timestamp columns (created_at, updated_at)
+    #
+    # This macro adds:
+    # - `created_at : Time?` column - set automatically when record is first created
+    # - `updated_at : Time?` column - set automatically on every save
+    #
+    # Example:
+    # ```
+    # class User < Ralph::Model
+    #   table :users
+    #
+    #   column id : Int64, primary: true
+    #   column name : String
+    #
+    #   timestamps  # adds created_at and updated_at
+    # end
+    #
+    # user = User.create(name: "Alice")
+    # user.created_at  # => Time.utc (when created)
+    # user.updated_at  # => Time.utc (same as created_at initially)
+    #
+    # user.name = "Bob"
+    # user.save
+    # user.updated_at  # => Time.utc (updated to current time)
+    # ```
+    macro timestamps
+      column created_at, Time?
+      column updated_at, Time?
+
+      # Method to set created_at on new records (called by save before insert)
+      # Uses _ralph_timestamp_ prefix so macro finished can detect and call it
+      private def _ralph_timestamp_before_create
+        self.created_at = Time.utc
+      end
+
+      # Method to set updated_at on every save (called by save before insert/update)
+      # Uses _ralph_timestamp_ prefix so macro finished can detect and call it
+      private def _ralph_timestamp_before_save
+        self.updated_at = Time.utc
+      end
     end
 
     # Define a column on the model

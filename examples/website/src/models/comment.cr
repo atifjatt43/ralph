@@ -8,7 +8,9 @@ module Blog
     # UUID primary key - demonstrates flexible primary key support
     column id, String, primary: true
     column body, String
-    column created_at, Time?
+
+    # Automatic timestamp management (adds created_at and updated_at)
+    timestamps
 
     validates_presence_of :body
     validates_length_of :body, min: 1, max: 1000
@@ -21,12 +23,11 @@ module Blog
     scope :recent, ->(q : Ralph::Query::Builder) { q.order("created_at", :desc).limit(20) }
 
     @[Ralph::Callbacks::BeforeCreate]
-    def set_uuid_and_created_at
+    def set_uuid
       # Generate UUID if not already set
       # Column macro makes id nilable internally, so check for nil or empty
       current_id = id
       self.id = UUID.random.to_s if current_id.nil? || current_id.empty?
-      self.created_at = Time.utc
     end
   end
 end

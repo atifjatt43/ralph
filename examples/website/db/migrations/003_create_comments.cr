@@ -13,6 +13,7 @@ class CreateComments_20260107000003 < Ralph::Migrations::Migration
         user_id TEXT,
         post_id TEXT,
         created_at TEXT,
+        updated_at TEXT,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (post_id) REFERENCES posts(id)
       )
