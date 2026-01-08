@@ -42,8 +42,9 @@ get "/posts/:id/edit" do |env|
   end
 
   user = current_user(env).not_nil!
-  id = env.params.url["id"].to_i64
-  post = Blog::Post.find(id)
+  # UUID is passed as string - no conversion needed
+  id = env.params.url["id"]
+  post = Blog::Post.find_by("id", id)
 
   if post.nil? || post.user_id != user.id
     env.session.string("flash_error", "Post not found or you don't have permission to edit it.")
@@ -62,8 +63,9 @@ get "/posts/:id" do |env|
   user = current_user(env)
   flash_success, flash_error, flash_info = get_flash(env)
 
-  id = env.params.url["id"].to_i64
-  post = Blog::Post.find(id)
+  # UUID is passed as string - no conversion needed
+  id = env.params.url["id"]
+  post = Blog::Post.find_by("id", id)
 
   if post.nil?
     env.response.status_code = 404
@@ -110,8 +112,9 @@ post "/posts/:id/delete" do |env|
   end
 
   user = current_user(env).not_nil!
-  id = env.params.url["id"].to_i64
-  post = Blog::Post.find(id)
+  # UUID is passed as string
+  id = env.params.url["id"]
+  post = Blog::Post.find_by("id", id)
 
   if post.nil? || post.user_id != user.id
     env.session.string("flash_error", "Post not found or you don't have permission to delete it.")
@@ -132,8 +135,9 @@ post "/posts/:id" do |env|
   end
 
   user = current_user(env).not_nil!
-  id = env.params.url["id"].to_i64
-  post = Blog::Post.find(id)
+  # UUID is passed as string
+  id = env.params.url["id"]
+  post = Blog::Post.find_by("id", id)
 
   if post.nil? || post.user_id != user.id
     env.session.string("flash_error", "Post not found or you don't have permission to edit it.")

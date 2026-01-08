@@ -10,8 +10,9 @@ post "/posts/:id/comments" do |env|
   end
 
   user = current_user(env).not_nil!
-  post_id = env.params.url["id"].to_i64
-  post = Blog::Post.find(post_id)
+  # UUID is passed as string - no conversion needed
+  post_id = env.params.url["id"]
+  post = Blog::Post.find_by("id", post_id)
 
   if post.nil?
     env.session.string("flash_error", "Post not found.")
@@ -41,8 +42,9 @@ post "/comments/:id/delete" do |env|
   end
 
   user = current_user(env).not_nil!
-  id = env.params.url["id"].to_i64
-  comment = Blog::Comment.find(id)
+  # UUID is passed as string
+  id = env.params.url["id"]
+  comment = Blog::Comment.find_by("id", id)
 
   if comment.nil? || comment.user_id != user.id
     env.session.string("flash_error", "Comment not found or you don't have permission to delete it.")

@@ -1,6 +1,15 @@
 # Ralph Blog Example
 
-A blog application demonstrating Ralph ORM with Kemal.
+A blog application demonstrating Ralph ORM with Kemal, featuring **UUID primary keys**.
+
+## Features
+
+- **UUID Primary Keys**: All models (User, Post, Comment) use UUID strings as primary keys instead of auto-incrementing integers. This demonstrates Ralph's flexible primary key type support.
+- **Type-Safe Associations**: Foreign keys automatically match the associated model's primary key type (String for UUIDs).
+- User authentication with bcrypt password hashing
+- Posts with draft/published states
+- Comments on posts
+- Session-based authentication
 
 ## Project Structure
 
@@ -8,7 +17,7 @@ A blog application demonstrating Ralph ORM with Kemal.
 src/
 ├── website.cr       # Entry point
 ├── config.cr        # Ralph & session configuration
-├── models/          # User, Post, Comment
+├── models/          # User, Post, Comment (all with UUID PKs)
 ├── views/
 │   ├── base.cr      # View classes
 │   ├── helpers.cr   # Template helpers
@@ -18,7 +27,7 @@ src/
 │   ├── posts.cr     # Post CRUD
 │   ├── comments.cr  # Comment routes
 │   └── api.cr       # JSON API
-└── migrations/      # Schema migrations
+└── migrations/      # Schema migrations (UUID tables)
 ```
 
 ## Running
@@ -30,15 +39,60 @@ crystal run src/website.cr
 
 Server starts at `http://localhost:3000`. Migrations run automatically.
 
+## UUID Primary Key Implementation
+
+### Model Definition
+
+```crystal
+class User < Ralph::Model
+  table "users"
+  
+  # String primary key for UUID
+  column id, String, primary: true
+  column username, String
+  
+  # UUID generated before create
+  @[Ralph::Callbacks::BeforeCreate]
+  def set_uuid_and_timestamps
+    self.id = UUID.random.to_s if id.nil? || id.try(&.empty?)
+    # ...
+  end
+end
+
+class Post < Ralph::Model
+  table "posts"
+  
+  column id, String, primary: true
+  
+  # Foreign key is automatically String to match User's PK type
+  belongs_to user, class_name: "Blog::User"
+end
+```
+
+### Migration
+
+```crystal
+def up
+  execute <<-SQL
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY NOT NULL,
+      username TEXT NOT NULL,
+      -- ...
+    )
+  SQL
+end
+```
+
 ## API
 
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/posts` | List published posts |
-| `GET /api/posts/:id` | Get a post |
+| `GET /api/posts/:id` | Get a post (id is UUID string) |
 
 ## Notes
 
 - Models use `Blog::` namespace for proper macro resolution
 - Association class names must be fully qualified (e.g., `class_name: "Blog::User"`)
 - SQLite database (`blog.sqlite3`) is created automatically
+- UUIDs are stored as TEXT in SQLite

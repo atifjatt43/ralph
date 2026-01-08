@@ -22,8 +22,9 @@ end
 
 get "/api/posts/:id" do |env|
   env.response.content_type = "application/json"
-  id = env.params.url["id"].to_i64
-  post = Blog::Post.find(id)
+  # UUID is passed as string - no conversion needed
+  id = env.params.url["id"]
+  post = Blog::Post.find_by("id", id)
 
   if post && post.published
     {

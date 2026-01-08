@@ -4,14 +4,20 @@ class CreatePosts_20260107000002 < Ralph::Migrations::Migration
   migration_version 20260107000002
 
   def up : Nil
-    create_table "posts" do |t|
-      t.primary_key
-      t.string "title", size: 200, null: false
-      t.text "body", null: false
-      t.boolean "published", default: false
-      t.references "user"
-      t.timestamps
-    end
+    # Use raw SQL for SQLite to create a table with UUID primary key
+    # and UUID foreign key to users
+    execute <<-SQL
+      CREATE TABLE IF NOT EXISTS posts (
+        id TEXT PRIMARY KEY NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        published INTEGER DEFAULT 0,
+        user_id TEXT,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    SQL
 
     add_index "posts", "user_id"
   end

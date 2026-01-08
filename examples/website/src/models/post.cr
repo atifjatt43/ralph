@@ -1,10 +1,12 @@
 require "ralph"
+require "uuid"
 
 module Blog
   class Post < Ralph::Model
     table "posts"
 
-    column id, Int64, primary: true
+    # UUID primary key - demonstrates flexible primary key support
+    column id, String, primary: true
     column title, String
     column body, String
     column published, Bool, default: false
@@ -15,6 +17,7 @@ module Blog
     validates_presence_of :body
     validates_length_of :title, min: 3, max: 200
 
+    # User has String (UUID) PK, so user_id will be String type
     belongs_to user, class_name: "Blog::User"
     has_many comments, class_name: "Blog::Comment"
 
@@ -24,7 +27,11 @@ module Blog
     scope :recent, ->(q : Ralph::Query::Builder) { q.order("created_at", :desc).limit(10) }
 
     @[Ralph::Callbacks::BeforeCreate]
-    def set_timestamps
+    def set_uuid_and_timestamps
+      # Generate UUID if not already set
+      # Column macro makes id nilable internally, so check for nil or empty
+      current_id = id
+      self.id = UUID.random.to_s if current_id.nil? || current_id.empty?
       now = Time.utc
       self.created_at = now
       self.updated_at = now

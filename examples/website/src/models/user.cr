@@ -1,11 +1,13 @@
 require "ralph"
 require "crypto/bcrypt/password"
+require "uuid"
 
 module Blog
   class User < Ralph::Model
     table "users"
 
-    column id, Int64, primary: true
+    # UUID primary key - demonstrates flexible primary key support
+    column id, String, primary: true
     column username, String
     column email, String
     column password_hash, String
@@ -25,7 +27,11 @@ module Blog
     scope :recent, ->(q : Ralph::Query::Builder) { q.order("created_at", :desc).limit(10) }
 
     @[Ralph::Callbacks::BeforeCreate]
-    def set_timestamps
+    def set_uuid_and_timestamps
+      # Generate UUID if not already set
+      # Column macro makes id nilable internally, so check for nil or empty
+      current_id = id
+      self.id = UUID.random.to_s if current_id.nil? || current_id.empty?
       now = Time.utc
       self.created_at = now
       self.updated_at = now

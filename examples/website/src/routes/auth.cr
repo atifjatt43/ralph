@@ -5,9 +5,10 @@ require "kemal"
 # ============================================
 
 def current_user(env) : Blog::User?
-  user_id = env.session.int?("user_id")
-  return nil unless user_id
-  Blog::User.find(user_id.to_i64)
+  # User ID is now a UUID string stored in session
+  user_id = env.session.string?("user_id")
+  return nil unless user_id && !user_id.empty?
+  Blog::User.find_by("id", user_id)
 end
 
 def require_login(env) : Bool
@@ -20,7 +21,8 @@ def require_login(env) : Bool
 end
 
 def login_user(env, user : Blog::User)
-  env.session.int("user_id", user.id.not_nil!.to_i32)
+  # Store UUID string directly in session
+  env.session.string("user_id", user.id.not_nil!)
 end
 
 def logout_user(env)
