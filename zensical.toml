@@ -16,12 +16,10 @@ nav = [
     {"Home" = "index.md"},
     {"Guide" = [
         "guides/getting-started.md",
-        {"Getting Started" = "guides/getting-started.md"},
         {"Configuration" = "guides/configuration.md"},
     ]},
     {"Models" = [
         "models/introduction.md",
-        {"Introduction" = "models/introduction.md"},
         {"CRUD Operations" = "models/crud-operations.md"},
         {"Advanced Types" = "models/types.md"},
         {"Associations" = "models/associations.md"},
@@ -31,17 +29,14 @@ nav = [
     ]},
     {"Query Builder" = [
         "query-builder/introduction.md",
-        {"Introduction" = "query-builder/introduction.md"},
         {"Advanced" = "query-builder/advanced.md"},
     ]},
     {"Migrations" = [
         "migrations/introduction.md",
-        {"Introduction" = "migrations/introduction.md"},
         {"Schema Builder" = "migrations/schema-builder.md"},
     ]},
     {"CLI" = [
         "cli/commands.md",
-        {"Commands" = "cli/commands.md"},
         {"Customization" = "cli/customization.md"},
     ]},
     {"API Reference" = [
