@@ -29,6 +29,23 @@ module Ralph
       def initialize(@database : Database::Backend)
       end
 
+      # Execute SQL with error wrapping
+      #
+      # Wraps database exceptions with `MigrationError` to provide helpful context
+      # about what operation failed and why.
+      private def execute_with_context(sql : String, operation : String, table : String? = nil)
+        @database.execute(sql)
+      rescue ex : Exception
+        raise MigrationError.new(
+          ex.message || "Unknown error",
+          operation: operation,
+          table: table,
+          sql: sql,
+          backend: @database.dialect,
+          cause: ex
+        )
+      end
+
       # Apply the migration
       abstract def up
 
@@ -55,16 +72,16 @@ module Ralph
         block.call(definition)
 
         sql = definition.to_sql
-        @database.execute(sql)
+        execute_with_context(sql, "create_table", name)
 
         definition.indexes.each do |index|
-          @database.execute(index.to_sql)
+          execute_with_context(index.to_sql, "add_index", name)
         end
       end
 
       # Drop an existing table
       def drop_table(name : String)
-        @database.execute("DROP TABLE IF EXISTS \"#{name}\"")
+        execute_with_context("DROP TABLE IF EXISTS \"#{name}\"", "drop_table", name)
       end
 
       def add_column(table : String, name : String, type : Symbol, **options)
@@ -72,31 +89,33 @@ module Ralph
         opts = options.to_h.transform_values(&.as(String | Int32 | Int64 | Float64 | Bool | Symbol | Nil))
         column_def = Schema::ColumnDefinition.new(name, type, dialect, opts)
         sql = "ALTER TABLE \"#{table}\" ADD COLUMN #{column_def.to_sql}"
-        @database.execute(sql)
+        execute_with_context(sql, "add_column '#{name}'", table)
       end
 
       # Remove a column from a table
       def remove_column(table : String, name : String)
-        # SQLite-specific: ALTER TABLE ... DROP COLUMN requires recreation
-        @database.execute("ALTER TABLE \"#{table}\" DROP COLUMN \"#{name}\"")
+        sql = "ALTER TABLE \"#{table}\" DROP COLUMN \"#{name}\""
+        execute_with_context(sql, "remove_column '#{name}'", table)
       end
 
       # Rename a column
       def rename_column(table : String, old_name : String, new_name : String)
-        @database.execute("ALTER TABLE \"#{table}\" RENAME COLUMN \"#{old_name}\" TO \"#{new_name}\"")
+        sql = "ALTER TABLE \"#{table}\" RENAME COLUMN \"#{old_name}\" TO \"#{new_name}\""
+        execute_with_context(sql, "rename_column '#{old_name}' to '#{new_name}'", table)
       end
 
       # Add an index
       def add_index(table : String, column : String, name : String? = nil, unique : Bool = false)
         index_name = name || "index_#{table}_on_#{column}"
         unique_sql = unique ? "UNIQUE" : ""
-        @database.execute("CREATE #{unique_sql} INDEX IF NOT EXISTS \"#{index_name}\" ON \"#{table}\" (\"#{column}\")")
+        sql = "CREATE #{unique_sql} INDEX IF NOT EXISTS \"#{index_name}\" ON \"#{table}\" (\"#{column}\")"
+        execute_with_context(sql, "add_index '#{index_name}'", table)
       end
 
       # Remove an index
       def remove_index(table : String, column : String? = nil, name : String? = nil)
         index_name = name || "index_#{table}_on_#{column}"
-        @database.execute("DROP INDEX IF EXISTS \"#{index_name}\"")
+        execute_with_context("DROP INDEX IF EXISTS \"#{index_name}\"", "remove_index '#{index_name}'", table)
       end
 
       # Add a reference column (foreign key) to an existing table
@@ -215,6 +234,15 @@ module Ralph
       # add_foreign_key("posts", "users", name: "fk_post_author") # Custom name
       # ```
       def add_foreign_key(from_table : String, to_table : String, column : String? = nil, primary_key : String = "id", on_delete : Symbol? = nil, on_update : Symbol? = nil, name : String? = nil)
+        # Check for SQLite limitation upfront
+        if @database.dialect == :sqlite
+          raise UnsupportedOperationError.new(
+            "add_foreign_key (ALTER TABLE ADD CONSTRAINT)",
+            :sqlite,
+            "Define foreign keys inline when creating the table using `t.foreign_key` inside `create_table`"
+          )
+        end
+
         fk = Schema::ForeignKeyDefinition.new(
           from_table: from_table,
           from_column: column || "#{to_table.chomp("s")}_id",
@@ -224,7 +252,7 @@ module Ralph
           on_update: on_update,
           name: name
         )
-        @database.execute(fk.to_add_sql)
+        execute_with_context(fk.to_add_sql, "add_foreign_key to '#{to_table}'", from_table)
       end
 
       # Remove a foreign key constraint
@@ -242,12 +270,22 @@ module Ralph
       # remove_foreign_key("posts", name: "fk_post_author") # By explicit name
       # ```
       def remove_foreign_key(from_table : String, to_table : String? = nil, column : String? = nil, name : String? = nil)
+        # Check for SQLite limitation upfront
+        if @database.dialect == :sqlite
+          raise UnsupportedOperationError.new(
+            "remove_foreign_key (ALTER TABLE DROP CONSTRAINT)",
+            :sqlite,
+            "SQLite does not support removing foreign keys. You must recreate the table without the constraint."
+          )
+        end
+
         constraint_name = name || begin
           col = column || (to_table ? "#{to_table.chomp("s")}_id" : nil)
           raise ArgumentError.new("Must provide column, to_table, or name to remove_foreign_key") unless col
           "fk_#{from_table}_#{col}"
         end
-        @database.execute("ALTER TABLE \"#{from_table}\" DROP CONSTRAINT \"#{constraint_name}\"")
+        sql = "ALTER TABLE \"#{from_table}\" DROP CONSTRAINT \"#{constraint_name}\""
+        execute_with_context(sql, "remove_foreign_key '#{constraint_name}'", from_table)
       end
 
       # Rename a table
@@ -258,7 +296,8 @@ module Ralph
       # rename_table("old_users", "users")
       # ```
       def rename_table(old_name : String, new_name : String)
-        @database.execute("ALTER TABLE \"#{old_name}\" RENAME TO \"#{new_name}\"")
+        sql = "ALTER TABLE \"#{old_name}\" RENAME TO \"#{new_name}\""
+        execute_with_context(sql, "rename_table '#{old_name}' to '#{new_name}'", old_name)
       end
 
       # Change a column's type, null constraint, or default value
@@ -281,25 +320,37 @@ module Ralph
       # NOTE: SQLite has limited ALTER TABLE support. This method may require
       # table recreation for complex changes on SQLite.
       def change_column(table : String, column : String, type : Symbol? = nil, null : Bool? = nil, default : String | Int32 | Int64 | Float64 | Bool | Symbol | Nil = nil)
+        # Check for SQLite limitation upfront for certain operations
+        if @database.dialect == :sqlite && (type || !null.nil?)
+          raise UnsupportedOperationError.new(
+            "change_column (ALTER COLUMN TYPE/NULL)",
+            :sqlite,
+            "SQLite does not support ALTER COLUMN. You must recreate the table with the new schema."
+          )
+        end
+
         dialect = Schema::Dialect.current
 
         # For PostgreSQL/MySQL style databases that support proper ALTER COLUMN
-        # SQLite requires table recreation which is more complex
         if type
           type_sql = dialect.column_type(type, {} of Symbol => String | Int32 | Int64 | Float64 | Bool | Symbol | Nil)
-          @database.execute("ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" TYPE #{type_sql}")
+          sql = "ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" TYPE #{type_sql}"
+          execute_with_context(sql, "change_column '#{column}' type", table)
         end
 
         if !null.nil?
           if null
-            @database.execute("ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" DROP NOT NULL")
+            sql = "ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" DROP NOT NULL"
+            execute_with_context(sql, "change_column '#{column}' drop not null", table)
           else
-            @database.execute("ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" SET NOT NULL")
+            sql = "ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" SET NOT NULL"
+            execute_with_context(sql, "change_column '#{column}' set not null", table)
           end
         end
 
         if default == :drop
-          @database.execute("ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" DROP DEFAULT")
+          sql = "ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" DROP DEFAULT"
+          execute_with_context(sql, "change_column '#{column}' drop default", table)
         elsif !default.nil?
           default_sql = case default
                         when String then "'#{default}'"
@@ -307,7 +358,8 @@ module Ralph
                         when false  then "FALSE"
                         else             default.to_s
                         end
-          @database.execute("ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" SET DEFAULT #{default_sql}")
+          sql = "ALTER TABLE \"#{table}\" ALTER COLUMN \"#{column}\" SET DEFAULT #{default_sql}"
+          execute_with_context(sql, "change_column '#{column}' set default", table)
         end
       end
 
@@ -484,8 +536,18 @@ module Ralph
       end
 
       # Execute raw SQL
+      #
+      # Use this for custom SQL that isn't covered by the migration DSL.
+      # Errors will be wrapped with context to help debugging.
+      #
+      # ## Example
+      #
+      # ```
+      # execute "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\""
+      # execute "UPDATE users SET role = 'member' WHERE role IS NULL"
+      # ```
       def execute(sql : String)
-        @database.execute(sql)
+        execute_with_context(sql, "execute (raw SQL)")
       end
     end
   end

@@ -1,10 +1,5 @@
 module Ralph
-  # Exception raised when trying to destroy a record with dependent: :restrict_with_exception
-  class DeleteRestrictionError < Exception
-    def initialize(association_name : String)
-      super("Cannot delete record because dependent #{association_name} exist")
-    end
-  end
+  # NOTE: DeleteRestrictionError is defined in errors.cr
 
   # Dependent behavior options for associations
   enum DependentBehavior
