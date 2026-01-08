@@ -92,7 +92,7 @@ module Ralph
     # ```
     # Ralph.configure do |config|
     #   config.database = Ralph::Database::SqliteBackend.new("sqlite3://./db.sqlite3")
-    #   
+    #
     #   # Add analytics database
     #   analytics = Ralph::Database::PostgresBackend.new("postgres://localhost/analytics")
     #   config.register_database("analytics", analytics)

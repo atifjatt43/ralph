@@ -41,8 +41,8 @@ module Ralph
         #
         # ```
         # create_table :users do |t|
-        #   t.primary_key  # Creates "id" column
-        #   t.primary_key "user_id"  # Custom name
+        #   t.primary_key           # Creates "id" column
+        #   t.primary_key "user_id" # Custom name
         # end
         # ```
         def primary_key(name = "id")
@@ -64,12 +64,12 @@ module Ralph
         #
         # ```
         # create_table :users do |t|
-        #   t.primary_key "id", :uuid  # UUID primary key
+        #   t.primary_key "id", :uuid # UUID primary key
         #   t.string :name
         # end
         #
         # create_table :settings do |t|
-        #   t.primary_key "key", :string  # String primary key
+        #   t.primary_key "key", :string # String primary key
         #   t.text :value
         # end
         # ```
@@ -137,7 +137,7 @@ module Ralph
         # end
         #
         # create_table :countries do |t|
-        #   t.string_primary_key "code"  # e.g., "US", "GB"
+        #   t.string_primary_key "code" # e.g., "US", "GB"
         #   t.string :name
         # end
         # ```
@@ -161,7 +161,7 @@ module Ralph
         #
         # ```
         # create_table :events do |t|
-        #   t.bigint_primary_key  # Application generates IDs
+        #   t.bigint_primary_key # Application generates IDs
         #   t.string :type
         # end
         # ```

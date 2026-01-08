@@ -6,15 +6,15 @@
 #
 # ```
 # Exception
-# └── Ralph::Error                    # Base class for all Ralph errors
-#     ├── Ralph::ConfigurationError   # Configuration/setup issues
-#     ├── Ralph::BackendError         # Backend-specific feature on wrong backend
-#     ├── Ralph::QueryError           # Query building/execution errors
-#     ├── Ralph::MigrationError       # Migration execution errors
-#     │   └── Ralph::UnsupportedOperationError  # Operation not supported by backend
-#     ├── Ralph::RecordNotFound       # find!() with no results
-#     ├── Ralph::RecordInvalid        # save!() with validation errors
-#     └── Ralph::DeleteRestrictionError  # dependent: :restrict_with_exception
+# └── Ralph::Error                       # Base class for all Ralph errors
+# ├── Ralph::ConfigurationError          # Configuration/setup issues
+# ├── Ralph::BackendError                # Backend-specific feature on wrong backend
+# ├── Ralph::QueryError                  # Query building/execution errors
+# ├── Ralph::MigrationError              # Migration execution errors
+# │ └── Ralph::UnsupportedOperationError # Operation not supported by backend
+# ├── Ralph::RecordNotFound              # find!() with no results
+# ├── Ralph::RecordInvalid               # save!() with validation errors
+# └── Ralph::DeleteRestrictionError      # dependent: :restrict_with_exception
 # ```
 #
 # ## Example
@@ -95,7 +95,7 @@ module Ralph
       @table : String? = nil,
       @sql : String? = nil,
       @backend : Symbol? = nil,
-      cause : Exception? = nil
+      cause : Exception? = nil,
     )
       full_message = String.build do |str|
         str << "Migration failed: " << message
@@ -221,7 +221,7 @@ module Ralph
   # ## Example
   #
   # ```
-  # User.find!(999)  # => Ralph::RecordNotFound: User with id=999 not found
+  # User.find!(999) # => Ralph::RecordNotFound: User with id=999 not found
   # ```
   class RecordNotFound < Error
     getter model : String
@@ -248,7 +248,7 @@ module Ralph
   #
   # ```
   # user = User.new(name: "")
-  # user.save!  # => Ralph::RecordInvalid: Validation failed: name can't be blank
+  # user.save! # => Ralph::RecordInvalid: Validation failed: name can't be blank
   # ```
   class RecordInvalid < Error
     getter errors : Array(String)
@@ -274,7 +274,7 @@ module Ralph
   #   has_many :posts, dependent: :restrict_with_exception
   # end
   #
-  # user.destroy  # => Ralph::DeleteRestrictionError: Cannot delete User because posts exist
+  # user.destroy # => Ralph::DeleteRestrictionError: Cannot delete User because posts exist
   # ```
   class DeleteRestrictionError < Error
     def initialize(association : String)

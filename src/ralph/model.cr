@@ -439,16 +439,16 @@ module Ralph
     #   column id : Int64, primary: true
     #   column name : String
     #
-    #   timestamps  # adds created_at and updated_at
+    #   timestamps # adds created_at and updated_at
     # end
     #
     # user = User.create(name: "Alice")
-    # user.created_at  # => Time.utc (when created)
-    # user.updated_at  # => Time.utc (same as created_at initially)
+    # user.created_at # => Time.utc (when created)
+    # user.updated_at # => Time.utc (same as created_at initially)
     #
     # user.name = "Bob"
     # user.save
-    # user.updated_at  # => Time.utc (updated to current time)
+    # user.updated_at # => Time.utc (updated to current time)
     # ```
     macro timestamps
       column created_at, Time?
