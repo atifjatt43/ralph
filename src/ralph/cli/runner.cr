@@ -60,7 +60,20 @@ module Ralph
         Ralph v#{Ralph::VERSION} - Crystal ORM
 
         Usage:
-          ralph [command] [options]
+          ./ralph [command] [options]
+
+        Setup:
+          Create a ralph.cr file in your project root:
+
+            require "ralph"
+            require "ralph/backends/sqlite"  # and/or postgres
+            require "./db/migrations/*"
+            require "./src/models/*"
+
+            Ralph::Cli::Runner.new.run
+
+          Then run with: crystal run ./ralph.cr -- [command]
+          Or make it executable: chmod +x ralph.cr && ./ralph.cr [command]
 
         Commands:
           db              Database commands
@@ -69,23 +82,20 @@ module Ralph
           help            Show this help
 
         Database commands:
-          ralph db:create                    Create the database
-          ralph db:drop                      Drop the database
-          ralph db:migrate                   Run pending migrations
-          ralph db:rollback                  Roll back the last migration
-          ralph db:status                    Show migration status
-          ralph db:version                   Show current migration version
-          ralph db:seed                      Load the seed file
-          ralph db:reset                     Drop, create, migrate, and seed
-          ralph db:setup                     Create database and run migrations
+          db:create                    Create the database
+          db:drop                      Drop the database
+          db:migrate                   Run pending migrations
+          db:rollback                  Roll back the last migration
+          db:status                    Show migration status
+          db:version                   Show current migration version
+          db:seed                      Load the seed file
+          db:reset                     Drop, create, migrate, and seed
+          db:setup                     Create database and run migrations
 
         Generator commands:
-          ralph g:migration NAME             Create a new migration
-          ralph g:model NAME                 Generate a model with migration
-          ralph g:scaffold NAME              Generate full CRUD (model, views, etc.)
-          ralph generate:migration NAME
-          ralph generate:model NAME
-          ralph generate:scaffold NAME
+          g:migration NAME             Create a new migration
+          g:model NAME                 Generate a model with migration
+          g:scaffold NAME              Generate full CRUD (model, views, etc.)
 
         Options:
           -e, --env ENV          Environment (default: development)
@@ -106,17 +116,10 @@ module Ralph
           postgres://user@host/dbname?host=/var/run/postgresql
 
         Examples:
-          ralph db:migrate
-          ralph db:seed
-          ralph db:reset
-          ralph db:setup
-          ralph g:model User name:string email:string
-          ralph g:model User name:string -m ./custom/migrations --models ./src/app/models
-          ralph g:scaffold Post title:string body:text
-
-          # Using PostgreSQL
-          DATABASE_URL=postgres://localhost/myapp ralph db:migrate
-          ralph db:migrate -d postgres://localhost/myapp
+          ./ralph.cr db:migrate
+          ./ralph.cr db:seed
+          ./ralph.cr g:model User name:string email:string
+          crystal run ./ralph.cr -- db:migrate -d postgres://localhost/myapp
         HELP
       end
 
@@ -252,14 +255,31 @@ module Ralph
       private def initialize_database : Database::Backend
         url = @database_url || database_url_for_env
 
-        case url
-        when .starts_with?("sqlite3://"), .starts_with?("sqlite://")
-          Database::SqliteBackend.new(url)
-        when .starts_with?("postgres://"), .starts_with?("postgresql://")
-          Database::PostgresBackend.new(url)
-        else
-          raise "Unsupported database URL: #{url}. Supported: sqlite3://, postgres://"
-        end
+        {% begin %}
+          case url
+          {% if @top_level.has_constant?("Ralph") &&
+                Ralph::Database.has_constant?("SqliteBackend") %}
+          when .starts_with?("sqlite3://"), .starts_with?("sqlite://")
+            Database::SqliteBackend.new(url)
+          {% end %}
+          {% if @top_level.has_constant?("Ralph") &&
+                Ralph::Database.has_constant?("PostgresBackend") %}
+          when .starts_with?("postgres://"), .starts_with?("postgresql://")
+            Database::PostgresBackend.new(url)
+          {% end %}
+          else
+            supported = [] of String
+            {% if @top_level.has_constant?("Ralph") &&
+                  Ralph::Database.has_constant?("SqliteBackend") %}
+              supported << "sqlite3://"
+            {% end %}
+            {% if @top_level.has_constant?("Ralph") &&
+                  Ralph::Database.has_constant?("PostgresBackend") %}
+              supported << "postgres://"
+            {% end %}
+            raise "Unsupported database URL: #{url}. Supported: #{supported.join(", ")}"
+          end
+        {% end %}
       end
 
       private def database_url_for_env : String
@@ -290,78 +310,94 @@ module Ralph
       private def create_database
         url = @database_url || database_url_for_env
 
-        case url
-        when /^sqlite3?:\/\/(.+)$/
-          path = $1
-          FileUtils.mkdir_p(File.dirname(path))
-          @output.puts "Created database: #{path}"
-        when /^postgres(?:ql)?:\/\//
-          # Extract database name from URL
-          db_name = extract_postgres_db_name(url)
-          base_url = url.sub(/\/[^\/]+(\?.*)?$/, "/postgres\\1")
+        {% begin %}
+          case url
+          {% if @top_level.has_constant?("Ralph") &&
+                Ralph::Database.has_constant?("SqliteBackend") %}
+          when /^sqlite3?:\/\/(.+)$/
+            path = $1
+            FileUtils.mkdir_p(File.dirname(path))
+            @output.puts "Created database: #{path}"
+          {% end %}
+          {% if @top_level.has_constant?("Ralph") &&
+                Ralph::Database.has_constant?("PostgresBackend") %}
+          when /^postgres(?:ql)?:\/\//
+            # Extract database name from URL
+            db_name = extract_postgres_db_name(url)
+            base_url = url.sub(/\/[^\/]+(\?.*)?$/, "/postgres\\1")
 
-          @output.puts "Creating PostgreSQL database: #{db_name}"
+            @output.puts "Creating PostgreSQL database: #{db_name}"
 
-          begin
-            # Connect to postgres database to create the target database
-            temp_db = DB.open(base_url)
-            temp_db.exec("CREATE DATABASE \"#{db_name}\"")
-            temp_db.close
-            @output.puts "Created database: #{db_name}"
-          rescue ex : PQ::PQError
-            if ex.message.try(&.includes?("already exists"))
-              @output.puts "Database already exists: #{db_name}"
-            else
-              @output.puts "Error creating database: #{ex.message}"
-              exit 1
+            begin
+              # Connect to postgres database to create the target database
+              temp_db = DB.open(base_url)
+              temp_db.exec("CREATE DATABASE \"#{db_name}\"")
+              temp_db.close
+              @output.puts "Created database: #{db_name}"
+            rescue ex : PQ::PQError
+              if ex.message.try(&.includes?("already exists"))
+                @output.puts "Database already exists: #{db_name}"
+              else
+                @output.puts "Error creating database: #{ex.message}"
+                exit 1
+              end
             end
+          {% end %}
+          else
+            @output.puts "Database creation not implemented for: #{url}"
+            exit 1
           end
-        else
-          @output.puts "Database creation not implemented for: #{url}"
-          exit 1
-        end
+        {% end %}
       end
 
       private def drop_database
         url = @database_url || database_url_for_env
 
-        case url
-        when /^sqlite3?:\/\/(.+)$/
-          path = $1
-          if File.exists?(path)
-            File.delete(path)
-            @output.puts "Dropped database: #{path}"
+        {% begin %}
+          case url
+          {% if @top_level.has_constant?("Ralph") &&
+                Ralph::Database.has_constant?("SqliteBackend") %}
+          when /^sqlite3?:\/\/(.+)$/
+            path = $1
+            if File.exists?(path)
+              File.delete(path)
+              @output.puts "Dropped database: #{path}"
+            else
+              @output.puts "Database does not exist: #{path}"
+            end
+          {% end %}
+          {% if @top_level.has_constant?("Ralph") &&
+                Ralph::Database.has_constant?("PostgresBackend") %}
+          when /^postgres(?:ql)?:\/\//
+            # Extract database name from URL
+            db_name = extract_postgres_db_name(url)
+            base_url = url.sub(/\/[^\/]+(\?.*)?$/, "/postgres\\1")
+
+            @output.puts "Dropping PostgreSQL database: #{db_name}"
+
+            begin
+              # Connect to postgres database to drop the target database
+              temp_db = DB.open(base_url)
+              # Terminate existing connections first
+              temp_db.exec(<<-SQL)
+                SELECT pg_terminate_backend(pg_stat_activity.pid)
+                FROM pg_stat_activity
+                WHERE pg_stat_activity.datname = '#{db_name}'
+                AND pid <> pg_backend_pid()
+              SQL
+              temp_db.exec("DROP DATABASE IF EXISTS \"#{db_name}\"")
+              temp_db.close
+              @output.puts "Dropped database: #{db_name}"
+            rescue ex
+              @output.puts "Error dropping database: #{ex.message}"
+              exit 1
+            end
+          {% end %}
           else
-            @output.puts "Database does not exist: #{path}"
-          end
-        when /^postgres(?:ql)?:\/\//
-          # Extract database name from URL
-          db_name = extract_postgres_db_name(url)
-          base_url = url.sub(/\/[^\/]+(\?.*)?$/, "/postgres\\1")
-
-          @output.puts "Dropping PostgreSQL database: #{db_name}"
-
-          begin
-            # Connect to postgres database to drop the target database
-            temp_db = DB.open(base_url)
-            # Terminate existing connections first
-            temp_db.exec(<<-SQL)
-              SELECT pg_terminate_backend(pg_stat_activity.pid)
-              FROM pg_stat_activity
-              WHERE pg_stat_activity.datname = '#{db_name}'
-              AND pid <> pg_backend_pid()
-            SQL
-            temp_db.exec("DROP DATABASE IF EXISTS \"#{db_name}\"")
-            temp_db.close
-            @output.puts "Dropped database: #{db_name}"
-          rescue ex
-            @output.puts "Error dropping database: #{ex.message}"
+            @output.puts "Database dropping not implemented for: #{url}"
             exit 1
           end
-        else
-          @output.puts "Database dropping not implemented for: #{url}"
-          exit 1
-        end
+        {% end %}
       end
 
       private def migrate(db)

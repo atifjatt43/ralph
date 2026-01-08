@@ -5,10 +5,6 @@ default:
 install:
     shards install
 
-# Install dependencies for CLI build
-install-cli:
-    shards install --shard-file=shard.cli.yml
-
 # Run all tests
 test:
     crystal spec
@@ -33,21 +29,9 @@ fmt-check:
 check:
     crystal build --no-codegen src/ralph.cr
 
-# Build CLI (debug)
-build: install-cli
-    crystal build src/bin/ralph.cr -o bin/ralph
-
-# Build CLI (release)
-build-release: install-cli
-    crystal build src/bin/ralph.cr -o bin/ralph --release
-
-# Run the CLI (pass arguments after --)
-run *args: build
-    ./bin/ralph {{args}}
-
 # Clean build artifacts
 clean:
-    rm -rf bin/ lib/
+    rm -rf lib/
 
 # Clean and reinstall
 clean-all: clean
