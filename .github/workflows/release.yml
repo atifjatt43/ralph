@@ -30,7 +30,6 @@ jobs:
             "ralph-linux-arm64"
             "ralph-darwin-amd64"
             "ralph-darwin-arm64"
-            "ralph-windows-amd64.exe"
           )
 
           echo "Looking for binaries..."

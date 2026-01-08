@@ -60,13 +60,10 @@ jobs:
           - os: darwin
             arch: arm64
             runner: macos-15
-          - os: windows
-            arch: amd64
-            runner: windows-2022
 
     runs-on: ${{ matrix.runner }}
     env:
-      FILENAME: ralph-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+      FILENAME: ralph-${{ matrix.os }}-${{ matrix.arch }}
 
     steps:
       - name: Checkout code
@@ -114,30 +111,6 @@ jobs:
           shards install --shard-file=shard.cli.yml
           crystal build src/bin/ralph.cr -o ralph --release
           cp ralph ${{ env.FILENAME }}
-
-      - name: Install Crystal (Windows)
-        if: matrix.os == 'windows'
-        uses: crystal-lang/install-crystal@v1
-        with:
-          crystal: latest
-
-      - name: Install SQLite3 (Windows)
-        if: matrix.os == 'windows'
-        run: |
-          # Install SQLite3 via vcpkg
-          vcpkg install sqlite3:x64-windows
-          
-          # Add vcpkg installed libs to Crystal's library path
-          echo "LIB=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\lib;$env:LIB" >> $env:GITHUB_ENV
-          echo "INCLUDE=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\include;$env:INCLUDE" >> $env:GITHUB_ENV
-          echo "CRYSTAL_LIBRARY_PATH=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\lib" >> $env:GITHUB_ENV
-
-      - name: Build (Windows)
-        if: matrix.os == 'windows'
-        run: |
-          shards install --shard-file=shard.cli.yml
-          crystal build src/bin/ralph.cr -o ralph.exe --release
-          Copy-Item "ralph.exe" "${{ env.FILENAME }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
