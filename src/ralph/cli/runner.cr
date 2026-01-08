@@ -34,15 +34,25 @@ module Ralph
 
         command = args[0]
 
+        # Handle colon syntax (db:migrate) by splitting into command and subcommand
+        if command.includes?(":")
+          parts = command.split(":", 2)
+          command = parts[0]
+          # Prepend subcommand to remaining args
+          args = [parts[1]] + args[1..]
+        else
+          args = args[1..]
+        end
+
         case command
         when "version"
           print_version
         when "help", "--help", "-h"
           print_help
         when "db"
-          handle_db_command(args[1..])
+          handle_db_command(args)
         when "generate", "g"
-          handle_generate_command(args[1..])
+          handle_generate_command(args)
         else
           @output.puts "Unknown command: #{command}"
           print_help
@@ -455,13 +465,10 @@ module Ralph
 
         @output.puts "Loading seed file..."
 
-        # Load and execute the seed file using the block form
-        success = Process.run("crystal", ["run", seed_file]) do |process|
-          # Process is running, wait for completion
-          process.wait.success?
-        end
+        # Load and execute the seed file
+        status = Process.run("crystal", ["run", seed_file], output: @output, error: @output)
 
-        if success
+        if status.success?
           @output.puts "Seeded database successfully"
         else
           @output.puts "Error running seed file"
