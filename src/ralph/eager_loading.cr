@@ -175,10 +175,11 @@ module Ralph
           return
         end
 
-        # Collect all foreign key values
+        # Collect all foreign key values (convert to string for flexible type support)
         foreign_key = metadata.foreign_key
         fk_values = models.compact_map do |model|
-          model.__get_by_key_name(foreign_key).as(Int64?)
+          fk = model.__get_by_key_name(foreign_key)
+          fk.to_s if fk
         end.uniq
 
         return if fk_values.empty?
@@ -188,25 +189,28 @@ module Ralph
         table_name = metadata.table_name
         primary_key = metadata.primary_key
 
+        # Convert string values back to appropriate types for query
+        query_values = fk_values.map(&.as(Query::DBValue))
         query = Query::Builder.new(table_name)
-          .where_in(primary_key, fk_values.map(&.as(Query::DBValue)))
+          .where_in(primary_key, query_values)
 
-        # Execute query and build lookup hash
+        # Execute query and build lookup hash (using string keys for type flexibility)
         results = Ralph.database.query_all(query.build_select, args: query.where_args)
-        records_by_pk = Hash(Int64, Model).new
+        records_by_pk = Hash(String, Model).new
 
         results.each do
           record = _instantiate_model(associated_class, results)
-          if pk = record.id
-            records_by_pk[pk] = record
+          pk = record.__get_by_key_name(primary_key)
+          if pk
+            records_by_pk[pk.to_s] = record
           end
         end
         results.close
 
         # Assign preloaded records to each model
         models.each do |model|
-          fk_value = model.__get_by_key_name(foreign_key).as(Int64?)
-          if fk_value && (record = records_by_pk[fk_value]?)
+          fk_value = model.__get_by_key_name(foreign_key)
+          if fk_value && (record = records_by_pk[fk_value.to_s]?)
             model._set_preloaded_one(metadata.name, record)
           else
             model._set_preloaded_one(metadata.name, nil)
@@ -221,16 +225,16 @@ module Ralph
         foreign_key = metadata.foreign_key
         type_column = "#{metadata.name}_type"
 
-        # Group models by type
-        models_by_type = Hash(String, Array(Tuple(T, Int64))).new
+        # Group models by type (using string for flexible primary key types)
+        models_by_type = Hash(String, Array(Tuple(T, String))).new
 
         models.each do |model|
-          fk_value = model.__get_by_key_name(foreign_key).as(Int64?)
+          fk_value = model.__get_by_key_name(foreign_key)
           type_value = model.__get_by_key_name(type_column).as(String?)
 
           if fk_value && type_value
-            models_by_type[type_value] ||= [] of Tuple(T, Int64)
-            models_by_type[type_value] << {model, fk_value}
+            models_by_type[type_value] ||= [] of Tuple(T, String)
+            models_by_type[type_value] << {model, fk_value.to_s}
           end
         end
 
@@ -239,10 +243,10 @@ module Ralph
           fk_values = model_fk_pairs.map(&.[1]).uniq
 
           # Use polymorphic registry to find records
-          records_by_pk = Hash(Int64, Model).new
-          fk_values.each do |fk|
-            if record = Associations.find_polymorphic(type_name, fk)
-              records_by_pk[fk] = record
+          records_by_pk = Hash(String, Model).new
+          fk_values.each do |fk_str|
+            if record = Associations.find_polymorphic(type_name, fk_str)
+              records_by_pk[fk_str] = record
             end
           end
 
@@ -268,14 +272,18 @@ module Ralph
       private def self.preload_has_one(models : Array(T), metadata : AssociationMetadata) : Nil forall T
         return if models.empty?
 
-        # Collect all primary key values
-        pk_values = models.compact_map(&.id).uniq
+        # Collect all primary key values (as strings for flexible type support)
+        pk_values = models.compact_map do |model|
+          pk = model.__get_by_key_name(model.class.primary_key)
+          pk.to_s if pk
+        end.uniq
         return if pk_values.empty?
 
         associated_class = metadata.class_name
         table_name = metadata.table_name
         foreign_key = metadata.foreign_key
 
+        query_values = pk_values.map(&.as(Query::DBValue))
         query = if metadata.as_name
                   # Polymorphic has_one
                   type_column = "#{metadata.as_name}_type"
@@ -284,33 +292,33 @@ module Ralph
 
                   Query::Builder.new(table_name)
                     .where("\"#{type_column}\" = ?", model_type)
-                    .where_in(id_column, pk_values.map(&.as(Query::DBValue)))
+                    .where_in(id_column, query_values)
                 else
                   Query::Builder.new(table_name)
-                    .where_in(foreign_key, pk_values.map(&.as(Query::DBValue)))
+                    .where_in(foreign_key, query_values)
                 end
 
-        # Execute query and build lookup hash by foreign key
+        # Execute query and build lookup hash by foreign key (using string keys)
         results = Ralph.database.query_all(query.build_select, args: query.where_args)
-        records_by_fk = Hash(Int64, Model).new
+        records_by_fk = Hash(String, Model).new
 
         results.each do
           record = _instantiate_model(associated_class, results)
           fk_value = if metadata.as_name
-                       record.__get_by_key_name("#{metadata.as_name}_id").as(Int64?)
+                       record.__get_by_key_name("#{metadata.as_name}_id")
                      else
-                       record.__get_by_key_name(foreign_key).as(Int64?)
+                       record.__get_by_key_name(foreign_key)
                      end
           if fk_value
-            records_by_fk[fk_value] = record
+            records_by_fk[fk_value.to_s] = record
           end
         end
         results.close
 
         # Assign preloaded records to each model
         models.each do |model|
-          pk_value = model.id
-          if pk_value && (record = records_by_fk[pk_value]?)
+          pk_value = model.__get_by_key_name(model.class.primary_key)
+          if pk_value && (record = records_by_fk[pk_value.to_s]?)
             model._set_preloaded_one(metadata.name, record)
           else
             model._set_preloaded_one(metadata.name, nil)
@@ -322,14 +330,18 @@ module Ralph
       private def self.preload_has_many(models : Array(T), metadata : AssociationMetadata) : Nil forall T
         return if models.empty?
 
-        # Collect all primary key values
-        pk_values = models.compact_map(&.id).uniq
+        # Collect all primary key values (as strings for flexible type support)
+        pk_values = models.compact_map do |model|
+          pk = model.__get_by_key_name(model.class.primary_key)
+          pk.to_s if pk
+        end.uniq
         return if pk_values.empty?
 
         associated_class = metadata.class_name
         table_name = metadata.table_name
         foreign_key = metadata.foreign_key
 
+        query_values = pk_values.map(&.as(Query::DBValue))
         query = if metadata.as_name
                   # Polymorphic has_many
                   type_column = "#{metadata.as_name}_type"
@@ -338,35 +350,36 @@ module Ralph
 
                   Query::Builder.new(table_name)
                     .where("\"#{type_column}\" = ?", model_type)
-                    .where_in(id_column, pk_values.map(&.as(Query::DBValue)))
+                    .where_in(id_column, query_values)
                 else
                   Query::Builder.new(table_name)
-                    .where_in(foreign_key, pk_values.map(&.as(Query::DBValue)))
+                    .where_in(foreign_key, query_values)
                 end
 
-        # Execute query and group by foreign key
+        # Execute query and group by foreign key (using string keys)
         results = Ralph.database.query_all(query.build_select, args: query.where_args)
-        records_by_fk = Hash(Int64, Array(Model)).new
+        records_by_fk = Hash(String, Array(Model)).new
 
         results.each do
           record = _instantiate_model(associated_class, results)
           fk_value = if metadata.as_name
-                       record.__get_by_key_name("#{metadata.as_name}_id").as(Int64?)
+                       record.__get_by_key_name("#{metadata.as_name}_id")
                      else
-                       record.__get_by_key_name(foreign_key).as(Int64?)
+                       record.__get_by_key_name(foreign_key)
                      end
           if fk_value
-            records_by_fk[fk_value] ||= [] of Model
-            records_by_fk[fk_value] << record
+            fk_str = fk_value.to_s
+            records_by_fk[fk_str] ||= [] of Model
+            records_by_fk[fk_str] << record
           end
         end
         results.close
 
         # Assign preloaded records to each model
         models.each do |model|
-          pk_value = model.id
+          pk_value = model.__get_by_key_name(model.class.primary_key)
           if pk_value
-            records = records_by_fk[pk_value]? || [] of Model
+            records = records_by_fk[pk_value.to_s]? || [] of Model
             model._set_preloaded_many(metadata.name, records)
           else
             model._set_preloaded_many(metadata.name, [] of Model)
@@ -409,14 +422,14 @@ module Ralph
         # Preload source association on through records
         preload_belongs_to(through_records, source_metadata) if source_metadata.type == :belongs_to
 
-        # Build mapping: parent_id -> [source_records]
-        records_by_parent = Hash(Int64, Array(Model)).new
+        # Build mapping: parent_id -> [source_records] (using string keys)
+        records_by_parent = Hash(String, Array(Model)).new
 
         # Get through association's foreign key to parent
         parent_fk = through_metadata.foreign_key
 
         models.each do |model|
-          parent_id = model.id
+          parent_id = model.__get_by_key_name(model.class.primary_key)
           next unless parent_id
 
           through_for_parent = (model._get_preloaded_many(through_name) || [] of Model)
@@ -424,14 +437,14 @@ module Ralph
             through_record._get_preloaded_one(source_name)
           end
 
-          records_by_parent[parent_id] = source_records
+          records_by_parent[parent_id.to_s] = source_records
         end
 
         # Assign to parent models
         models.each do |model|
-          parent_id = model.id
+          parent_id = model.__get_by_key_name(model.class.primary_key)
           if parent_id
-            records = records_by_parent[parent_id]? || [] of Model
+            records = records_by_parent[parent_id.to_s]? || [] of Model
             model._set_preloaded_many(metadata.name, records)
           else
             model._set_preloaded_many(metadata.name, [] of Model)

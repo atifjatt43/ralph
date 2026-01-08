@@ -102,7 +102,8 @@ module Ralph
 
     # Registry for polymorphic model lookup by class name string
     # Required because Crystal doesn't have Object.const_get like Ruby
-    @@polymorphic_registry : Hash(String, Proc(Int64, Ralph::Model?)) = Hash(String, Proc(Int64, Ralph::Model?)).new
+    # Uses String for flexible primary key type support (Int64, UUID, String, etc.)
+    @@polymorphic_registry : Hash(String, Proc(String, Ralph::Model?)) = Hash(String, Proc(String, Ralph::Model?)).new
 
     # Registry for counter cache relationships: child_class => [{parent_class, association_name, counter_column, foreign_key}]
     @@counter_cache_registry : Hash(String, Array(NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String))) = Hash(String, Array(NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String))).new
@@ -115,7 +116,7 @@ module Ralph
     end
 
     # Get the polymorphic registry
-    def self.polymorphic_registry : Hash(String, Proc(Int64, Ralph::Model?))
+    def self.polymorphic_registry : Hash(String, Proc(String, Ralph::Model?))
       @@polymorphic_registry
     end
 
@@ -131,15 +132,17 @@ module Ralph
 
     # Register a model class for polymorphic lookup
     # This is called at runtime when models with `as:` option are loaded
-    def self.register_polymorphic_type(class_name : String, finder : Proc(Int64, Ralph::Model?))
+    # Uses String for flexible primary key type support (Int64, UUID, String, etc.)
+    def self.register_polymorphic_type(class_name : String, finder : Proc(String, Ralph::Model?))
       @@polymorphic_registry[class_name] = finder
     end
 
-    # Lookup and find a polymorphic record by class name and id
-    def self.find_polymorphic(class_name : String, id : Int64) : Ralph::Model?
+    # Lookup and find a polymorphic record by class name and id (as string)
+    # The id is passed as a string to support flexible primary key types
+    def self.find_polymorphic(class_name : String, id_str : String) : Ralph::Model?
       finder = @@polymorphic_registry[class_name]?
       return nil if finder.nil?
-      finder.call(id)
+      finder.call(id_str)
     end
 
     # Register a counter cache relationship
@@ -299,6 +302,9 @@ module Ralph
 
       {% if is_polymorphic %}
         # Polymorphic belongs_to: define both ID and type columns
+        # Note: Polymorphic associations use Int64 for the FK since the parent type
+        # is not known at compile time. For non-Int64 primary keys with polymorphic
+        # associations, custom handling may be needed.
         column {{foreign_key}}, Int64?
         column {{type_column}}, String?
 
@@ -317,8 +323,8 @@ module Ralph
 
           return nil if foreign_key_value.nil? || type_value.nil?
 
-          # Use the polymorphic registry to find the record
-          Ralph::Associations.find_polymorphic(type_value.not_nil!, foreign_key_value.not_nil!)
+          # Use the polymorphic registry to find the record (convert Int64 to String for lookup)
+          Ralph::Associations.find_polymorphic(type_value.not_nil!, foreign_key_value.not_nil!.to_s)
         end
 
         # Polymorphic setter - accepts any Ralph::Model
@@ -328,7 +334,13 @@ module Ralph
 
           if record
             @{{type_column}} = record.class.to_s
-            @{{foreign_key}} = record.id
+            # Get PK and convert to Int64 (polymorphic assumes Int64 PKs)
+            pk = record._get_attribute(record.class.primary_key)
+            if pk.is_a?(Int64)
+              @{{foreign_key}} = pk
+            elsif pk.responds_to?(:to_i64)
+              @{{foreign_key}} = pk.to_i64
+            end
           else
             @{{type_column}} = nil
             @{{foreign_key}} = nil
@@ -342,10 +354,11 @@ module Ralph
         end
       {% else %}
         # Regular belongs_to: define the foreign key column
+        # Use the associated model's PrimaryKeyType for type-safe foreign keys
         {% if is_optional %}
-          column {{foreign_key}}, Int64?
+          column {{foreign_key}}, {{class_name.id}}::PrimaryKeyType?
         {% else %}
-          column {{foreign_key}}, Int64
+          column {{foreign_key}}, {{class_name.id}}::PrimaryKeyType
         {% end %}
 
         # Getter for the associated record
@@ -378,10 +391,13 @@ module Ralph
           if record
             # Use the configured primary key from the associated record
             {% if primary_key == "id" %}
-              @{{foreign_key}} = record.id
+              pk_value = record.id
+              @{{foreign_key}} = pk_value if pk_value
             {% else %}
-              pk_value = record.__get_by_key_name({{primary_key}})
-              @{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
+              pk_value = record._get_attribute({{primary_key}})
+              if pk_value.is_a?({{class_name.id}}::PrimaryKeyType)
+                @{{foreign_key}} = pk_value
+              end
             {% end %}
           else
             @{{foreign_key}} = nil
@@ -399,10 +415,10 @@ module Ralph
         end
 
         # Get the previous foreign key value before changes
-        def {{foreign_key}}_was : Int64?
+        def {{foreign_key}}_was : {{class_name.id}}::PrimaryKeyType?
           if @_original_attributes.has_key?({{foreign_key_str}})
             val = @_original_attributes[{{foreign_key_str}}]
-            val.as(Int64) if val.is_a?(Int64)
+            val.as({{class_name.id}}::PrimaryKeyType) if val.is_a?({{class_name.id}}::PrimaryKeyType)
           else
             @{{foreign_key}}
           end
@@ -419,10 +435,13 @@ module Ralph
           record = {{class_name.id}}.new(**attrs)
           record.save
           {% if primary_key == "id" %}
-            @{{foreign_key}} = record.id
+            pk_value = record.id
+            @{{foreign_key}} = pk_value if pk_value
           {% else %}
-            pk_value = record.__get_by_key_name({{primary_key}})
-            @{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
+            pk_value = record._get_attribute({{primary_key}})
+            if pk_value.is_a?({{class_name.id}}::PrimaryKeyType)
+              @{{foreign_key}} = pk_value
+            end
           {% end %}
           @_changed_attributes.add({{foreign_key_str}})
           record
@@ -519,9 +538,10 @@ module Ralph
           def self._preload_{{name}}(models : Array(self)) : Nil
             return if models.empty?
 
-            # Collect all foreign key values
+            # Collect all foreign key values (as strings for type flexibility)
             fk_values = models.compact_map do |model|
-              model.{{foreign_key}}.as(Int64?)
+              fk = model.{{foreign_key}}
+              fk.to_s if fk
             end.uniq
 
             return if fk_values.empty?
@@ -531,18 +551,20 @@ module Ralph
               .where_in({{primary_key}}, fk_values.map(&.as(Ralph::Query::DBValue)))
 
             records = {{class_name.id}}._preload_fetch_all(query)
-            records_by_pk = Hash(Int64, {{class_name.id}}).new
+            # Use string keys for type-agnostic lookup
+            records_by_pk = Hash(String, {{class_name.id}}).new
 
             records.each do |record|
-              if pk = record.id
-                records_by_pk[pk] = record
+              pk = record._get_attribute({{primary_key}})
+              if pk
+                records_by_pk[pk.to_s] = record
               end
             end
 
             # Assign to models
             models.each do |model|
-              fk_value = model.{{foreign_key}}.as(Int64?)
-              if fk_value && (record = records_by_pk[fk_value]?)
+              fk_value = model.{{foreign_key}}
+              if fk_value && (record = records_by_pk[fk_value.to_s]?)
                 model._set_preloaded_one({{name_str}}, record)
               else
                 model._set_preloaded_one({{name_str}}, nil)
@@ -692,10 +714,15 @@ module Ralph
       # Register this model as a polymorphic parent if as: is specified
       {% if is_polymorphic %}
         # Register at class load time using a class method
+        # Uses string-based ID for flexible primary key type support
         def self.__register_polymorphic_type_{{name}}
           Ralph::Associations.register_polymorphic_type(
             {{type_str}},
-            ->(id : Int64) { {{@type}}.find(id).as(Ralph::Model?) }
+            ->(id_str : String) {
+              # Use find_by with string value - the type system handles conversion
+              # This works for Int64, String, UUID, etc. because find_by accepts DB::Any
+              {{@type}}.find_by({{@type}}.primary_key, id_str).as(Ralph::Model?)
+            }
           )
         end
 
@@ -743,7 +770,7 @@ module Ralph
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
+            pk_value = __get_by_key_name({{primary_key}})
           {% end %}
           return nil if pk_value.nil?
 
@@ -762,7 +789,13 @@ module Ralph
         def {{name}}=(record : {{class_name.id}}?)
           if record
             record.{{poly_type_col}} = {{type_str}}
-            record.{{poly_id_col}} = self.id
+            # Get PK and assign (polymorphic uses Int64)
+            pk = __get_by_key_name(self.class.primary_key)
+            if pk.is_a?(Int64)
+              record.{{poly_id_col}} = pk
+            elsif pk.responds_to?(:to_i64)
+              record.{{poly_id_col}} = pk.to_i64
+            end
             record.save
           end
         end
@@ -771,7 +804,12 @@ module Ralph
         def build_{{name}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           record.{{poly_type_col}} = {{type_str}}
-          record.{{poly_id_col}} = self.id
+          pk = __get_by_key_name(self.class.primary_key)
+          if pk.is_a?(Int64)
+            record.{{poly_id_col}} = pk
+          elsif pk.responds_to?(:to_i64)
+            record.{{poly_id_col}} = pk.to_i64
+          end
           record
         end
 
@@ -779,7 +817,12 @@ module Ralph
         def create_{{name}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
           record.{{poly_type_col}} = {{type_str}}
-          record.{{poly_id_col}} = self.id
+          pk = __get_by_key_name(self.class.primary_key)
+          if pk.is_a?(Int64)
+            record.{{poly_id_col}} = pk
+          elsif pk.responds_to?(:to_i64)
+            record.{{poly_id_col}} = pk.to_i64
+          end
           record.save
           record
         end
@@ -787,12 +830,8 @@ module Ralph
         # Setter for the associated record
         def {{name}}=(record : {{class_name.id}}?)
           if record
-            {% if primary_key == "id" %}
-              record.{{foreign_key}} = self.id
-            {% else %}
-              pk_value = self.__get_by_key_name({{primary_key}})
-              record.{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
-            {% end %}
+            pk_value = __get_by_key_name({{primary_key}})
+            record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
             record.save
           end
         end
@@ -800,24 +839,16 @@ module Ralph
         # Build a new associated record
         def build_{{name}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
-          {% if primary_key == "id" %}
-            record.{{foreign_key}} = self.id
-          {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
-            record.{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
-          {% end %}
+          pk_value = __get_by_key_name({{primary_key}})
+          record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
           record
         end
 
         # Create a new associated record and save it
         def create_{{name}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
-          {% if primary_key == "id" %}
-            record.{{foreign_key}} = self.id
-          {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
-            record.{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
-          {% end %}
+          pk_value = __get_by_key_name({{primary_key}})
+          record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
           record.save
           record
         end
@@ -866,7 +897,11 @@ module Ralph
       def self._preload_{{name}}(models : Array(self)) : Nil
         return if models.empty?
 
-        pk_values = models.compact_map(&.id).uniq
+        # Collect primary key values (as strings for flexible type support)
+        pk_values = models.compact_map do |model|
+          pk = model._get_attribute(self.primary_key)
+          pk.to_s if pk
+        end.uniq
         return if pk_values.empty?
 
         {% if is_polymorphic %}
@@ -883,7 +918,8 @@ module Ralph
         {% end %}
 
         records = {{class_name.id}}._preload_fetch_all(query)
-        records_by_fk = Hash(Int64, {{class_name.id}}).new
+        # Use string keys for flexible primary key type support
+        records_by_fk = Hash(String, {{class_name.id}}).new
 
         records.each do |record|
           {% if is_polymorphic %}
@@ -891,15 +927,14 @@ module Ralph
           {% else %}
             fk_attr = record._get_attribute({{foreign_key_str}})
           {% end %}
-          fk_value = fk_attr.as(Int64?) if fk_attr.is_a?(Int64 | Nil)
-          if fk_value
-            records_by_fk[fk_value] = record
+          if fk_attr
+            records_by_fk[fk_attr.to_s] = record
           end
         end
 
         models.each do |model|
-          pk_value = model.id
-          if pk_value && (record = records_by_fk[pk_value]?)
+          pk_value = model._get_attribute(self.primary_key)
+          if pk_value && (record = records_by_fk[pk_value.to_s]?)
             model._set_preloaded_one({{name_str}}, record)
           else
             model._set_preloaded_one({{name_str}}, nil)
@@ -1072,10 +1107,15 @@ module Ralph
       # Register this model as a polymorphic parent if as: is specified
       {% if is_polymorphic %}
         # Register at class load time using a class method
+        # Uses string-based ID for flexible primary key type support
         def self.__register_polymorphic_type
           Ralph::Associations.register_polymorphic_type(
             {{type_str}},
-            ->(id : Int64) { {{@type}}.find(id).as(Ralph::Model?) }
+            ->(id_str : String) {
+              # Use find_by with string value - the type system handles conversion
+              # This works for Int64, String, UUID, etc. because find_by accepts DB::Any
+              {{@type}}.find_by({{@type}}.primary_key, id_str).as(Ralph::Model?)
+            }
           )
         end
 
@@ -1099,7 +1139,7 @@ module Ralph
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
+            pk_value = __get_by_key_name({{primary_key}})
           {% end %}
           return [] of {{class_name.id}} if pk_value.nil?
 
@@ -1137,7 +1177,7 @@ module Ralph
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
+            pk_value = __get_by_key_name({{primary_key}})
           {% end %}
           return [] of {{class_name.id}} if pk_value.nil?
 
@@ -1230,7 +1270,7 @@ module Ralph
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
+            pk_value = __get_by_key_name({{primary_key}})
           {% end %}
           return [] of {{class_name.id}} if pk_value.nil?
 
@@ -1254,7 +1294,7 @@ module Ralph
           {% if primary_key == "id" %}
             pk_value = self.id
           {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
+            pk_value = __get_by_key_name({{primary_key}})
           {% end %}
           return [] of {{class_name.id}} if pk_value.nil?
 
@@ -1298,7 +1338,13 @@ module Ralph
           record = {{class_name.id}}.new(**attrs)
           # Set the polymorphic columns using compile-time computed names
           record.{{poly_type_col}} = {{type_str}}
-          record.{{poly_id_col}} = self.id
+          # Get PK and assign (polymorphic uses Int64)
+          pk = __get_by_key_name(self.class.primary_key)
+          if pk.is_a?(Int64)
+            record.{{poly_id_col}} = pk
+          elsif pk.responds_to?(:to_i64)
+            record.{{poly_id_col}} = pk.to_i64
+          end
           record
         end
 
@@ -1307,7 +1353,12 @@ module Ralph
           record = {{class_name.id}}.new(**attrs)
           # Set the polymorphic columns using compile-time computed names
           record.{{poly_type_col}} = {{type_str}}
-          record.{{poly_id_col}} = self.id
+          pk = __get_by_key_name(self.class.primary_key)
+          if pk.is_a?(Int64)
+            record.{{poly_id_col}} = pk
+          elsif pk.responds_to?(:to_i64)
+            record.{{poly_id_col}} = pk.to_i64
+          end
           record.save
           record
         end
@@ -1315,24 +1366,16 @@ module Ralph
         # Build a new associated record
         def build_{{singular_name.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
-          {% if primary_key == "id" %}
-            record.{{foreign_key}} = self.id
-          {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
-            record.{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
-          {% end %}
+          pk_value = __get_by_key_name({{primary_key}})
+          record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
           record
         end
 
         # Create a new associated record and save it
         def create_{{singular_name.id}}(**attrs) : {{class_name.id}}
           record = {{class_name.id}}.new(**attrs)
-          {% if primary_key == "id" %}
-            record.{{foreign_key}} = self.id
-          {% else %}
-            pk_value = self.__get_by_key_name({{primary_key}})
-            record.{{foreign_key}} = pk_value.as(Int64) if pk_value.is_a?(Int64)
-          {% end %}
+          pk_value = __get_by_key_name({{primary_key}})
+          record.{{foreign_key}} = pk_value.as({{@type}}::PrimaryKeyType) if pk_value
           record.save
           record
         end
@@ -1373,7 +1416,7 @@ module Ralph
               {% if primary_key == "id" %}
                 pk_value = self.id
               {% else %}
-                pk_value = self.__get_by_key_name({{primary_key}})
+                pk_value = __get_by_key_name({{primary_key}})
               {% end %}
               return true if pk_value.nil?
 
@@ -1397,7 +1440,7 @@ module Ralph
               {% if primary_key == "id" %}
                 pk_value = self.id
               {% else %}
-                pk_value = self.__get_by_key_name({{primary_key}})
+                pk_value = __get_by_key_name({{primary_key}})
               {% end %}
               return true if pk_value.nil?
 
@@ -1432,9 +1475,9 @@ module Ralph
               .where_in({{foreign_key_str}}, pk_values.map(&.as(Ralph::Query::DBValue)))
           {% end %}
 
-          # Fetch records and group by foreign key
+          # Fetch records and group by foreign key (using String keys for type flexibility)
           records = {{class_name.id}}._preload_fetch_all(query)
-          records_by_fk = Hash(Int64, Array({{class_name.id}})).new
+          records_by_fk = Hash(String, Array({{class_name.id}})).new
 
           records.each do |record|
             {% if is_polymorphic %}
@@ -1442,17 +1485,19 @@ module Ralph
             {% else %}
               fk_attr = record._get_attribute({{foreign_key_str}})
             {% end %}
-            fk_value = fk_attr.as(Int64?) if fk_attr.is_a?(Int64 | Nil)
-            if fk_value
-              records_by_fk[fk_value] ||= [] of {{class_name.id}}
-              records_by_fk[fk_value] << record
+            # Convert FK to string for type-agnostic lookup
+            fk_str = fk_attr.to_s if fk_attr
+            if fk_str && !fk_str.empty?
+              records_by_fk[fk_str] ||= [] of {{class_name.id}}
+              records_by_fk[fk_str] << record
             end
           end
 
           models.each do |model|
             pk_value = model.id
             if pk_value
-              fetched_records = records_by_fk[pk_value]? || [] of {{class_name.id}}
+              pk_str = pk_value.to_s
+              fetched_records = records_by_fk[pk_str]? || [] of {{class_name.id}}
               model._set_preloaded_many({{name_str}}, fetched_records.map(&.as(Ralph::Model)))
             else
               model._set_preloaded_many({{name_str}}, [] of Ralph::Model)
