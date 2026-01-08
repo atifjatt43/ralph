@@ -117,6 +117,124 @@ module Ralph
         found.should be_empty
       end
 
+      describe "find_or_initialize_by" do
+        it "returns existing record when found" do
+          existing = UserTestModel.create(name: "Alice", email: "alice@example.com", age: 30)
+
+          found = UserTestModel.find_or_initialize_by({"email" => "alice@example.com"})
+
+          found.id.should eq(existing.id)
+          found.name.should eq("Alice")
+          found.persisted?.should be_true
+        end
+
+        it "initializes new record when not found" do
+          found = UserTestModel.find_or_initialize_by({"email" => "new@example.com"})
+
+          found.email.should eq("new@example.com")
+          found.new_record?.should be_true
+          found.persisted?.should be_false
+        end
+
+        it "yields block for new record setup" do
+          found = UserTestModel.find_or_initialize_by({"email" => "new@example.com"}) do |u|
+            u.name = "New User"
+            u.age = 25
+          end
+
+          found.email.should eq("new@example.com")
+          found.name.should eq("New User")
+          found.age.should eq(25)
+          found.new_record?.should be_true
+        end
+
+        it "does not yield block for existing record" do
+          UserTestModel.create(name: "Alice", email: "alice@example.com", age: 30)
+          block_called = false
+
+          found = UserTestModel.find_or_initialize_by({"email" => "alice@example.com"}) do |u|
+            block_called = true
+            u.name = "Changed"
+          end
+
+          block_called.should be_false
+          found.name.should eq("Alice")
+        end
+
+        it "does not save the new record" do
+          found = UserTestModel.find_or_initialize_by({"email" => "unsaved@example.com"}) do |u|
+            u.name = "Unsaved"
+          end
+
+          UserTestModel.find_by("email", "unsaved@example.com").should be_nil
+        end
+      end
+
+      describe "find_or_create_by" do
+        it "returns existing record when found" do
+          existing = UserTestModel.create(name: "Bob", email: "bob@example.com", age: 25)
+
+          found = UserTestModel.find_or_create_by({"email" => "bob@example.com"})
+
+          found.id.should eq(existing.id)
+          found.name.should eq("Bob")
+          found.persisted?.should be_true
+        end
+
+        it "creates and saves new record when not found" do
+          found = UserTestModel.find_or_create_by({"email" => "created@example.com"}) do |u|
+            u.name = "Created User"
+            u.age = 28
+          end
+
+          found.email.should eq("created@example.com")
+          found.name.should eq("Created User")
+          found.age.should eq(28)
+          found.persisted?.should be_true
+          found.new_record?.should be_false
+
+          # Verify persistence
+          reloaded = UserTestModel.find_by("email", "created@example.com")
+          reloaded.should_not be_nil
+          reloaded.not_nil!.name.should eq("Created User")
+        end
+
+        it "does not yield block for existing record" do
+          UserTestModel.create(name: "Charlie", email: "charlie@example.com", age: 35)
+          block_called = false
+
+          found = UserTestModel.find_or_create_by({"email" => "charlie@example.com"}) do |u|
+            block_called = true
+            u.name = "Changed"
+          end
+
+          block_called.should be_false
+          found.name.should eq("Charlie")
+        end
+
+        it "works without a block" do
+          found = UserTestModel.find_or_create_by({"email" => "noblock@example.com"})
+
+          found.email.should eq("noblock@example.com")
+          found.persisted?.should be_true
+        end
+
+        it "supports multiple conditions" do
+          UserTestModel.create(name: "Diana", email: "diana@example.com", age: 30)
+
+          # Different age, should create new
+          found = UserTestModel.find_or_create_by({"email" => "diana@example.com", "age" => 25}) do |u|
+            u.name = "Diana Clone"
+          end
+
+          found.name.should eq("Diana Clone")
+          found.age.should eq(25)
+
+          # Same conditions, should find existing
+          UserTestModel.count.should eq(2)
+        end
+      end
+
       it "updates record attributes" do
         user = UserTestModel.create(name: "Eve", email: "eve@example.com", age: 30)
 

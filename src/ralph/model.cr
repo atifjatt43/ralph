@@ -957,6 +957,76 @@ module Ralph
       record
     end
 
+    # Find a record by conditions, or initialize a new one if not found
+    #
+    # The new record will have the search conditions set as attributes.
+    # If a block is given, it will be yielded the new record for additional setup.
+    # The record is NOT saved automatically.
+    #
+    # Example:
+    # ```
+    # # Without block
+    # user = User.find_or_initialize_by({"email" => "alice@example.com"})
+    #
+    # # With block for additional attributes
+    # user = User.find_or_initialize_by({"email" => "alice@example.com"}) do |u|
+    #   u.name = "Alice"
+    #   u.role = "user"
+    # end
+    # user.save  # Must save manually
+    # ```
+    def self.find_or_initialize_by(conditions : Hash(String, DB::Any), &block : self ->) : self
+      existing = find_by_conditions(conditions)
+      return existing if existing
+
+      record = new
+      conditions.each do |column, value|
+        record.set_attribute(column, value)
+      end
+      yield record
+      record
+    end
+
+    # Find a record by conditions, or initialize a new one if not found (without block)
+    def self.find_or_initialize_by(conditions : Hash(String, DB::Any)) : self
+      find_or_initialize_by(conditions) { }
+    end
+
+    # Find a record by conditions, or create a new one if not found
+    #
+    # The new record will have the search conditions set as attributes.
+    # If a block is given, it will be yielded the new record for additional setup
+    # before saving.
+    #
+    # Example:
+    # ```
+    # # Without block - creates with just the search conditions
+    # user = User.find_or_create_by({"email" => "alice@example.com"})
+    #
+    # # With block for additional attributes
+    # user = User.find_or_create_by({"email" => "alice@example.com"}) do |u|
+    #   u.name = "Alice"
+    #   u.role = "user"
+    # end
+    # ```
+    def self.find_or_create_by(conditions : Hash(String, DB::Any), &block : self ->) : self
+      existing = find_by_conditions(conditions)
+      return existing if existing
+
+      record = new
+      conditions.each do |column, value|
+        record.set_attribute(column, value)
+      end
+      yield record
+      record.save
+      record
+    end
+
+    # Find a record by conditions, or create a new one if not found (without block)
+    def self.find_or_create_by(conditions : Hash(String, DB::Any)) : self
+      find_or_create_by(conditions) { }
+    end
+
     # Find all records using a pre-built query builder
     #
     # Used primarily for scoped associations where additional WHERE conditions
@@ -1240,6 +1310,21 @@ module Ralph
 
     # Note: save and destroy methods are provided by the Callbacks module
     # which wraps insert/update_record/destroy operations with callback support
+
+    # Set an attribute by name at runtime
+    #
+    # This is useful for dynamic attribute assignment when you have
+    # the attribute name as a string.
+    #
+    # Example:
+    # ```
+    # user = User.new
+    # user.set_attribute("name", "Alice")
+    # user.set_attribute("email", "alice@example.com")
+    # ```
+    def set_attribute(name : String, value : DB::Any) : Nil
+      __set_by_key_name(name, value)
+    end
 
     # Update attributes and save the record
     #
