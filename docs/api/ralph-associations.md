@@ -2,7 +2,7 @@
 
 `module`
 
-*Defined in [src/ralph/associations.cr:99](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L99)*
+*Defined in [src/ralph/associations.cr:94](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L94)*
 
 Associations module for defining model relationships
 
@@ -47,7 +47,7 @@ end
 
 ### `.counter_cache_registry`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L124)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L119)*
 
 Get the counter cache registry
 
@@ -55,7 +55,7 @@ Get the counter cache registry
 
 ### `.counter_caches_for(child_class : String) : Array(NamedTuple(parent_class: String, association_name: String, counter_column: String, foreign_key: String)) | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L155)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L150)*
 
 Get counter caches for a child class
 
@@ -63,7 +63,7 @@ Get counter caches for a child class
 
 ### `.find_polymorphic(class_name : String, id_str : String) : Ralph::Model | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L142)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L137)*
 
 Lookup and find a polymorphic record by class name and id (as string)
 The id is passed as a string to support flexible primary key types
@@ -72,7 +72,7 @@ The id is passed as a string to support flexible primary key types
 
 ### `.polymorphic_registry`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L119)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L114)*
 
 Get the polymorphic registry
 
@@ -80,7 +80,7 @@ Get the polymorphic registry
 
 ### `.register_counter_cache(child_class : String, parent_class : String, association_name : String, counter_column : String, foreign_key : String)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L149)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L144)*
 
 Register a counter cache relationship
 
@@ -88,7 +88,7 @@ Register a counter cache relationship
 
 ### `.register_polymorphic_type(class_name : String, finder : Proc(String, Ralph::Model | Nil))`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L136)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L131)*
 
 Register a model class for polymorphic lookup
 This is called at runtime when models with `as:` option are loaded
@@ -98,7 +98,7 @@ Uses String for flexible primary key type support (Int64, UUID, String, etc.)
 
 ### `.register_touch(child_class : String, parent_class : String, association_name : String, touch_column : String, foreign_key : String)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L160)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L155)*
 
 Register a touch relationship
 
@@ -106,7 +106,7 @@ Register a touch relationship
 
 ### `.touch_registry`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L129)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L124)*
 
 Get the touch registry
 
@@ -114,7 +114,7 @@ Get the touch registry
 
 ### `.touches_for(child_class : String) : Array(NamedTuple(parent_class: String, association_name: String, touch_column: String, foreign_key: String)) | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L166)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L161)*
 
 Get touch relationships for a child class
 
@@ -124,7 +124,7 @@ Get touch relationships for a child class
 
 ### `.belongs_to(name, **options)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L195)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L190)*
 
 Define a belongs_to association
 
@@ -156,7 +156,7 @@ belongs_to publisher, counter_cache: "total_books" # Uses custom column name
 
 ### `.has_many(name, scope_block = nil, **options)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L963)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L958)*
 
 Define a has_many association
 
@@ -193,7 +193,7 @@ has_many tags, through: :post_tags, source: :tag # Through with custom source
 
 ### `.has_one(name, **options)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L596)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L591)*
 
 Define a has_one association
 

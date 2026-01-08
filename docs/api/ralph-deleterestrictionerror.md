@@ -2,15 +2,25 @@
 
 `class`
 
-*Defined in [src/ralph/associations.cr:3](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L3)*
+*Defined in [src/ralph/errors.cr:279](https://github.com/watzon/ralph/blob/main/src/ralph/errors.cr#L279)*
 
-Exception raised when trying to destroy a record with dependent: :restrict_with_exception
+Raised when trying to destroy a record with `dependent: :restrict_with_exception`
+
+## Example
+
+```
+class User < Ralph::Model
+  has_many :posts, dependent: :restrict_with_exception
+end
+
+user.destroy # => Ralph::DeleteRestrictionError: Cannot delete User because posts exist
+```
 
 ## Constructors
 
-### `.new(association_name : String)`
+### `.new(association : String)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L4)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/errors.cr#L280)*
 
 ---
 

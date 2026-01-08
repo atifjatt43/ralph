@@ -2,7 +2,7 @@
 
 `module`
 
-*Defined in [src/ralph/backends/postgres.cr:5](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L5)*
+*Defined in [src/ralph/backends/postgres.cr:6](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L6)*
 
 Abstract database backend interface
 
@@ -24,6 +24,7 @@ database driver shard for the backend you're actually using.
 
 ## Nested Types
 
+- [`PoolStats`](ralph-database-poolstats.md) - <p>Connection pool statistics</p>
 - [`PostgresBackend`](ralph-database-postgresbackend.md) - <p>PostgreSQL database backend implementation</p>
 - [`SqliteBackend`](ralph-database-sqlitebackend.md) - <p>SQLite database backend implementation</p>
 

@@ -26,6 +26,7 @@ nav = [
         {"Validations" = "models/validations.md"},
         {"Callbacks" = "models/callbacks.md"},
         {"Scopes" = "models/scopes.md"},
+        {"Soft Deletes" = "models/soft-deletes.md"},
     ]},
     {"Query Builder" = [
         "query-builder/introduction.md",

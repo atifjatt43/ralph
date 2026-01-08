@@ -2,7 +2,7 @@
 
 `enum`
 
-*Defined in [src/ralph/associations.cr:10](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L10)*
+*Defined in [src/ralph/associations.cr:5](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L5)*
 
 Dependent behavior options for associations
 
@@ -48,7 +48,7 @@ RestrictWithException = 5
 
 ### `#delete?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L13)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L8)*
 
 Returns `true` if this enum value equals `Delete`
 
@@ -56,7 +56,7 @@ Returns `true` if this enum value equals `Delete`
 
 ### `#destroy?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L12)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L7)*
 
 Returns `true` if this enum value equals `Destroy`
 
@@ -64,7 +64,7 @@ Returns `true` if this enum value equals `Destroy`
 
 ### `#none?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L11)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L6)*
 
 Returns `true` if this enum value equals `None`
 
@@ -72,7 +72,7 @@ Returns `true` if this enum value equals `None`
 
 ### `#nullify?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L14)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L9)*
 
 Returns `true` if this enum value equals `Nullify`
 
@@ -80,7 +80,7 @@ Returns `true` if this enum value equals `Nullify`
 
 ### `#restrict_with_error?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L15)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L10)*
 
 Returns `true` if this enum value equals `RestrictWithError`
 
@@ -88,7 +88,7 @@ Returns `true` if this enum value equals `RestrictWithError`
 
 ### `#restrict_with_exception?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L16)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L11)*
 
 Returns `true` if this enum value equals `RestrictWithException`
 
