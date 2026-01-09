@@ -206,7 +206,7 @@ module Ralph
         return if %value.nil?
 
         # Build query to check for existing records
-        %query = Query::Builder.new(self.class.table_name)
+        %query = Ralph::Query::Builder.new(self.class.table_name)
           .where("#{{{attribute.id.stringify}}} = ?", %value)
 
         # Exclude current record if it's persisted
