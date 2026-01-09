@@ -5,8 +5,9 @@ module Ralph
     property type_name : String
     property primary : Bool
     property default : String | Int32 | Int64 | Float64 | Bool | Nil
+    property nilable : Bool
 
-    def initialize(@name : String, type : Class, @primary : Bool = false, @default : String | Int32 | Int64 | Float64 | Bool | Nil = nil)
+    def initialize(@name : String, type : Class, @primary : Bool = false, @default : String | Int32 | Int64 | Float64 | Bool | Nil = nil, @nilable : Bool = false)
       @type_name = type.to_s
     end
   end
@@ -427,6 +428,11 @@ module Ralph
     @_changed_attributes : Set(String) = Set(String).new
     @_original_attributes : Hash(String, DB::Any) = {} of String => DB::Any
 
+    # Persistence tracking - true once record has been saved to database
+    # This is separate from checking PK because non-auto PKs (like UUID)
+    # can be set before the record is actually persisted
+    @_persisted : Bool = false
+
     # Preloaded associations tracking
     # Stores preloaded single records (belongs_to, has_one)
     @_preloaded_one : Hash(String, Model?) = Hash(String, Model?).new
@@ -446,6 +452,11 @@ module Ralph
     #   column id : Int64, primary: true           # Type declaration syntax (preferred)
     #   column id, Int64, primary: true            # Legacy positional syntax
     #
+    # Type declarations control nullability:
+    #   column name : String      # Non-nullable: getter returns String (raises if nil)
+    #   column bio : String?      # Nullable: getter returns String?
+    #   column age : Int32 | Nil  # Nullable: getter returns Int32 | Nil
+    #
     # Options:
     #   primary: true   - Mark as primary key
     #   default: value  - Default value for new records
@@ -462,6 +473,33 @@ module Ralph
         {% col_default = default %}
       {% end %}
 
+      # Detect if the declared type is nilable (String?, Int32 | Nil, etc.)
+      # We check the string representation since resolve doesn't work reliably in all contexts.
+      # Each pattern is designed to match only Nil type references, not types containing "Nil" as substring:
+      #   - ends_with?("?")    → "String?" shorthand syntax
+      #   - includes?("| Nil") → "Int32 | Nil" union with space
+      #   - includes?("Nil |") → "Nil | Int32" union (Nil first)
+      #   - includes?("Nil)")  → "::Union(Time, Nil)" macro expansion
+      #   - includes?("Nil,")  → "::Union(Nil, Time)" macro expansion
+      #   - includes?("::Nil") → "Int64 | ::Nil" fully qualified
+      #   - == "Nil"           → Exactly "Nil" type
+      {% col_type_str = col_type.stringify %}
+      {% is_nilable = col_type_str.ends_with?("?") ||
+                      col_type_str.includes?("| Nil") ||
+                      col_type_str.includes?("Nil |") ||
+                      col_type_str.includes?("Nil)") ||
+                      col_type_str.includes?("Nil,") ||
+                      col_type_str.includes?("::Nil") ||
+                      col_type_str == "Nil" %}
+
+      # Extract the base type (without Nil) for non-nilable declarations
+      # For nilable types, we keep the full type including Nil
+      {% if is_nilable %}
+        {% base_type = col_type %}
+      {% else %}
+        {% base_type = col_type %}
+      {% end %}
+
       {% if primary %}
         @@primary_key = {{col_name.stringify}}
         # Track primary key type for association foreign key inference
@@ -476,25 +514,46 @@ module Ralph
         {% end %}
       {% end %}
 
-      # Register column metadata
+      # Register column metadata with nullability info
       {% unless @type.has_constant?("_ralph_column_{{col_name}}") %}
-        @@columns[{{col_name.stringify}}] = Ralph::ColumnMetadata.new({{col_name.stringify}}, {{col_type}}, {{primary}}, {{col_default}})
+        @@columns[{{col_name.stringify}}] = Ralph::ColumnMetadata.new({{col_name.stringify}}, {{base_type}}, {{primary}}, {{col_default}}, {{is_nilable}})
       {% end %}
 
-      # Define the property with nilable type to allow uninitialized state
+      # Define the property with nilable type internally to allow uninitialized state
       @{{col_name}} : {{col_type}} | Nil
 
-      # Getter
-      def {{col_name}}
-        {% if col_default %}
-          @{{col_name}} ||= {{col_default}}
-        {% else %}
+      # Getter - return type depends on declared nullability
+      {% if is_nilable %}
+        # Nullable column: return the nilable type directly
+        def {{col_name}} : {{col_type}}
+          {% if col_default %}
+            @{{col_name}} ||= {{col_default}}
+          {% else %}
+            @{{col_name}}
+          {% end %}
+        end
+      {% else %}
+        # Non-nullable column: return non-nil type, raise if accessed before set
+        def {{col_name}} : {{col_type}}
+          {% if col_default %}
+            @{{col_name}} ||= {{col_default}}
+          {% else %}
+            if (val = @{{col_name}}).nil?
+              raise NilAssertionError.new("Column '{{col_name}}' is nil but declared as non-nullable {{col_type}}. Ensure the value is set before accessing.")
+            else
+              val
+            end
+          {% end %}
+        end
+
+        # Also provide a nilable accessor for cases where nil-check is desired
+        def {{col_name}}? : {{col_type}} | Nil
           @{{col_name}}
-        {% end %}
-      end
+        end
+      {% end %}
 
       # Setter
-      def {{col_name}}=(value)
+      def {{col_name}}=(value : {{col_type}} | Nil)
         @{{col_name}} = value
       end
     end
@@ -1434,7 +1493,14 @@ module Ralph
       {% for ivar in @type.instance_vars %}
         {% unless ivar.name.starts_with?("_") %}
           {% type_str = ivar.type.stringify %}
-          {% nilable = type_str.includes?(" | Nil") || type_str.includes?("Nil)") %}
+          # Detect nilable types using consistent pattern
+          {% nilable = type_str.ends_with?("?") ||
+                       type_str.includes?("| Nil") ||
+                       type_str.includes?("Nil |") ||
+                       type_str.includes?("Nil)") ||
+                       type_str.includes?("Nil,") ||
+                       type_str.includes?("::Nil") ||
+                       type_str == "Nil" %}
           {% if type_str.includes?("Int64") %}
             {% if nilable %}
               self.{{ivar.name}}=rs.read(Int64 | Nil)
@@ -1485,14 +1551,21 @@ module Ralph
       !persisted?
     end
 
-    # Check if this record has been persisted
-    # For non-nil primary keys, also checks if the value is "empty" (blank string, zero, etc.)
+    # Check if this record has been persisted to the database
+    # Uses explicit @_persisted flag rather than PK presence because
+    # non-auto PKs (UUID, String) can be set before the record is saved
     def persisted? : Bool
-      pk = primary_key_value
-      return false if pk.nil?
-      # Empty strings are not considered "persisted"
-      return false if pk.is_a?(String) && pk.empty?
-      true
+      @_persisted
+    end
+
+    # Mark this record as persisted (called after successful insert/load)
+    protected def mark_persisted!
+      @_persisted = true
+    end
+
+    # Mark this record as not persisted (called after destroy)
+    protected def mark_unpersisted!
+      @_persisted = false
     end
 
     # Get the primary key value
@@ -1533,6 +1606,9 @@ module Ralph
       # Store in identity map if enabled
       Ralph::IdentityMap.set(self)
 
+      # Mark as persisted now that insert succeeded
+      mark_persisted!
+
       clear_changes_information
       true
     end
@@ -1559,32 +1635,58 @@ module Ralph
 
     # Convert model to hash for database operations
     # Handles serialization of advanced types (JSON, UUID, Array, Enum)
+    # Uses getter to apply defaults, but catches NilAssertionError for
+    # non-nullable columns that don't have a value yet (e.g., auto-increment id).
     def to_h : Hash(String, DB::Any)
       hash = {} of String => DB::Any
       {% for ivar in @type.instance_vars %}
         {% unless ivar.name.starts_with?("_") %}
           {% type_str = ivar.type.stringify %}
-          # Use getter to get default values if set
-          %value = {{ivar.name}}
-          unless %value.nil?
+          # Try getter to apply defaults; if NilAssertionError, skip this column
+          # Use a unique variable name per ivar to avoid type union issues
+          __temp_{{ivar.name}} = begin
+            {{ivar.name}}
+          rescue NilAssertionError
+            nil
+          end
+          unless __temp_{{ivar.name}}.nil?
             {% if type_str.includes?("JSON::Any") %}
               # Serialize JSON::Any to string
-              hash[{{ivar.name.stringify}}] = %value.to_json
+              hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.to_json
             {% elsif type_str.includes?("UUID") %}
               # Serialize UUID to string
-              hash[{{ivar.name.stringify}}] = %value.to_s
+              hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.to_s
             {% elsif type_str.includes?("Array(") %}
               # Serialize Array to JSON string
-              hash[{{ivar.name.stringify}}] = %value.to_json
+              hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.to_json
+            {% elsif type_str.includes?("Time") %}
+              # Time needs conversion - use to_utc for DB storage
+              hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.as(Time)
             {% else %}
               # Check if it's an enum type
               {% resolved_type = ivar.type.union_types ? ivar.type.union_types.reject { |t| t == Nil }.first : ivar.type %}
               {% if resolved_type.ancestors.any? { |a| a.stringify == "Enum" } %}
                 # Serialize enum to string (member name)
-                hash[{{ivar.name.stringify}}] = %value.to_s
+                hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.to_s
               {% else %}
                 # Standard types - pass through as DB::Any
-                hash[{{ivar.name.stringify}}] = %value
+                # Need to cast explicitly to avoid union type issues
+                {% if type_str.includes?("String") %}
+                  hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.as(String)
+                {% elsif type_str.includes?("Int64") %}
+                  hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.as(Int64)
+                {% elsif type_str.includes?("Int32") %}
+                  hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.as(Int32)
+                {% elsif type_str.includes?("Float64") %}
+                  hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.as(Float64)
+                {% elsif type_str.includes?("Float32") %}
+                  hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.as(Float32)
+                {% elsif type_str.includes?("Bool") %}
+                  hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.as(Bool)
+                {% else %}
+                  # Fallback - convert to string for safety
+                  hash[{{ivar.name.stringify}}] = __temp_{{ivar.name}}.to_s
+                {% end %}
               {% end %}
             {% end %}
           end
@@ -1601,7 +1703,14 @@ module Ralph
       {% for ivar in @type.instance_vars %}
         {% unless ivar.name.starts_with?("_") %}
           {% type_str = ivar.type.stringify %}
-          {% nilable = type_str.includes?(" | Nil") || type_str.includes?("Nil)") %}
+          # Detect nilable types using consistent pattern
+          {% nilable = type_str.ends_with?("?") ||
+                       type_str.includes?("| Nil") ||
+                       type_str.includes?("Nil |") ||
+                       type_str.includes?("Nil)") ||
+                       type_str.includes?("Nil,") ||
+                       type_str.includes?("::Nil") ||
+                       type_str == "Nil" %}
           {% if type_str.includes?("Int64") %}
             {% if nilable %}
               %instance.{{ivar.name}}={{rs}}.read(Int64 | Nil)
@@ -1615,10 +1724,24 @@ module Ralph
               %instance.{{ivar.name}}={{rs}}.read(Int32)
             {% end %}
           {% elsif type_str.includes?("Float64") %}
+            # Float64 - PostgreSQL NUMERIC/DECIMAL returns PG::Numeric
+            %raw_float = {{rs}}.read(PG::Numeric | Float64 | Nil)
             {% if nilable %}
-              %instance.{{ivar.name}}={{rs}}.read(Float64 | Nil)
+              if %raw_float.nil?
+                %instance.{{ivar.name}} = nil
+              elsif %raw_float.is_a?(PG::Numeric)
+                %instance.{{ivar.name}} = %raw_float.to_f64
+              else
+                %instance.{{ivar.name}} = %raw_float
+              end
             {% else %}
-              %instance.{{ivar.name}}={{rs}}.read(Float64)
+              if %raw_float.is_a?(PG::Numeric)
+                %instance.{{ivar.name}} = %raw_float.to_f64
+              elsif %raw_float
+                %instance.{{ivar.name}} = %raw_float
+              else
+                %instance.{{ivar.name}} = 0.0
+              end
             {% end %}
           {% elsif type_str.includes?("Time") %}
             {% if nilable %}
@@ -1633,11 +1756,18 @@ module Ralph
               %instance.{{ivar.name}}={{rs}}.read(Bool)
             {% end %}
           {% elsif type_str.includes?("JSON::Any") %}
-            # JSON::Any - stored as TEXT in database, parse on load
-            %raw_json = {{rs}}.read(String | Nil)
+            # JSON::Any - stored as TEXT in SQLite or JSONB in PostgreSQL
+            # PostgreSQL returns JSON::PullParser for JSONB, SQLite returns String
+            %raw_json = {{rs}}.read(JSON::PullParser | String | Nil)
             {% if nilable %}
               if %raw_json.nil?
                 %instance.{{ivar.name}} = nil
+              elsif %raw_json.is_a?(JSON::PullParser)
+                begin
+                  %instance.{{ivar.name}} = JSON::Any.new(%raw_json)
+                rescue
+                  %instance.{{ivar.name}} = nil
+                end
               else
                 begin
                   %instance.{{ivar.name}} = JSON.parse(%raw_json)
@@ -1646,7 +1776,13 @@ module Ralph
                 end
               end
             {% else %}
-              if %raw_json
+              if %raw_json.is_a?(JSON::PullParser)
+                begin
+                  %instance.{{ivar.name}} = JSON::Any.new(%raw_json)
+                rescue
+                  %instance.{{ivar.name}} = JSON::Any.new(nil)
+                end
+              elsif %raw_json
                 begin
                   %instance.{{ivar.name}} = JSON.parse(%raw_json)
                 rescue JSON::ParseException
@@ -1657,11 +1793,14 @@ module Ralph
               end
             {% end %}
           {% elsif type_str.includes?("UUID") %}
-            # UUID - stored as CHAR(36) or UUID in database
-            %raw_uuid = {{rs}}.read(String | Nil)
+            # UUID - stored as CHAR(36) in SQLite or native UUID in PostgreSQL
+            # PostgreSQL returns UUID type directly, SQLite returns String
+            %raw_uuid = {{rs}}.read(UUID | String | Nil)
             {% if nilable %}
               if %raw_uuid.nil?
                 %instance.{{ivar.name}} = nil
+              elsif %raw_uuid.is_a?(UUID)
+                %instance.{{ivar.name}} = %raw_uuid
               else
                 begin
                   %instance.{{ivar.name}} = UUID.new(%raw_uuid)
@@ -1670,7 +1809,9 @@ module Ralph
                 end
               end
             {% else %}
-              if %raw_uuid
+              if %raw_uuid.is_a?(UUID)
+                %instance.{{ivar.name}} = %raw_uuid
+              elsif %raw_uuid
                 begin
                   %instance.{{ivar.name}} = UUID.new(%raw_uuid)
                 rescue ArgumentError
@@ -1780,6 +1921,9 @@ module Ralph
       # Clear dirty tracking
       %instance.clear_changes_information
 
+      # Mark as persisted since we loaded from database
+      %instance.mark_persisted!
+
       %instance
     end
 
@@ -1821,7 +1965,13 @@ module Ralph
       {% for ivar in @type.instance_vars %}
         {% unless ivar.name.starts_with?("_") %}
           {% type_str = ivar.type.stringify %}
-          {% nilable = type_str.includes?(" | Nil") || type_str.includes?("Nil)") %}
+          # Detect nilable types using consistent pattern
+          {% nilable = type_str.ends_with?("?") ||
+                       type_str.includes?("| Nil") ||
+                       type_str.includes?("Nil |") ||
+                       type_str.includes?("Nil)") ||
+                       type_str.includes?("Nil,") ||
+                       type_str.includes?("::Nil") %}
           when {{ivar.name.stringify}}
             {% if type_str.includes?("Int64") %}
               {% if nilable %}

@@ -10,12 +10,14 @@ module Ralph
     column name : String
     column email : String
 
+    # Use name? and email? accessors for safe nil-check in validations
+    # (the ? accessor returns nil instead of raising for non-nullable columns)
     validate :name, "can't be blank" do
-      !name.to_s.empty?
+      !name?.to_s.empty?
     end
 
     validate :email, "must contain @" do
-      email.to_s.includes?("@")
+      email?.to_s.includes?("@")
     end
   end
 
@@ -29,7 +31,8 @@ module Ralph
 
     @[ValidationMethod]
     private def check_name_not_reserved
-      if name == "admin"
+      # Use name? for safe access in validation
+      if name? == "admin"
         errors.add("name", "is reserved")
       end
     end

@@ -139,9 +139,10 @@ module Ralph
 
       column id : Int64, primary: true
       column title : String
-      column author_id : Int64
+      # Note: belongs_to generates author_id column automatically
+      # Use optional: true to allow nullable FK for clearing association
 
-      belongs_to Author
+      belongs_to Author, optional: true
     end
   end
 
