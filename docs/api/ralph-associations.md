@@ -146,15 +146,15 @@ Supports two syntaxes:
 
 Usage:
 ```
-belongs_to User                                    # user, user_id
-belongs_to author : User                           # author, author_id (explicit name)
-belongs_to author : User, foreign_key: :writer_id  # author, writer_id
-belongs_to User, primary_key: :uuid                # user, user_id (looks up by uuid)
-belongs_to polymorphic: :commentable               # commentable_id, commentable_type columns
-belongs_to User, touch: true                       # Updates user.updated_at on save
-belongs_to User, touch: :last_post_at              # Updates user.last_post_at on save
-belongs_to User, counter_cache: true               # Maintains user.posts_count
-belongs_to User, counter_cache: "total_books"      # Uses custom column name
+belongs_to User                                   # user, user_id
+belongs_to author : User                          # author, author_id (explicit name)
+belongs_to author : User, foreign_key: :writer_id # author, writer_id
+belongs_to User, primary_key: :uuid               # user, user_id (looks up by uuid)
+belongs_to polymorphic: :commentable              # commentable_id, commentable_type columns
+belongs_to User, touch: true                      # Updates user.updated_at on save
+belongs_to User, touch: :last_post_at             # Updates user.last_post_at on save
+belongs_to User, counter_cache: true              # Maintains user.posts_count
+belongs_to User, counter_cache: "total_books"     # Uses custom column name
 ```
 
 ---

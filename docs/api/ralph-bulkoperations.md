@@ -15,12 +15,12 @@ execute in a single database round-trip.
 # Bulk insert
 User.insert_all([
   {name: "John", email: "john@example.com"},
-  {name: "Jane", email: "jane@example.com"}
+  {name: "Jane", email: "jane@example.com"},
 ])
 
 # Upsert (insert or update on conflict)
 User.upsert_all([
-  {email: "john@example.com", name: "John Updated"}
+  {email: "john@example.com", name: "John Updated"},
 ], on_conflict: :email, update: [:name])
 
 # Bulk update

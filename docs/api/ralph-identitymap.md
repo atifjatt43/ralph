@@ -19,12 +19,12 @@ The identity map is scoped to a block using `IdentityMap.with`:
 ```
 Ralph::IdentityMap.with do
   user1 = User.find(1)
-  user2 = User.find(1)  # Returns same instance from identity map
-  user1.object_id == user2.object_id  # => true
+  user2 = User.find(1)               # Returns same instance from identity map
+  user1.object_id == user2.object_id # => true
 
   # Changes to one reference affect all references
   user1.name = "New Name"
-  user2.name  # => "New Name"
+  user2.name # => "New Name"
 end
 ```
 
@@ -166,7 +166,7 @@ will return the same object instance.
 Ralph::IdentityMap.with do
   user1 = User.find(1)
   user2 = User.find(1)
-  user1.object_id == user2.object_id  # => true
+  user1.object_id == user2.object_id # => true
 end
 ```
 

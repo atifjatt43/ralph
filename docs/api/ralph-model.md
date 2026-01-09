@@ -2,7 +2,7 @@
 
 `class`
 
-*Defined in [src/ralph/model.cr:18](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L18)*
+*Defined in [src/ralph/model.cr:19](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L19)*
 
 Base class for all ORM models
 
@@ -13,7 +13,7 @@ using the `column` macro.
 
 ### `.create`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1268)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1330)*
 
 Create a new record and save it
 
@@ -21,7 +21,7 @@ Create a new record and save it
 
 ### `.find_or_create_by(conditions : Hash(String, DB::Any), &block : self -> ) : self`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1068)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1130)*
 
 Find a record by conditions, or create a new one if not found
 
@@ -45,7 +45,7 @@ end
 
 ### `.find_or_create_by(conditions : Hash(String, DB::Any)) : self`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1082)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1144)*
 
 Find a record by conditions, or create a new one if not found (without block)
 
@@ -53,7 +53,7 @@ Find a record by conditions, or create a new one if not found (without block)
 
 ### `.find_or_initialize_by(conditions : Hash(String, DB::Any), &block : self -> ) : self`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1034)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1096)*
 
 Find a record by conditions, or initialize a new one if not found
 
@@ -78,7 +78,7 @@ user.save # Must save manually
 
 ### `.find_or_initialize_by(conditions : Hash(String, DB::Any)) : self`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1047)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1109)*
 
 Find a record by conditions, or initialize a new one if not found (without block)
 
@@ -86,7 +86,7 @@ Find a record by conditions, or initialize a new one if not found (without block
 
 ### `.new`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1275)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1337)*
 
 Initialize with attributes
 
@@ -96,7 +96,7 @@ Initialize with attributes
 
 ### `._preload_fetch_all(query : Ralph::Query::Builder) : Array(self)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L892)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L954)*
 
 Helper for preloading - fetch all records matching a query
 This is called by the generated _preload_* methods
@@ -105,7 +105,7 @@ This is called by the generated _preload_* methods
 
 ### `.all`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L564)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L626)*
 
 Find all records
 
@@ -113,7 +113,7 @@ Find all records
 
 ### `.average(column : String) : Float64 | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1233)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1295)*
 
 Get the average of a column
 
@@ -126,7 +126,7 @@ User.average(:age)
 
 ### `.column_names_ordered`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L522)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L584)*
 
 Get column names in the order they should be read from result sets.
 This matches the order of instance variables in from_result_set.
@@ -136,7 +136,7 @@ Generated at compile time to ensure consistency.
 
 ### `.columns`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L515)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L577)*
 
 Get all column metadata
 
@@ -144,7 +144,7 @@ Get all column metadata
 
 ### `.count`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1125)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1187)*
 
 Count all records
 
@@ -152,7 +152,7 @@ Count all records
 
 ### `.count_by(column : String, value) : Int64`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1195)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1257)*
 
 Count records matching a column value
 
@@ -160,7 +160,7 @@ Count records matching a column value
 
 ### `.count_with_query(query : Ralph::Query::Builder) : Int32`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1113)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1175)*
 
 Count records using a pre-built query builder
 
@@ -170,7 +170,7 @@ Used for counting scoped associations.
 
 ### `.distinct`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L704)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L766)*
 
 Build a query with DISTINCT
 
@@ -178,7 +178,7 @@ Build a query with DISTINCT
 
 ### `.distinct`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L710)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L772)*
 
 Build a query with DISTINCT and block
 The block receives a Builder and should return the modified Builder
@@ -187,7 +187,7 @@ The block receives a Builder and should return the modified Builder
 
 ### `.distinct(*columns : String) : Ralph::Query::Builder`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L716)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L778)*
 
 Build a query with DISTINCT on specific columns
 
@@ -195,7 +195,7 @@ Build a query with DISTINCT on specific columns
 
 ### `.distinct(*columns : String, &block : Ralph::Query::Builder -> Ralph::Query::Builder) : Ralph::Query::Builder`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L722)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L784)*
 
 Build a query with DISTINCT on specific columns and block
 The block receives a Builder and should return the modified Builder
@@ -204,7 +204,7 @@ The block receives a Builder and should return the modified Builder
 
 ### `.find(id)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L544)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L606)*
 
 Find a record by ID
 
@@ -214,7 +214,7 @@ When an IdentityMap is active, returns the cached instance if available.
 
 ### `.find_all_by(column : String, value) : Array(self)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L958)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1020)*
 
 Find all records matching a column value
 
@@ -227,7 +227,7 @@ User.find_all_by("age", 25)
 
 ### `.find_all_by_conditions(conditions : Hash(String, DB::Any)) : Array(self)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L981)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1043)*
 
 Find all records matching multiple column conditions
 
@@ -243,7 +243,7 @@ Comment.find_all_by_conditions({"commentable_type" => "Post", "commentable_id" =
 
 ### `.find_all_with_query(query : Ralph::Query::Builder) : Array(self)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1097)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1159)*
 
 Find all records using a pre-built query builder
 
@@ -261,7 +261,7 @@ User.find_all_with_query(query)
 
 ### `.find_by(column : String, value) : self | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L939)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1001)*
 
 Find a record by a specific column value
 
@@ -274,7 +274,7 @@ User.find_by("email", "user@example.com")
 
 ### `.find_by_conditions(conditions : Hash(String, DB::Any)) : self | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1001)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1063)*
 
 Find one record matching multiple column conditions
 
@@ -285,7 +285,7 @@ both type and id columns.
 
 ### `.first`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L906)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L968)*
 
 Find the first record matching conditions
 
@@ -293,7 +293,7 @@ Find the first record matching conditions
 
 ### `.group_by(*columns : String) : Ralph::Query::Builder`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L692)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L754)*
 
 Build a query with GROUP BY clause
 
@@ -301,7 +301,7 @@ Build a query with GROUP BY clause
 
 ### `.group_by(*columns : String, &block : Ralph::Query::Builder -> Ralph::Query::Builder) : Ralph::Query::Builder`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L698)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L760)*
 
 Build a query with GROUP BY clause and block
 The block receives a Builder and should return the modified Builder
@@ -310,7 +310,7 @@ The block receives a Builder and should return the modified Builder
 
 ### `.join_assoc(association_name : Symbol, join_type : Symbol = :inner, alias as_alias : String | Nil = nil) : Ralph::Query::Builder`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L738)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L800)*
 
 Join an association by name
 
@@ -328,7 +328,7 @@ User.join_assoc(:posts, :inner, "p") # INNER JOIN posts AS p ON p.user_id = user
 
 ### `.last`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L920)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L982)*
 
 Find the last record
 
@@ -336,7 +336,7 @@ Find the last record
 
 ### `.maximum(column : String) : DB::Any | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1262)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1324)*
 
 Get the maximum value of a column
 
@@ -349,7 +349,7 @@ User.maximum(:age)
 
 ### `.minimum(column : String) : DB::Any | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1251)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1313)*
 
 Get the minimum value of a column
 
@@ -362,7 +362,7 @@ User.minimum(:age)
 
 ### `.preload(models : Array(self), associations : Symbol) : Array(self)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L794)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L856)*
 
 Preload associations on an existing collection of models
 
@@ -386,7 +386,7 @@ Author.preload(authors, {posts: :comments})
 
 ### `.primary_key`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L505)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L567)*
 
 Get the primary key field name
 
@@ -394,7 +394,7 @@ Get the primary key field name
 
 ### `.primary_key_type`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L510)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L572)*
 
 Get the primary key type as a string (e.g., "Int64", "UUID", "String")
 
@@ -402,7 +402,7 @@ Get the primary key type as a string (e.g., "Int64", "UUID", "String")
 
 ### `.query`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L578)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L640)*
 
 Get a query builder for this model
 
@@ -410,7 +410,7 @@ Get a query builder for this model
 
 ### `.query`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L585)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L647)*
 
 Find records matching conditions
 The block receives a Builder and should return the modified Builder
@@ -420,7 +420,7 @@ The block receives a Builder and should return the modified Builder
 
 ### `.reset_all_counter_caches(counter_column : String, child_class, foreign_key : String)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1174)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1236)*
 
 Reset all counter caches for this model to their actual counts
 
@@ -433,7 +433,7 @@ Publisher.reset_all_counter_caches("books_count", Book, "publisher_id")
 
 ### `.reset_counter_cache(id, counter_column : String, child_class, foreign_key : String)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1150)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1212)*
 
 Reset a counter cache column to the actual count
 
@@ -453,7 +453,7 @@ publisher.reset_counter_cache!("books_count", Book, "publisher_id")
 
 ### `.scoped`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L686)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L748)*
 
 Apply an inline/anonymous scope to a query
 
@@ -473,7 +473,7 @@ User.scoped { |q| q.where("age > ?", 18) }.limit(10)
 
 ### `.sum(column : String) : Float64 | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1215)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1277)*
 
 Get the sum of a column
 
@@ -486,7 +486,7 @@ User.sum(:age)
 
 ### `.table_name`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L500)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L562)*
 
 Get the table name for this model
 
@@ -513,7 +513,7 @@ end
 
 ### `.with_query`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L591)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L653)*
 
 Find records matching conditions (alias for query)
 
@@ -523,7 +523,7 @@ Find records matching conditions (alias for query)
 
 ### `#_clear_preloaded!`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1351)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1413)*
 
 Clear all preloaded associations
 
@@ -531,7 +531,7 @@ Clear all preloaded associations
 
 ### `#_get_attribute(name : String) : DB::Any | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1785)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1932)*
 
 Runtime dynamic getter by string key name
 This is a method (not macro) that can be called across class boundaries
@@ -540,7 +540,7 @@ This is a method (not macro) that can be called across class boundaries
 
 ### `#_get_preloaded_many(association : String) : Array(Model) | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1341)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1403)*
 
 Get preloaded collection
 
@@ -548,7 +548,7 @@ Get preloaded collection
 
 ### `#_get_preloaded_one(association : String) : Model | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1336)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1398)*
 
 Get a preloaded single record
 
@@ -556,7 +556,7 @@ Get a preloaded single record
 
 ### `#_has_preloaded?(association : String) : Bool`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1346)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1408)*
 
 Check if an association has been preloaded
 
@@ -564,7 +564,7 @@ Check if an association has been preloaded
 
 ### `#_preload_on_class(records : Array(Ralph::Model), assoc : Symbol) : Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L877)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L939)*
 
 Instance method to dispatch preloading on this class
 Used for nested preloading when we have Array(Model) but need to call
@@ -575,7 +575,7 @@ Base implementation - subclasses override this via macro
 
 ### `#_set_preloaded_many(association : String, records : Array(Model)) : Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1330)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1392)*
 
 Set preloaded collection (has_many)
 
@@ -583,7 +583,7 @@ Set preloaded collection (has_many)
 
 ### `#_set_preloaded_one(association : String, record : Model | Nil) : Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1324)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1386)*
 
 Set a preloaded single record (belongs_to, has_one)
 
@@ -591,7 +591,7 @@ Set a preloaded single record (belongs_to, has_one)
 
 ### `#changed?(attribute : String) : Bool`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1288)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1350)*
 
 Check if a specific attribute has changed
 
@@ -599,7 +599,7 @@ Check if a specific attribute has changed
 
 ### `#changed?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1283)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1345)*
 
 Check if any attributes have changed
 
@@ -607,7 +607,7 @@ Check if any attributes have changed
 
 ### `#changed_attributes`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1293)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1355)*
 
 Get list of changed attributes
 
@@ -615,7 +615,7 @@ Get list of changed attributes
 
 ### `#changes`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1303)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1365)*
 
 Get changes as a hash of attribute => [old, new]
 
@@ -623,7 +623,7 @@ Get changes as a hash of attribute => [old, new]
 
 ### `#clear_changes_information`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1314)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1376)*
 
 Mark all attributes as clean (no changes)
 
@@ -631,7 +631,7 @@ Mark all attributes as clean (no changes)
 
 ### `#errors`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L19)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L20)*
 
 Errors object accessor (using private ivar name to avoid conflicts)
 
@@ -639,7 +639,7 @@ Errors object accessor (using private ivar name to avoid conflicts)
 
 ### `#new_record?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1481)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1550)*
 
 Check if this is a new record (not persisted)
 
@@ -647,7 +647,7 @@ Check if this is a new record (not persisted)
 
 ### `#original_value(attribute : String) : DB::Any | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1298)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1360)*
 
 Get original value of an attribute before changes
 
@@ -655,16 +655,17 @@ Get original value of an attribute before changes
 
 ### `#persisted?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1487)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1557)*
 
-Check if this record has been persisted
-For non-nil primary keys, also checks if the value is "empty" (blank string, zero, etc.)
+Check if this record has been persisted to the database
+Uses explicit @_persisted flag rather than PK presence because
+non-auto PKs (UUID, String) can be set before the record is saved
 
 ---
 
 ### `#reload`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1409)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1471)*
 
 Reload the record from the database
 
@@ -678,7 +679,7 @@ user.reload
 
 ### `#reset_counter_cache!(counter_column : String, child_class, foreign_key : String)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1187)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1249)*
 
 Instance method to reset a counter cache
 
@@ -686,7 +687,7 @@ Instance method to reset a counter cache
 
 ### `#set_attribute(name : String, value : DB::Any) : Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1381)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1443)*
 
 Set an attribute by name at runtime
 
@@ -704,16 +705,18 @@ user.set_attribute("email", "alice@example.com")
 
 ### `#to_h`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1559)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1640)*
 
 Convert model to hash for database operations
 Handles serialization of advanced types (JSON, UUID, Array, Enum)
+Uses getter to apply defaults, but catches NilAssertionError for
+non-nullable columns that don't have a value yet (e.g., auto-increment id).
 
 ---
 
 ### `#update`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1392)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1454)*
 
 Update attributes and save the record
 
@@ -729,7 +732,7 @@ user.update(name: "New Name", age: 30)
 
 ### `.__get_by_key_name(name)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1801)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1948)*
 
 Dynamic getter by string key name
 
@@ -737,7 +740,7 @@ Dynamic getter by string key name
 
 ### `.__set_by_key_name(name, value)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1816)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1963)*
 
 Dynamic setter by string key name
 Handles advanced types (JSON, UUID, Array, Enum) with proper type coercion
@@ -746,7 +749,7 @@ Handles advanced types (JSON, UUID, Array, Enum) with proper type coercion
 
 ### `._generate_preload_dispatcher`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L812)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L874)*
 
 Macro to generate dispatch method for preloading associations
 This is called at compile time to generate a case statement that dispatches
@@ -756,7 +759,7 @@ to the correct _preload_<name> method for each association
 
 ### `._generate_preload_on_class`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L882)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L944)*
 
 This is a macro that generates a proper typed method in subclasses
 
@@ -807,13 +810,18 @@ end
 
 ### `.column(decl_or_name, type = nil, primary = false, default = nil)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L449)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L463)*
 
 Define a column on the model
 
 Supports two syntaxes:
   column id : Int64, primary: true           # Type declaration syntax (preferred)
   column id, Int64, primary: true            # Legacy positional syntax
+
+Type declarations control nullability:
+  column name : String      # Non-nullable: getter returns String (raises if nil)
+  column bio : String?      # Nullable: getter returns String?
+  column age : Int32 | Nil  # Nullable: getter returns Int32 | Nil
 
 Options:
   primary: true   - Mark as primary key
@@ -823,7 +831,7 @@ Options:
 
 ### `.from_result_set(rs)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1594)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L1699)*
 
 Create a model instance from a result set
 
@@ -831,7 +839,7 @@ Create a model instance from a result set
 
 ### `.scope(name, block)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L633)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L695)*
 
 Define a named scope for this model
 
@@ -872,7 +880,7 @@ User.with_role("admin").merge(User.older_than(18))
 
 ### `.table(name)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L436)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/model.cr#L445)*
 
 Set the table name for this model
 

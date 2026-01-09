@@ -106,7 +106,7 @@ backend = Ralph::Database::SqliteBackend.new("sqlite3://./db.sqlite3", apply_poo
 
 ### `#begin_transaction_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L250)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L255)*
 
 SQL to begin a transaction
 
@@ -114,7 +114,7 @@ SQL to begin a transaction
 
 ### `#clear_statement_cache`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L303)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L481)*
 
 Clear all cached prepared statements
 
@@ -122,7 +122,7 @@ Clear all cached prepared statements
 
 ### `#close`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L235)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L240)*
 
 Close the database connection
 
@@ -130,7 +130,7 @@ Close the database connection
 
 ### `#closed?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L242)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L247)*
 
 Check if the connection is open
 
@@ -138,7 +138,7 @@ Check if the connection is open
 
 ### `#commit_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L254)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L259)*
 
 SQL to commit a transaction
 
@@ -146,7 +146,7 @@ SQL to commit a transaction
 
 ### `#connection_string`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L284)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L462)*
 
 Get the original connection string (without pool params)
 
@@ -154,7 +154,7 @@ Get the original connection string (without pool params)
 
 ### `#dialect`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L274)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L279)*
 
 Returns the dialect identifier for this backend
 Used by migrations and schema generation
@@ -180,9 +180,44 @@ Uses the same connection for both operations to ensure correctness
 
 ---
 
+### `#introspect_columns(table : String) : Array(Schema::DatabaseColumn)`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L310)*
+
+Get column information for a specific table
+
+---
+
+### `#introspect_foreign_keys(table : String) : Array(Schema::DatabaseForeignKey)`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L395)*
+
+Get foreign key constraints FROM a table (outgoing FKs)
+
+---
+
+### `#introspect_foreign_keys_referencing(table : String) : Array(Schema::DatabaseForeignKey)`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L432)*
+
+Get foreign key constraints TO a table (incoming FKs)
+
+This requires scanning all tables since SQLite doesn't have a
+reverse lookup for foreign keys.
+
+---
+
+### `#introspect_indexes(table : String) : Array(Schema::DatabaseIndex)`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L345)*
+
+Get index information for a specific table
+
+---
+
 ### `#query_all(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::ResultSet`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L203)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L208)*
 
 Query for multiple rows
 Uses prepared statement cache when enabled
@@ -200,7 +235,7 @@ Uses prepared statement cache when enabled
 
 ### `#raw_connection`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L246)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L251)*
 
 Get the underlying DB::Database connection for advanced operations
 
@@ -208,7 +243,7 @@ Get the underlying DB::Database connection for advanced operations
 
 ### `#release_savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L266)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L271)*
 
 SQL to release a savepoint
 
@@ -216,7 +251,7 @@ SQL to release a savepoint
 
 ### `#rollback_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L258)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L263)*
 
 SQL to rollback a transaction
 
@@ -224,7 +259,7 @@ SQL to rollback a transaction
 
 ### `#rollback_to_savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L270)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L275)*
 
 SQL to rollback to a savepoint
 
@@ -232,7 +267,7 @@ SQL to rollback to a savepoint
 
 ### `#savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L262)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L267)*
 
 SQL to create a savepoint
 
@@ -240,7 +275,7 @@ SQL to create a savepoint
 
 ### `#scalar(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::Any | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L209)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L214)*
 
 Execute a scalar query and return a single value
 Uses prepared statement cache when enabled
@@ -249,7 +284,7 @@ Uses prepared statement cache when enabled
 
 ### `#statement_cache_enabled?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L328)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L506)*
 
 Check if statement caching is enabled
 
@@ -257,15 +292,23 @@ Check if statement caching is enabled
 
 ### `#statement_cache_stats`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L312)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L490)*
 
 Get statement cache statistics
 
 ---
 
+### `#table_names`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L288)*
+
+Get all user table names (excluding system tables)
+
+---
+
 ### `#transaction`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L227)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L232)*
 
 Execute a block within a database transaction
 The entire transaction is protected by the write lock
@@ -274,7 +317,7 @@ The entire transaction is protected by the write lock
 
 ### `#wal_mode?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L279)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L457)*
 
 Whether WAL mode is enabled
 

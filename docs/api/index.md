@@ -5,6 +5,7 @@ Complete API documentation for Ralph, auto-generated from source code.
 ## Modules
 
 - [`Associations`](ralph-associations.md) - <p>Associations module for defining model relationships</p>
+- [`Athena`](ralph-athena.md) - <p>Athena Framework integration - Auto Migration Listener</p>
 - [`BulkOperations`](ralph-bulkoperations.md) - <p>Bulk operations mixin for Ralph::Model</p>
 - [`Database`](ralph-database.md) - <p>Abstract database backend interface</p>
 - [`IdentityMap`](ralph-identitymap.md) - <p>Per-request identity map for loaded models</p>
@@ -16,6 +17,8 @@ Complete API documentation for Ralph, auto-generated from source code.
 - [`AssociationMetadata`](ralph-associationmetadata.md) - <p>Association metadata storage</p>
 - [`BackendError`](ralph-backenderror.md) - <p>Raised when using a backend-specific feature on an unsupported backend</p>
 - [`ColumnMetadata`](ralph-columnmetadata.md) - <p>Metadata about a column</p>
+- [`Configuration`](ralph-athena-configuration.md) - <p>Configuration options for the Athena integration</p>
+- [`ConfigurationError`](ralph-athena-configurationerror.md) - <p>Raised when there's a configuration error in the Athena integration.</p>
 - [`ConfigurationError`](ralph-configurationerror.md) - <p>Raised when Ralph is not properly configured</p>
 - [`DeleteRestrictionError`](ralph-deleterestrictionerror.md) - <p>Raised when trying to destroy a record with <code>dependent: :restrict_with_exception</code></p>
 - [`Error`](ralph-error.md) - <p>Base class for all Ralph errors</p>
@@ -25,6 +28,7 @@ Complete API documentation for Ralph, auto-generated from source code.
 - [`QueryError`](ralph-queryerror.md) - <p>Raised when a query cannot be built or executed</p>
 - [`RecordInvalid`](ralph-recordinvalid.md) - <p>Raised when <code>save!</code> or <code>create!</code> fails due to validation errors</p>
 - [`RecordNotFound`](ralph-recordnotfound.md) - <p>Raised when <code>find!</code> or <code>first!</code> returns no results</p>
+- [`Service`](ralph-athena-service.md) - <p>A dependency-injectable service that provides access to Ralph's database functionality within Athena applications.</p>
 - [`Settings`](ralph-settings.md) - <p>Global settings for the ORM</p>
 - [`SqliteBackend`](ralph-database-sqlitebackend.md) - <p>SQLite database backend implementation</p>
 - [`StatementCache`](ralph-statementcache(v).md) - <p>LRU (Least Recently Used) Cache for prepared statements</p>
@@ -32,6 +36,7 @@ Complete API documentation for Ralph, auto-generated from source code.
 
 ## Structs
 
+- [`AutoMigrationListener`](ralph-athena-automigrationlistener.md) - <p>Event listener that runs pending migrations on the first HTTP request.</p>
 - [`BulkInsertResult`](ralph-bulkinsertresult.md) - <p>Result of a bulk insert operation</p>
 - [`BulkUpsertResult`](ralph-bulkupsertresult.md) - <p>Result of a bulk upsert operation</p>
 - [`PoolStats`](ralph-database-poolstats.md) - <p>Connection pool statistics</p>
