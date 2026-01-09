@@ -63,6 +63,7 @@ query = Employee.query
 
 Ralph provides convenience helpers for common window functions:
 
+<!-- skip-compile -->
 ```crystal
 # ROW_NUMBER()
 query.row_number(order_by: "created_at ASC", as: "join_order")

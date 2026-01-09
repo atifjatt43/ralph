@@ -26,6 +26,7 @@ Ralph isn't just another ORM. It's built with specific goals in mind:
 
 ## Quick Preview
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 

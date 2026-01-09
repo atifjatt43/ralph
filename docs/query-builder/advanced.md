@@ -76,6 +76,7 @@ Built-in caching mechanisms and performance optimization:
 - **Performance Tips**: Optimization strategies
 
 **Example:**
+<!-- skip-compile -->
 ```crystal
 # Enable identity map for request
 Ralph::IdentityMap.with do

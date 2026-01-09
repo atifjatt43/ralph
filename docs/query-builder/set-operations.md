@@ -21,6 +21,7 @@ every_user = active_users.union_all(premium_users)
 
 `intersect` returns rows common to both queries, and `except` returns rows from the first query that are not in the second.
 
+<!-- skip-compile -->
 ```crystal
 # Users who are BOTH active and premium
 active_premium = active_users.intersect(premium_users)

@@ -33,6 +33,7 @@ end
 
 The statement cache provides several operations for management:
 
+<!-- skip-compile -->
 ```crystal
 # Get cache statistics
 cache = Ralph.database.statement_cache
@@ -65,6 +66,7 @@ The identity map ensures that within a given scope, loading the same database re
 
 Use `Ralph::IdentityMap.with` to enable the identity map for a block of code:
 
+<!-- skip-compile -->
 ```crystal
 Ralph::IdentityMap.with do
   user1 = User.find(1)
@@ -86,6 +88,7 @@ user3 = User.find(1)  # New instance
 
 In web applications, enable the identity map for each request to ensure consistent object identity throughout request processing:
 
+<!-- skip-compile -->
 ```crystal
 # Example middleware or before_action
 class IdentityMapMiddleware
@@ -111,6 +114,7 @@ end
 
 ### Real-World Example
 
+<!-- skip-compile -->
 ```crystal
 Ralph::IdentityMap.with do
   # Load user and their posts

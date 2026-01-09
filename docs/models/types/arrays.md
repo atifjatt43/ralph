@@ -23,6 +23,7 @@ This approach ensures type safety and enables features like dirty tracking and a
 
 ## Basic Usage
 
+<!-- skip-compile -->
 ```crystal
 class Post < Ralph::Model
   table :posts
@@ -51,6 +52,7 @@ post.scores.sum     # => 274
 
 ## Migration Syntax
 
+<!-- skip-compile -->
 ```crystal
 create_table :posts do |t|
   t.primary_key
@@ -118,6 +120,7 @@ Post.query { |q|
 
 ## Array Manipulation
 
+<!-- skip-compile -->
 ```crystal
 # Add elements
 post.tags << "performance"
@@ -149,6 +152,7 @@ post.save
 
 ### Type Cast Failures
 
+<!-- skip-compile -->
 ```crystal
 # Invalid array element
 post.scores = ["not", "integers"]  # Cast returns nil

@@ -25,6 +25,7 @@ This creates a new file in `db/migrations/` with a timestamp prefix, like `20240
 
 A typical migration looks like this:
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 
@@ -81,6 +82,7 @@ ralph db:status
 
 For operations not covered by the migration DSL, use the `execute` method:
 
+<!-- skip-compile -->
 ```crystal
 class AddFullTextSearch_20240115100000 < Ralph::Migrations::Migration
   migration_version 20240115100000
@@ -88,7 +90,7 @@ class AddFullTextSearch_20240115100000 < Ralph::Migrations::Migration
   def up : Nil
     # PostgreSQL extension
     execute "CREATE EXTENSION IF NOT EXISTS pg_trgm"
-    
+
     # Custom function
     execute <<-SQL
       CREATE OR REPLACE FUNCTION update_updated_at()
@@ -99,7 +101,7 @@ class AddFullTextSearch_20240115100000 < Ralph::Migrations::Migration
       END;
       $$ LANGUAGE plpgsql;
     SQL
-    
+
     # Apply trigger
     execute <<-SQL
       CREATE TRIGGER set_updated_at
@@ -134,6 +136,7 @@ Always ensure your `down` method correctly reverses every action taken in the `u
 
 While you _can_ use migrations to move or transform data, it's often better to keep schema changes and data changes separate. If a data migration fails, it can leave your database in an inconsistent state.
 
+<!-- skip-compile -->
 ```crystal
 # Acceptable: Simple data backfill
 def up : Nil

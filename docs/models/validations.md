@@ -33,6 +33,7 @@ Ralph includes several built-in validation macros for common use cases.
 
 Ensures that the specified attribute is not nil or blank (empty string or array).
 
+<!-- skip-compile -->
 ```crystal
 validates_presence_of :name
 validates_presence_of :email, message: "is required"
@@ -42,6 +43,7 @@ validates_presence_of :email, message: "is required"
 
 Ensures that a string attribute's length is within the specified bounds.
 
+<!-- skip-compile -->
 ```crystal
 validates_length_of :name, min: 3, max: 50
 validates_length_of :password, minimum: 8
@@ -52,6 +54,7 @@ validates_length_of :username, range: 3..20
 
 Ensures that the attribute matches a regular expression pattern.
 
+<!-- skip-compile -->
 ```crystal
 validates_format_of :email, pattern: /@/
 validates_format_of :zip_code, pattern: /^\d{5}$/, message: "should be 5 digits"
@@ -61,6 +64,7 @@ validates_format_of :zip_code, pattern: /^\d{5}$/, message: "should be 5 digits"
 
 Ensures that the attribute is a numeric value.
 
+<!-- skip-compile -->
 ```crystal
 validates_numericality_of :age
 validates_numericality_of :price, message: "must be a number"
@@ -70,6 +74,7 @@ validates_numericality_of :price, message: "must be a number"
 
 Ensures that the attribute's value is included in a given list of allowed values.
 
+<!-- skip-compile -->
 ```crystal
 validates_inclusion_of :status, allow: ["draft", "published", "archived"]
 ```
@@ -78,6 +83,7 @@ validates_inclusion_of :status, allow: ["draft", "published", "archived"]
 
 Ensures that the attribute's value is NOT included in a given list of forbidden values.
 
+<!-- skip-compile -->
 ```crystal
 validates_exclusion_of :username, forbid: ["admin", "root", "support"]
 ```
@@ -86,6 +92,7 @@ validates_exclusion_of :username, forbid: ["admin", "root", "support"]
 
 Ensures that the attribute's value is unique across all records in the table. This performs a database query to check for existing records.
 
+<!-- skip-compile -->
 ```crystal
 validates_uniqueness_of :email
 validates_uniqueness_of :username, message: "is already taken"

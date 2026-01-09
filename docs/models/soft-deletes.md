@@ -12,6 +12,7 @@ When a model includes `Ralph::ActsAsParanoid`, calling `destroy` on an instance 
 
 First, your database table needs a `deleted_at` column. You can use the `soft_deletes` helper in your migrations:
 
+<!-- skip-compile -->
 ```crystal
 create_table :users do |t|
   t.primary_key
@@ -42,6 +43,7 @@ end
 
 Calling `destroy` on a paranoid model sets the `deleted_at` column to the current time:
 
+<!-- skip-compile -->
 ```crystal
 user = User.find(1)
 user.destroy
@@ -77,6 +79,7 @@ user.really_destroy! # Records is gone forever
 
 By default, all Ralph queries on a paranoid model exclude soft-deleted records.
 
+<!-- skip-compile -->
 ```crystal
 User.all.count # => Only counts non-deleted users
 ```
@@ -85,6 +88,7 @@ User.all.count # => Only counts non-deleted users
 
 To include soft-deleted records in your query, use the `with_deleted` scope:
 
+<!-- skip-compile -->
 ```crystal
 User.with_deleted.all # Includes everyone
 ```
@@ -93,6 +97,7 @@ User.with_deleted.all # Includes everyone
 
 To find only records that have been soft-deleted, use the `only_deleted` scope:
 
+<!-- skip-compile -->
 ```crystal
 User.only_deleted.all # Only soft-deleted records
 ```

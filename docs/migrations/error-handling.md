@@ -34,6 +34,7 @@ The `MigrationError` includes:
 
 Some operations aren't supported on all backends. Ralph detects these upfront and provides alternatives:
 
+<!-- skip-compile -->
 ```crystal
 # This will raise UnsupportedOperationError on SQLite
 add_foreign_key "posts", "users"
@@ -64,6 +65,7 @@ using `t.foreign_key` inside `create_table`
 
 When running migrations from code, you can catch and handle errors:
 
+<!-- skip-compile -->
 ```crystal
 begin
   migrator.migrate(:up)
@@ -72,12 +74,12 @@ rescue ex : Ralph::MigrationError
   puts "Operation: #{ex.operation}"
   puts "Table: #{ex.table}" if ex.table
   puts "SQL: #{ex.sql}" if ex.sql
-  
+
   # The original database error is available as the cause
   if cause = ex.cause
     puts "Database error: #{cause.message}"
   end
-  
+
   exit 1
 rescue ex : Ralph::UnsupportedOperationError
   puts "Operation not supported on this database!"
@@ -137,12 +139,13 @@ Migration failed: column "email" of relation "users" already exists
 2. Roll back and re-run, or manually remove the column
 3. Use conditional SQL if you need idempotent migrations:
 
+<!-- skip-compile -->
 ```crystal
 execute <<-SQL
   DO $$
   BEGIN
     IF NOT EXISTS (
-      SELECT 1 FROM information_schema.columns 
+      SELECT 1 FROM information_schema.columns
       WHERE table_name = 'users' AND column_name = 'email'
     ) THEN
       ALTER TABLE users ADD COLUMN email VARCHAR(255);
@@ -177,6 +180,7 @@ Backend: sqlite
 
 **Solution**: Recreate the table:
 
+<!-- skip-compile -->
 ```crystal
 def up : Nil
   # Create new table with desired schema
@@ -185,10 +189,10 @@ def up : Nil
     t.string :name, null: false  # Changed from nullable
     t.timestamps
   end
-  
+
   # Copy data
   execute "INSERT INTO users_new SELECT * FROM users"
-  
+
   # Swap tables
   drop_table :users
   rename_table :users_new, :users
@@ -207,6 +211,7 @@ This shows which migrations have been applied, helping identify partial failures
 
 ### 2. Inspect the Schema Migrations Table
 
+<!-- skip-compile -->
 ```crystal
 Ralph.database.query_all("SELECT * FROM schema_migrations ORDER BY version").each do |rs|
   puts rs.read(String)

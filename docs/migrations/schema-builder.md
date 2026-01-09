@@ -6,7 +6,8 @@ The Schema Builder provides a fluent DSL for defining and modifying your databas
 
 Use `create_table` to define a new table. Inside the block, you define the columns and indexes.
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :products do |t|
   t.primary_key             # Adds 'id' INTEGER PRIMARY KEY
   t.string :name, size: 100, null: false
@@ -70,7 +71,8 @@ All column methods accept an optional set of options:
 - `size: Int32` - Specify the size for `string` (VARCHAR) columns.
 - `precision: Int32` and `scale: Int32` - Specify dimensions for `decimal` columns.
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 t.string :status, null: false, default: "draft", size: 50
 ```
 
@@ -78,7 +80,8 @@ t.string :status, null: false, default: "draft", size: 50
 
 Use `reference` (or its aliases `references` and `belongs_to`) to create foreign key columns.
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :comments do |t|
   t.references :user        # Adds 'user_id' BIGINT and an index
   t.references :post        # Adds 'post_id' BIGINT and an index
@@ -97,14 +100,16 @@ You can also modify tables after they've been created.
 
 ### Adding Columns
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 add_column :users, :bio, :text
 add_column :users, :points, :integer, default: 0
 ```
 
 ### Removing Columns
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 remove_column :users, :bio
 ```
 
@@ -112,13 +117,15 @@ _Note: In SQLite, removing a column is supported in modern versions, but older o
 
 ### Renaming Columns
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 rename_column :users, :points, :karma
 ```
 
 ### References
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 add_reference :posts, :author             # Adds author_id
 remove_reference :posts, :author          # Removes author_id
 ```
@@ -129,7 +136,8 @@ Indexes improve query performance but can slow down writes. Use them for columns
 
 ### Creating Indexes
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # Inside create_table
 t.index :email, unique: true
 
@@ -140,7 +148,8 @@ add_index :users, :email, unique: true, name: "idx_user_emails"
 
 ### Removing Indexes
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 remove_index :users, :last_name
 remove_index :users, name: "idx_user_emails"
 ```
@@ -151,7 +160,8 @@ For detailed examples of using JSON, UUID, Enum, and Array column types in migra
 
 Quick reference:
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :products do |t|
   t.primary_key
 
@@ -219,7 +229,8 @@ end
 
 You can add advanced type columns to existing tables:
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # JSON/JSONB columns
 add_column :posts, :metadata, :jsonb, default: "{}"
 
@@ -239,7 +250,8 @@ add_column :posts, :tags, :string_array, default: "[]"
 
 PostgreSQL provides native support for advanced types with full indexing:
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :analytics do |t|
   t.primary_key
   t.jsonb :event_data
@@ -260,7 +272,8 @@ add_index :analytics, :session_id
 
 SQLite stores advanced types as TEXT with validation constraints:
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # Same migration works on SQLite
 create_table :analytics do |t|
   t.primary_key
@@ -284,7 +297,8 @@ For detailed documentation on PostgreSQL-specific indexes, see [PostgreSQL-Speci
 
 Quick example:
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :articles do |t|
   t.primary_key
   t.jsonb :metadata, default: "{}"

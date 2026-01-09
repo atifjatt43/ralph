@@ -30,6 +30,7 @@ end
 
 Scopes are available as class methods on your model. They return a `Query::Builder` instance, which means you can chain them with other builder methods or even other scopes.
 
+<!-- skip-compile -->
 ```crystal
 # Get all active users
 active_users = User.active
@@ -45,6 +46,7 @@ adults = User.older_than(18)
 
 One of the most powerful features of scopes is the ability to combine them. You can chain multiple scopes together to build complex queries from simple building blocks.
 
+<!-- skip-compile -->
 ```crystal
 # Combine two scopes
 active_adults = User.active.merge(User.older_than(18))

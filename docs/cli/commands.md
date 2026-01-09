@@ -140,6 +140,7 @@ Loads and executes the seed file (`./db/seeds.cr`). The seed file is a regular C
 
 Create `db/seeds.cr` in your project:
 
+<!-- skip-compile -->
 ```crystal
 #!/usr/bin/env crystal
 

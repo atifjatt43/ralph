@@ -24,6 +24,7 @@ Ralph needs to know how to connect to your database. Configure it at your applic
 
 ### SQLite
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 require "ralph/backends/sqlite"
@@ -35,6 +36,7 @@ end
 
 ### PostgreSQL
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 require "ralph/backends/postgres"
@@ -82,6 +84,7 @@ For PostgreSQL, Ralph also supports:
 
 You can instantiate a model and save it, or use the `.create` convenience method.
 
+<!-- skip-compile -->
 ```crystal
 # Option 1: Instantiate and save
 post = Post.new(title: "Hello Ralph", content: "My first post")
@@ -95,6 +98,7 @@ post = Post.create(title: "Quick Start", published: true)
 
 Find a record by its primary key or retrieve the first match.
 
+<!-- skip-compile -->
 ```crystal
 # Find by ID
 post = Post.find(1)
@@ -107,6 +111,7 @@ post = Post.find_by(title: "Hello Ralph")
 
 Modify attributes and call `save`. Ralph tracks "dirty" attributes and only updates what has changed.
 
+<!-- skip-compile -->
 ```crystal
 post = Post.find(1)
 post.title = "Updated Title"
@@ -117,6 +122,7 @@ post.save
 
 Call `destroy` to remove a record from the database.
 
+<!-- skip-compile -->
 ```crystal
 post = Post.find(1)
 post.destroy
@@ -157,6 +163,7 @@ ralph g:migration CreatePosts
 
 Edit the generated file in `db/migrations/`:
 
+<!-- skip-compile -->
 ```crystal
 class CreatePosts_20240107120000 < Ralph::Migrations::Migration
   def up : Nil

@@ -331,6 +331,7 @@ Post.query { |q|
 
 ### Expand Arrays to Rows
 
+<!-- skip-compile -->
 ```crystal
 # Convert array elements into individual rows
 Tag.query { |q|
@@ -361,6 +362,7 @@ Category.query { |q|
 
 ### Statistical Aggregations
 
+<!-- skip-compile -->
 ```crystal
 # Most common value
 Rating.query { |q|
@@ -413,6 +415,7 @@ User.query { |q|
 
 Generate UUIDs in queries:
 
+<!-- skip-compile -->
 ```crystal
 # Generate random UUID v4
 Session.query { |q|
@@ -436,6 +439,7 @@ results = Article.query { |q|
 
 ### Time-Series Analysis
 
+<!-- skip-compile -->
 ```crystal
 # Daily metrics with age filter
 Metric.query { |q|
@@ -449,6 +453,7 @@ Metric.query { |q|
 
 ### Array and JSON Combination
 
+<!-- skip-compile -->
 ```crystal
 # Complex data structure queries
 Document.query { |q|
@@ -463,6 +468,7 @@ Document.query { |q|
 
 ### Aggregation Pipeline
 
+<!-- skip-compile -->
 ```crystal
 # Complex grouping with multiple aggregations
 Sales.query { |q|

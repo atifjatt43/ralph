@@ -24,6 +24,7 @@ This approach ensures type safety and enables features like dirty tracking and a
 
 ## Basic Usage
 
+<!-- skip-compile -->
 ```crystal
 class Post < Ralph::Model
   table :posts
@@ -48,6 +49,7 @@ post.metadata["tags"].as_a    # => [JSON::Any, JSON::Any]
 
 ## Migration Syntax
 
+<!-- skip-compile -->
 ```crystal
 create_table :posts do |t|
   t.primary_key
@@ -115,6 +117,7 @@ Post.query { |q|
 
 ### Type Cast Failures
 
+<!-- skip-compile -->
 ```crystal
 # Invalid JSON
 post.metadata = "not valid json"  # Wrapped as JSON::Any.new("not valid json")

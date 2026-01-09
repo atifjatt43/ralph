@@ -10,6 +10,7 @@ Beyond the CLI, you can run migrations directly from your application code. This
 
 The `Ralph::Migrations::Migrator` class provides the programmatic interface:
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 require "ralph/backends/sqlite"
@@ -64,6 +65,7 @@ end
 
 For development or simple deployments, you can automatically run pending migrations when your application starts:
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 require "ralph/backends/sqlite"
@@ -78,9 +80,9 @@ end
 # Auto-migrate on startup
 def run_pending_migrations
   migrator = Ralph::Migrations::Migrator.new(Ralph.database)
-  
+
   pending = migrator.status.select { |_, applied| !applied }
-  
+
   if pending.any?
     puts "Running #{pending.size} pending migration(s)..."
     migrator.migrate(:up)
@@ -163,6 +165,7 @@ end
 
 Auto-migrations are particularly useful in test suites:
 
+<!-- skip-compile -->
 ```crystal
 # spec/spec_helper.cr
 require "ralph"
@@ -225,6 +228,7 @@ The CLI generator adds this registration automatically. If you create migrations
 
 Here's a complete example for a Kemal web application:
 
+<!-- skip-compile -->
 ```crystal
 require "kemal"
 require "ralph"
@@ -242,10 +246,10 @@ module MyApp
   # Auto-migrate (with optional skip for production)
   def self.setup_database
     return if ENV["SKIP_MIGRATIONS"]? == "true"
-    
+
     migrator = Ralph::Migrations::Migrator.new(Ralph.database)
     pending = migrator.status.count { |_, applied| !applied }
-    
+
     if pending > 0
       puts "Running #{pending} pending migration(s)..."
       migrator.migrate(:up)

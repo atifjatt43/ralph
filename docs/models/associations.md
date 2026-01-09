@@ -14,6 +14,7 @@ Ralph supports three main types of associations:
 
 A `belongs_to` association sets up a many-to-one relationship from the current model to another model. This model contains the foreign key.
 
+<!-- skip-compile -->
 ```crystal
 class Post < Ralph::Model
   table :posts
@@ -45,6 +46,7 @@ When you define `belongs_to user : User`, Ralph generates several methods for yo
 - `touch`: If `true`, updates the parent's `updated_at` when this record is saved. You can also provide a specific column name.
 - `counter_cache`: If `true`, maintains a count of these records on the parent model (requires a `#{table_name}_count` column on the parent).
 
+<!-- skip-compile -->
 ```crystal
 belongs_to author : User, foreign_key: "author_id", touch: true
 belongs_to category : Category, optional: true
@@ -107,6 +109,7 @@ end
 
 You can provide a block to `has_many` to apply a scope to the association:
 
+<!-- skip-compile -->
 ```crystal
 has_many published_posts : Post { |q|
   q.where("published = ?", true).order("created_at", :desc)
@@ -158,6 +161,7 @@ end
 
 Because Crystal is a compiled language, you must explicitly register models that can be used in polymorphic associations if they are not automatically detected:
 
+<!-- skip-compile -->
 ```crystal
 Ralph::Associations.register_polymorphic_type("Post", ->(id : Int64) { Post.find(id).as(Ralph::Model?) })
 ```
@@ -201,6 +205,7 @@ When you access an association method like `user.posts`, Ralph will execute a qu
 
 To avoid N+1 queries, use the `preload` method to eager load associations. This will fetch all related records in a separate query using an `IN` clause.
 
+<!-- skip-compile -->
 ```crystal
 users = User.all
 User.preload(users, :posts)

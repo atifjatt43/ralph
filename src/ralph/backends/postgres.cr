@@ -146,7 +146,12 @@ module Ralph
       def query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet?
         converted_query = convert_placeholders(query)
         rs = query_with_cache(converted_query, args)
-        rs.move_next ? rs : nil
+        if rs.move_next
+          rs
+        else
+          rs.close
+          nil
+        end
       end
 
       # Query for multiple rows

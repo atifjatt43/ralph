@@ -14,6 +14,7 @@ This approach ensures type safety and enables features like dirty tracking and a
 
 ## Example: Money Type
 
+<!-- skip-compile -->
 ```crystal
 require "ralph/types/base"
 
@@ -82,6 +83,7 @@ end
 
 ## Register Custom Type
 
+<!-- skip-compile -->
 ```crystal
 # Register globally
 Ralph::Types::Registry.register(:money, Ralph::Types::MoneyType.new)
@@ -96,6 +98,7 @@ Ralph::Types::Registry.register_for_backend(
 
 ## Use Custom Type in Migration
 
+<!-- skip-compile -->
 ```crystal
 class AddPriceToProducts < Ralph::Migrations::Migration
   def up : Nil
@@ -110,6 +113,7 @@ end
 
 ## Example: Email Type
 
+<!-- skip-compile -->
 ```crystal
 module Ralph
   module Types

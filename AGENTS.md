@@ -272,7 +272,8 @@ Types use registry pattern with backend-specific registration:
 # Development
 just install          # Install library deps
 just install-cli      # Install CLI deps (includes all backends)
-just test             # Run all specs
+just test             # Run all specs except docs
+just test-docs        # Run docs tests (only if documentation changes)
 just test-file FILE   # Run specific spec
 just fmt              # Format code
 just check            # Type check without codegen

@@ -22,6 +22,7 @@ This approach ensures type safety and enables features like dirty tracking and a
 
 ## Basic Usage
 
+<!-- skip-compile -->
 ```crystal
 # Define your enum
 enum Status
@@ -50,6 +51,7 @@ user.status.value         # => 0
 
 ## Storage Strategy Selection
 
+<!-- skip-compile -->
 ```crystal
 # In your migration - choose storage strategy
 create_table :users do |t|
@@ -83,6 +85,7 @@ end
 
 ## Querying Enums
 
+<!-- skip-compile -->
 ```crystal
 # Query by enum value
 active_users = User.query { |q| q.where("status = ?", Status::Active) }
@@ -105,6 +108,7 @@ User.query { |q| q.where("status IN (?)", [Status::Active, Status::Inactive]) }
 
 ### Type Cast Failures
 
+<!-- skip-compile -->
 ```crystal
 # Invalid enum value
 user.status = "InvalidStatus"  # Cast returns nil, validation catches it

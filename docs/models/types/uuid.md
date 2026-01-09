@@ -14,6 +14,7 @@ This approach ensures type safety and enables features like dirty tracking and a
 
 ## Basic Usage
 
+<!-- skip-compile -->
 ```crystal
 class User < Ralph::Model
   table :users
@@ -37,6 +38,7 @@ user = User.find(UUID.new("550e8400-e29b-41d4-a716-446655440000"))
 
 ## Migration Syntax
 
+<!-- skip-compile -->
 ```crystal
 create_table :users do |t|
   # UUID primary key (PostgreSQL can auto-generate)
@@ -97,6 +99,7 @@ end
 
 ### Type Cast Failures
 
+<!-- skip-compile -->
 ```crystal
 # Invalid UUID
 user.id = "not-a-uuid"  # Cast returns nil

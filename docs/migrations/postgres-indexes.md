@@ -8,7 +8,8 @@ General Inverted Indexes are excellent for JSONB, array, and full-text search co
 
 ### In Table Definition
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :posts do |t|
   t.primary_key
   t.string :title
@@ -26,7 +27,8 @@ end
 
 ### Standalone Index Creation
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # Add GIN index to existing table
 add_gin_index :posts, :metadata
 
@@ -42,7 +44,8 @@ Generalized Search Tree indexes support range types, geometric types, and specia
 
 ### In Table Definition
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :places do |t|
   t.primary_key
   t.string :name
@@ -59,7 +62,8 @@ end
 
 ### Standalone Operations
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # Add GiST index
 add_gist_index :places, :location
 
@@ -75,7 +79,8 @@ Dedicated indexes for PostgreSQL full-text search operations.
 
 ### Single Column
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :articles do |t|
   t.primary_key
   t.string :title
@@ -90,7 +95,8 @@ end
 
 ### Multi-Column
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :documents do |t|
   t.primary_key
   t.string :title
@@ -106,7 +112,8 @@ end
 
 ### Standalone Operations
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # Add full-text index
 add_full_text_index :articles, :content, config: "english"
 
@@ -127,7 +134,8 @@ Conditional indexes that only index rows matching a condition, reducing index si
 
 ### In Table Definition
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :users do |t|
   t.primary_key
   t.string :email
@@ -146,7 +154,8 @@ end
 
 ### Standalone Operations
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # Add partial index
 add_partial_index :users, :email, condition: "active = true", unique: true
 
@@ -165,7 +174,8 @@ Indexes on computed expressions rather than raw columns, useful for case-insensi
 
 ### In Table Definition
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 create_table :users do |t|
   t.primary_key
   t.string :email
@@ -182,7 +192,8 @@ end
 
 ### Standalone Operations
 
-```crystal compile=false
+<!-- skip-compile -->
+```crystal
 # Add expression index for case-insensitive search
 add_expression_index :users, "lower(email)", unique: true
 

@@ -14,12 +14,6 @@ Ralph is an Active Record-style ORM for Crystal with a focus on developer experi
 # Install dependencies
 shards install
 
-# Run tests (fast - excludes slow doc validation)
-crystal spec --tag "~docs"
-
-# Run ALL tests including documentation validation
-crystal spec
-
 # Run a single test file
 crystal spec spec/path/to/file_spec.cr
 
@@ -35,11 +29,18 @@ crystal tool format
 ### Using `just` (optional)
 
 ```bash
-just install     # Install deps
-just test        # Run all specs
-just test-file FILE  # Run specific spec
-just fmt         # Format code
-just check       # Type check
+just install      # Install deps
+just test         # Run all specs minus docs tests
+just test-all     # Run all specs including docs tests
+just test-file FILE   # Run specific spec
+just fmt          # Format code
+just check        # Type check
+
+# Doc tests (see below for details)
+just test-docs              # Run all doc tests
+just test-doc FILE          # Run doc tests for files matching pattern
+just test-doc-block FILE N  # Run specific block in file
+just clear-doc-cache        # Clear cached results
 ```
 
 ## CLI
@@ -169,7 +170,13 @@ Test helpers in `spec/ralph/test_helper.cr`:
 
 ### Documentation Code Blocks
 
-Code blocks in `docs/` are validated by `spec/docs/`. To skip compilation for illustrative snippets:
+Code blocks in `docs/` are validated by `spec/docs/`. The test harness supports:
+
+- **Parallel validation** — 8 concurrent compiler processes
+- **Result caching** — SHA256 hash of code, ~0.02s on cache hit vs ~57s cold
+- **Filtering** — Target specific files/blocks for fast iteration
+
+To skip compilation for illustrative snippets:
 
 ````markdown
 ```crystal compile=false
@@ -178,6 +185,30 @@ create_table :example do |t|
 end
 ```
 ````
+
+**Filtering doc tests** (for iterating on fixes):
+
+```bash
+# Run tests for files matching pattern
+just test-doc migrations/introduction
+DOC_FILE=migrations/introduction crystal spec spec/docs/
+
+# Run specific block by index (1-indexed)
+just test-doc-block models/associations 3
+DOC_FILE=models DOC_BLOCK=3 crystal spec spec/docs/
+
+# Run block at specific line number
+DOC_FILE=models/introduction DOC_LINE=28 crystal spec spec/docs/
+```
+
+**Cache management**:
+
+```bash
+just clear-doc-cache           # Clear all cached results
+DOC_NO_CACHE=1 crystal spec spec/docs/  # Run without cache
+```
+
+Cache stored in `spec/docs/.cache/` (gitignored). Auto-invalidates when code changes.
 
 ## Conventions
 

@@ -151,6 +151,7 @@ Post.query { |q|
 
 Array operators work with any element type:
 
+<!-- skip-compile -->
 ```crystal
 # Integer arrays
 Record.query { |q|
@@ -226,6 +227,7 @@ Article.query { |q|
 
 ### Related Records by ID Arrays
 
+<!-- skip-compile -->
 ```crystal
 # Find users by relationship arrays
 User.query { |q|

@@ -103,7 +103,7 @@ module Ralph
       # ```
       def initialize(connection_string : String, wal_mode : Bool = false, busy_timeout : Int32 = 5000, apply_pool_settings : Bool = true)
         @connection_string = connection_string
-        @write_mutex = Mutex.new
+        @write_mutex = Mutex.new(:reentrant)
         @wal_mode = wal_mode
 
         # Build connection string with pool parameters
@@ -195,7 +195,12 @@ module Ralph
       # Uses prepared statement cache when enabled
       def query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet?
         rs = query_with_cache(query, args)
-        rs.move_next ? rs : nil
+        if rs.move_next
+          rs
+        else
+          rs.close
+          nil
+        end
       end
 
       # Query for multiple rows

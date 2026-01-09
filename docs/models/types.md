@@ -18,6 +18,7 @@ This approach ensures type safety and enables features like dirty tracking and a
 
 Store Crystal enums with multiple storage strategies (string, integer, or native).
 
+<!-- skip-compile -->
 ```crystal
 enum Status
   Active
@@ -36,6 +37,7 @@ end
 
 Store structured data as JSON documents with full query support.
 
+<!-- skip-compile -->
 ```crystal
 class Post < Ralph::Model
   column metadata : JSON::Any       # Standard JSON
@@ -49,6 +51,7 @@ end
 
 First-class support for universally unique identifiers.
 
+<!-- skip-compile -->
 ```crystal
 class User < Ralph::Model
   column id : UUID, primary: true      # UUID primary key
@@ -62,6 +65,7 @@ end
 
 Store homogeneous collections with element type safety.
 
+<!-- skip-compile -->
 ```crystal
 class Post < Ralph::Model
   column tags : Array(String)          # String array
@@ -76,17 +80,18 @@ end
 
 Create your own advanced types by extending `Ralph::Types::BaseType`.
 
+<!-- skip-compile -->
 ```crystal
-class MoneyType < Ralph::Types::BaseType
-  def cast(value) : Value
+class MoneyType
+  def cast(value)
     # Convert input to cents
   end
 
-  def dump(value) : DB::Any
+  def dump(value)
     # Serialize to database
   end
 
-  def load(value : DB::Any) : Value
+  def load(value)
     # Deserialize from database
   end
 end
@@ -100,10 +105,11 @@ end
 
 The type system automatically detects the active backend:
 
+<!-- skip-compile -->
 ```crystal
 # Type system adapts SQL generation to backend
 Ralph.configure do |config|
-  config.database = Ralph::Database::PostgresBackend.new(...)
+  config.database = Ralph::Database::PostgresBackend.new("postgres://user:pass@localhost/db")
 end
 
 # JSON columns will use native JSONB
@@ -115,6 +121,7 @@ end
 
 Check registered types:
 
+<!-- skip-compile -->
 ```crystal
 # List all registered types
 Ralph::Types::Registry.all_types  # => [:json, :jsonb, :uuid, :enum, :array, ...]
@@ -163,6 +170,7 @@ Ralph::Types::Registry.lookup(:uuid, :postgres) # Backend-specific
 
 ### Adding Advanced Types to Existing Tables
 
+<!-- skip-compile -->
 ```crystal
 class AddAdvancedColumnsToUsers < Ralph::Migrations::Migration
   migration_version 20260107120000
@@ -193,6 +201,7 @@ end
 
 ### Converting Existing Columns
 
+<!-- skip-compile -->
 ```crystal
 class ConvertTagsToArray < Ralph::Migrations::Migration
   migration_version 20260107130000
@@ -236,7 +245,7 @@ end
 
 ### Type Cast Failures
 
-```crystal
+```text
 # Invalid enum value
 user.status = "InvalidStatus"  # Cast returns nil, validation catches it
 

@@ -883,7 +883,7 @@ module Ralph
       # ```
       def where_json(column : String, path : String, value : DBValue) : Builder
         # Detect backend from Ralph settings if available
-        dialect = Ralph.settings.database?.try(&.dialect) || :sqlite
+        dialect = Ralph.settings.database.try(&.dialect) || :sqlite
         clause = case dialect
                  when :postgres
                    "\"#{column}\"->>'#{path}' = ?"
@@ -902,7 +902,7 @@ module Ralph
       # # SQLite: WHERE json_extract("metadata", '$.theme') IS NOT NULL
       # ```
       def where_json_has_key(column : String, key : String) : Builder
-        dialect = Ralph.settings.database?.try(&.dialect) || :sqlite
+        dialect = Ralph.settings.database.try(&.dialect) || :sqlite
         clause = case dialect
                  when :postgres
                    "\"#{column}\" ? '#{key}'"
@@ -921,7 +921,7 @@ module Ralph
       # # SQLite: Uses json_each for emulation
       # ```
       def where_json_contains(column : String, json_value : String) : Builder
-        dialect = Ralph.settings.database?.try(&.dialect) || :sqlite
+        dialect = Ralph.settings.database.try(&.dialect) || :sqlite
         clause = case dialect
                  when :postgres
                    "\"#{column}\" @> '#{json_value}'"
@@ -945,7 +945,7 @@ module Ralph
       # # SQLite: WHERE EXISTS (SELECT 1 FROM json_each("tags") WHERE value = 'crystal')
       # ```
       def where_array_contains(column : String, value : DBValue) : Builder
-        dialect = Ralph.settings.database?.try(&.dialect) || :sqlite
+        dialect = Ralph.settings.database.try(&.dialect) || :sqlite
         clause = case dialect
                  when :postgres
                    "? = ANY(\"#{column}\")"
@@ -966,7 +966,7 @@ module Ralph
       # ```
       def where_array_overlaps(column : String, values : Array(String)) : Builder
         return self if values.empty?
-        dialect = Ralph.settings.database?.try(&.dialect) || :sqlite
+        dialect = Ralph.settings.database.try(&.dialect) || :sqlite
         clause = case dialect
                  when :postgres
                    quoted = values.map { |v| "'#{v}'" }.join(", ")
@@ -988,7 +988,7 @@ module Ralph
       # ```
       def where_array_contained_by(column : String, values : Array(String)) : Builder
         return self if values.empty?
-        dialect = Ralph.settings.database?.try(&.dialect) || :sqlite
+        dialect = Ralph.settings.database.try(&.dialect) || :sqlite
         clause = case dialect
                  when :postgres
                    quoted = values.map { |v| "'#{v}'" }.join(", ")
@@ -1010,7 +1010,7 @@ module Ralph
       # # SQLite: WHERE json_array_length("tags") > 3
       # ```
       def where_array_length(column : String, operator : String, length : Int32) : Builder
-        dialect = Ralph.settings.database?.try(&.dialect) || :sqlite
+        dialect = Ralph.settings.database.try(&.dialect) || :sqlite
         clause = case dialect
                  when :postgres
                    "array_length(\"#{column}\", 1) #{operator} ?"

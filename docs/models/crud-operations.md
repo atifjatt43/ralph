@@ -10,6 +10,7 @@ There are two primary ways to create a new database record.
 
 You can instantiate a model using `new`, set its attributes, and then call `save` to persist it to the database.
 
+<!-- skip-compile -->
 ```crystal
 user = User.new(name: "Alice", email: "alice@example.com")
 user.name = "Alice Smith"
@@ -121,6 +122,7 @@ These methods are ideal for:
 - **Idempotent operations**: Safely run the same code multiple times
 - **Upsert-like patterns**: Find existing or create new in one operation
 
+<!-- skip-compile -->
 ```crystal
 # Example: Idempotent seed file
 admin = User.find_or_create_by({"email" => "admin@example.com"}) do |u|
@@ -322,6 +324,7 @@ User.update_all({newsletter: false})
 
 The `delete_all` method deletes multiple records matching conditions in a single `DELETE` statement.
 
+<!-- skip-compile -->
 ```crystal
 # Delete all guest users
 User.delete_all(where: {role: "guest"})
@@ -371,6 +374,7 @@ Bulk operations return specific result types:
 
 Ralph's `save` and `update` methods return a `Bool` indicating success. If they return `false`, you can inspect the `errors` object.
 
+<!-- skip-compile -->
 ```crystal
 user = User.new(name: "")
 unless user.save

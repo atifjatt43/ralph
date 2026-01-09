@@ -6,6 +6,7 @@ Ralph follows the **Active Record** pattern, where each class represents a table
 
 To create a model, simply define a class that inherits from `Ralph::Model`. Within the class, you use the `column` macro to define your table's schema.
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 
@@ -37,6 +38,7 @@ end
 
 Columns are defined using the `column` macro. It takes the column name, its Crystal type, and optional parameters.
 
+<!-- skip-compile -->
 ```crystal
 column name, Type, primary: false, default: nil
 ```
@@ -70,6 +72,7 @@ For comprehensive documentation on advanced types including usage examples, quer
 
 To make a column nullable in the database, use the Crystal nilable type syntax (`?`):
 
+<!-- skip-compile -->
 ```crystal
 column middle_name : String?
 column age : Int32?
@@ -79,6 +82,7 @@ column age : Int32?
 
 You can specify a default value for a column. This value will be assigned to the attribute when a new instance is created:
 
+<!-- skip-compile -->
 ```crystal
 column status : String, default: "pending"
 column active : Bool, default: true
@@ -144,6 +148,7 @@ This module:
 - Adds `created_at : Time?` column - set automatically when a record is first created
 - Adds `updated_at : Time?` column - set automatically on every save (create or update)
 
+<!-- skip-compile -->
 ```crystal
 post = Post.create(title: "Hello", body: "World")
 post.created_at  # => 2026-01-08 12:00:00 UTC

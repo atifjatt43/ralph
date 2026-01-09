@@ -12,6 +12,7 @@ Ralph does not ship pre-compiled CLI binaries. Instead, you create a small Cryst
 
 Create a file named `ralph.cr` in your project root:
 
+<!-- skip-compile -->
 ```crystal
 #!/usr/bin/env crystal
 
@@ -56,6 +57,7 @@ chmod +x ralph.cr
 
 If your project uses a non-standard directory structure, configure the Runner:
 
+<!-- skip-compile -->
 ```crystal
 Ralph::Cli::Runner.new(
   migrations_dir: "./db/my_migrations",
@@ -67,6 +69,7 @@ Ralph::Cli::Runner.new(
 
 Set a default database URL for your project:
 
+<!-- skip-compile -->
 ```crystal
 #!/usr/bin/env crystal
 
@@ -87,6 +90,7 @@ Ralph::Cli::Runner.new(
 
 Require only the backends you need:
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 
@@ -122,6 +126,7 @@ Even with a custom CLI, you can override settings at runtime:
 
 Here's a full example for a typical web application:
 
+<!-- skip-compile -->
 ```crystal
 #!/usr/bin/env crystal
 
@@ -163,6 +168,7 @@ This is the same approach used by other Crystal ORMs like Micrate and Clear. The
 
 ### Lucky Framework
 
+<!-- skip-compile -->
 ```crystal
 # ralph.cr
 require "ralph"
@@ -178,6 +184,7 @@ Ralph::Cli::Runner.new(
 
 ### Kemal
 
+<!-- skip-compile -->
 ```crystal
 # ralph.cr
 require "ralph"
@@ -195,6 +202,7 @@ Ralph::Cli::Runner.new(
 
 You can also run migrations programmatically without the CLI:
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 require "ralph/backends/sqlite"

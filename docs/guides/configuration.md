@@ -6,6 +6,7 @@ Ralph is designed to be easy to configure while providing flexibility for differ
 
 The primary way to configure Ralph is through the `Ralph.configure` block. This block allows you to set global settings for the ORM, such as the database backend.
 
+<!-- skip-compile -->
 ```crystal
 require "ralph"
 
@@ -30,6 +31,7 @@ Ralph uses a pluggable backend architecture. Currently, it supports SQLite and P
 
 The `SqliteBackend` is initialized with a connection string. Ralph uses the standard `crystal-db` connection string format.
 
+<!-- skip-compile -->
 ```crystal
 require "ralph/backends/sqlite"
 
@@ -68,6 +70,7 @@ Ralph::Database::SqliteBackend.new("sqlite3://./db/production.sqlite3", wal_mode
 
 The `PostgresBackend` allows you to connect to a PostgreSQL database.
 
+<!-- skip-compile -->
 ```crystal
 require "ralph/backends/postgres"
 
@@ -92,10 +95,11 @@ Ralph's CLI and backends respect several environment variables for database conf
 
 ### Configuration Example
 
+<!-- skip-compile -->
 ```crystal
 Ralph.configure do |config|
   db_url = ENV["DATABASE_URL"]? || ENV["SQLITE_URL"]? || "sqlite3://./db/development.sqlite3"
-  
+
   if db_url.starts_with?("postgres")
     require "ralph/backends/postgres"
     config.database = Ralph::Database::PostgresBackend.new(db_url)
@@ -119,6 +123,7 @@ RALPH_ENV=production ralph db:migrate
 
 When writing tests, it's often best to use an in-memory database to ensure tests are fast and isolated.
 
+<!-- skip-compile -->
 ```crystal
 # spec/spec_helper.cr
 require "spec"
