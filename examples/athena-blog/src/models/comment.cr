@@ -10,7 +10,7 @@ module Blog
     column body, String
 
     # Automatic timestamp management (adds created_at and updated_at)
-    timestamps
+    include Ralph::Timestamps
 
     validates_presence_of :body
     validates_length_of :body, min: 1, max: 1000
@@ -25,7 +25,6 @@ module Blog
     @[Ralph::Callbacks::BeforeCreate]
     def set_uuid
       # Generate UUID if not already set
-      # Column macro makes id nilable internally, so check for nil or empty
       current_id = id
       self.id = UUID.random.to_s if current_id.nil? || current_id.empty?
     end

@@ -13,7 +13,7 @@ module Blog
     column password_hash, String
 
     # Automatic timestamp management
-    timestamps
+    include Ralph::Timestamps
 
     validates_presence_of :username
     validates_presence_of :email

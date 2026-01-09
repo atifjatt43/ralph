@@ -1,0 +1,29 @@
+name: athena-blog
+version: 0.1.0
+
+authors:
+  - Chris Watson <cawatson1993@gmail.com>
+
+description: |
+  A blog example using Ralph ORM and Athena Framework.
+  Demonstrates CRUD operations, associations, validations, and authentication.
+
+targets:
+  server:
+    main: src/server.cr
+
+crystal: '>= 1.18.2'
+
+license: MIT
+
+dependencies:
+  athena:
+    github: athena-framework/framework
+    version: ~> 0.21.0
+
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+    version: ~> 0.22.0
+
+  markd:
+    github: icyleaf/markd

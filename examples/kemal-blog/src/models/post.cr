@@ -12,7 +12,7 @@ module Blog
     column published, Bool, default: false
 
     # Automatic timestamp management
-    timestamps
+    include Ralph::Timestamps
 
     validates_presence_of :title
     validates_presence_of :body

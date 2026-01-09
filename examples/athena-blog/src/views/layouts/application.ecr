@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= @page_title ? "#{@page_title} - Ralph Blog" : "Ralph Blog" %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: { DEFAULT: '#2c2416', light: '#5a4d3a', faded: '#8b7d6b' },
+            paper: { DEFAULT: '#faf8f5', dark: '#f0ece4' },
+            cream: '#e8e2d6',
+            accent: { DEFAULT: '#a65d3f', hover: '#8b4e35' },
+          },
+          fontFamily: {
+            serif: ['Georgia', 'Times New Roman', 'serif'],
+            sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-paper text-ink font-serif min-h-screen flex flex-col leading-relaxed">
+  <header class="bg-paper border-b border-cream py-4">
+    <div class="max-w-4xl mx-auto px-6">
+      <nav class="flex justify-between items-center gap-4">
+        <a href="/" class="font-sans text-xl font-bold text-ink hover:text-accent tracking-tight">Ralph Blog</a>
+        <div class="flex gap-6 items-center">
+          <a href="/" class="font-sans text-sm uppercase tracking-wider text-ink-light hover:text-accent">Home</a>
+          <% if @current_user %>
+            <a href="/posts/new" class="font-sans text-sm uppercase tracking-wider text-ink-light hover:text-accent">New Post</a>
+            <span class="font-sans text-sm text-ink-faded">Hello, <%= h(@current_user.not_nil!.username) %></span>
+            <a href="/logout" class="font-sans text-xs px-3 py-1 border border-cream rounded hover:border-ink-faded text-ink-light hover:text-ink">Logout</a>
+          <% else %>
+            <a href="/login" class="font-sans text-sm uppercase tracking-wider text-ink-light hover:text-accent">Login</a>
+            <a href="/register" class="font-sans text-sm uppercase tracking-wider text-ink-light hover:text-accent">Register</a>
+          <% end %>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 py-10">
+    <div class="max-w-2xl mx-auto px-6">
+      <% if @flash_success && !@flash_success.to_s.empty? %>
+        <div class="bg-green-50 text-green-800 border-l-4 border-green-600 px-4 py-3 mb-6 font-sans text-sm rounded-r"><%= @flash_success %></div>
+      <% end %>
+      <% if @flash_error && !@flash_error.to_s.empty? %>
+        <div class="bg-red-50 text-red-800 border-l-4 border-red-600 px-4 py-3 mb-6 font-sans text-sm rounded-r"><%= @flash_error %></div>
+      <% end %>
+      <% if @flash_info && !@flash_info.to_s.empty? %>
+        <div class="bg-blue-50 text-blue-800 border-l-4 border-blue-600 px-4 py-3 mb-6 font-sans text-sm rounded-r"><%= @flash_info %></div>
+      <% end %>
+
+      <%= content %>
+    </div>
+  </main>
+
+  <footer class="bg-paper-dark border-t border-cream py-6 mt-auto">
+    <div class="max-w-4xl mx-auto px-6 flex justify-between items-center font-sans text-xs text-ink-faded">
+      <p>Built with <a href="https://github.com/watzon/ralph" class="hover:text-accent">Ralph ORM</a> and <a href="https://athenaframework.org" class="hover:text-accent">Athena</a></p>
+      <p>A Crystal Blog Example</p>
+    </div>
+  </footer>
+</body>
+</html>
