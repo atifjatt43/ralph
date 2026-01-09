@@ -65,7 +65,7 @@ class User < Ralph::Model
   column email : String
 
   validates_presence_of :name
-  has_many :posts
+  has_many posts : Post
 end
 
 # CRUD operations

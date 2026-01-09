@@ -222,13 +222,14 @@ module Ralph
         it "supports multiple conditions" do
           UserTestModel.create(name: "Diana", email: "diana@example.com", age: 30)
 
-          # Different age, should create new
-          found = UserTestModel.find_or_create_by({"email" => "diana@example.com", "age" => 25}) do |u|
+          # Different email and age, should create new
+          found = UserTestModel.find_or_create_by({"email" => "diana.clone@example.com", "age" => 25}) do |u|
             u.name = "Diana Clone"
           end
 
           found.name.should eq("Diana Clone")
           found.age.should eq(25)
+          found.email.should eq("diana.clone@example.com")
 
           # Same conditions, should find existing
           UserTestModel.count.should eq(2)

@@ -22,13 +22,13 @@ class Post < Ralph::Model
   column title : String
   column user_id : Int64
 
-  belongs_to user
+  belongs_to user : User
 end
 ```
 
 ### Generated Methods
 
-When you define `belongs_to :user`, Ralph generates several methods for you:
+When you define `belongs_to user : User`, Ralph generates several methods for you:
 
 - `user`: Returns the associated user (or `nil`).
 - `user=(record)`: Sets the associated user and updates the foreign key.
@@ -39,7 +39,6 @@ When you define `belongs_to :user`, Ralph generates several methods for you:
 
 ### Options
 
-- `class_name`: The name of the associated class if it can't be inferred from the association name.
 - `foreign_key`: The name of the foreign key column (defaults to `#{association}_id`).
 - `primary_key`: The primary key on the associated model (defaults to `id`).
 - `optional`: If `true`, the foreign key can be nil (defaults to `false`).
@@ -47,8 +46,8 @@ When you define `belongs_to :user`, Ralph generates several methods for you:
 - `counter_cache`: If `true`, maintains a count of these records on the parent model (requires a `#{table_name}_count` column on the parent).
 
 ```crystal
-belongs_to author, class_name: "User", foreign_key: "author_id", touch: true
-belongs_to category, optional: true
+belongs_to author : User, foreign_key: "author_id", touch: true
+belongs_to category : Category, optional: true
 ```
 
 ---
@@ -64,7 +63,7 @@ class User < Ralph::Model
   column id : Int64, primary: true
   column name : String
 
-  has_one profile
+  has_one profile : Profile
 end
 ```
 
@@ -77,7 +76,7 @@ end
 
 ### Options
 
-- `class_name`, `foreign_key`, `primary_key`: Same as `belongs_to`.
+- `foreign_key`, `primary_key`: Same as `belongs_to`.
 - `dependent`: Controls what happens to the associated record when this record is destroyed. Options: `:destroy`, `:delete`, `:nullify`, `:restrict_with_error`, `:restrict_with_exception`.
 
 ---
@@ -92,7 +91,7 @@ class User < Ralph::Model
 
   column id : Int64, primary: true
 
-  has_many posts
+  has_many posts : Post
 end
 ```
 
@@ -109,7 +108,7 @@ end
 You can provide a block to `has_many` to apply a scope to the association:
 
 ```crystal
-has_many published_posts, class_name: "Post" { |q|
+has_many published_posts : Post { |q|
   q.where("published = ?", true).order("created_at", :desc)
 }
 ```
@@ -137,7 +136,7 @@ class Comment < Ralph::Model
   column commentable_id : Int64
   column commentable_type : String
 
-  belongs_to commentable, polymorphic: true
+  belongs_to commentable : Model, polymorphic: true
 end
 ```
 
@@ -147,11 +146,11 @@ Use the `as` option to point to the polymorphic interface.
 
 ```crystal
 class Post < Ralph::Model
-  has_many comments, as: :commentable
+  has_many comments : Comment, as: :commentable
 end
 
 class Video < Ralph::Model
-  has_many comments, as: :commentable
+  has_many comments : Comment, as: :commentable
 end
 ```
 
@@ -173,18 +172,18 @@ Through associations are used to define many-to-many relationships or to reach t
 
 ```crystal
 class Physician < Ralph::Model
-  has_many appointments
-  has_many patients, through: :appointments
+  has_many appointments : Appointment
+  has_many patients : Patient, through: :appointments
 end
 
 class Appointment < Ralph::Model
-  belongs_to physician
-  belongs_to patient
+  belongs_to physician : Physician
+  belongs_to patient : Patient
 end
 
 class Patient < Ralph::Model
-  has_many appointments
-  has_many physicians, through: :appointments
+  has_many appointments : Appointment
+  has_many physicians : Physician, through: :appointments
 end
 ```
 

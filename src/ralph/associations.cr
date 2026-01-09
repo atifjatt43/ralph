@@ -61,34 +61,34 @@ module Ralph
   # - `has_many` - One-to-many relationship (e.g., a user has many posts)
   #
   # Polymorphic associations are also supported:
-  # - `belongs_to :commentable, polymorphic: true` - Can belong to multiple model types
-  # - `has_many :comments, as: :commentable` - Parent side of polymorphic relationship
+  # - `belongs_to commentable : Model, polymorphic: true` - Can belong to multiple model types
+  # - `has_many comments : Comment, as: :commentable` - Parent side of polymorphic relationship
   #
   # New in Phase 3.3:
   # - `counter_cache: true` - Maintain a count column on parent for has_many associations
   # - `touch: true` - Update parent timestamp when association changes
   # - Association scoping with lambda blocks
-  # - Through associations: `has_many :tags, through: :posts`
+  # - Through associations: `has_many tags : Tag, through: :posts`
   #
   # Example:
   # ```
   # class Post < Ralph::Model
-  #   column id, Int64, primary: true
-  #   column title, String
-  #   column user_id, Int64
+  #   column id : Int64, primary: true
+  #   column title : String
+  #   column user_id : Int64
   #
-  #   belongs_to user, touch: true
+  #   belongs_to user : User, touch: true
   # end
   #
   # class User < Ralph::Model
-  #   column id, Int64, primary: true
-  #   column name, String
-  #   column posts_count, Int32, default: 0
-  #   column updated_at, Time?
+  #   column id : Int64, primary: true
+  #   column name : String
+  #   column posts_count : Int32, default: 0
+  #   column updated_at : Time?
   #
-  #   has_one profile
-  #   has_many posts, counter_cache: true
-  #   has_many tags, through: :posts
+  #   has_one profile : Profile
+  #   has_many posts : Post, counter_cache: true
+  #   has_many tags : Tag, through: :posts
   # end
   # ```
   module Associations
@@ -207,11 +207,6 @@ module Ralph
    # Type declaration form: belongs_to author : User
    name_str = klass_or_decl.var.id.stringify
    class_name = klass_or_decl.type.id.stringify
-   class_name_override = true
- elsif options[:class_name]
-   # Name with class_name option: belongs_to user, class_name: "Blog::User"
-   name_str = klass_or_decl.id.stringify
-   class_name = options[:class_name].id.stringify
    class_name_override = true
  else
    # Simple form: belongs_to User
@@ -600,26 +595,22 @@ module Ralph
     #   - :restrict_with_exception - Prevent destruction if associations exist (raises exception)
     #
     # Supports two syntaxes:
-    #   has_one Profile                  # Association name inferred as 'profile'
-    #   has_one user_profile : Profile   # Explicit association name
+    #   has_one Profile                   # Association name inferred as 'profile'
+    #   has_one user_profile : Profile    # Explicit association name
     #
     # Usage:
     # ```
-    # has_one Profile                                     # profile
-    # has_one user_profile : Profile                      # user_profile (explicit name)
-    # has_one avatar : UserAvatar, foreign_key: :owner_id # avatar, owner_id on UserAvatar
-    # has_one Profile, dependent: :destroy                # destroys profile when user destroyed
-    # has_one Profile, polymorphic: :profileable          # polymorphic (Profile has profileable_id/type)
+    # has_one Profile                                      # profile
+    # has_one user_profile : Profile                       # user_profile (explicit name)
+    # has_one avatar : UserAvatar, foreign_key: :owner_id  # avatar, owner_id on UserAvatar
+    # has_one Profile, dependent: :destroy                 # destroys profile when user destroyed
+    # has_one profile : Profile, polymorphic: :profileable # polymorphic (Profile has profileable_id/type)
     # ```
     macro has_one(klass_or_decl, **options)
       # Handle type declaration syntax: has_one profile : Profile
       {% if klass_or_decl.is_a?(TypeDeclaration) %}
         {% name_str = klass_or_decl.var.id.stringify %}
         {% class_name = klass_or_decl.type.id.stringify %}
-      {% elsif options[:class_name] %}
-        # Name with class_name option: has_one profile, class_name: "Blog::Profile"
-        {% name_str = klass_or_decl.id.stringify %}
-        {% class_name = options[:class_name].id.stringify %}
       {% else %}
         # Simple syntax: has_one Profile
         {% class_name = klass_or_decl.id.stringify %}
@@ -960,7 +951,6 @@ module Ralph
     # Define a has_many association
     #
     # Options:
-    # - class_name: Specify the class of the association (e.g., "Post" instead of inferring from name)
     # - foreign_key: Specify a custom foreign key on the associated model (e.g., "owner_id" instead of "user_id")
     # - primary_key: Specify the primary key on this model (defaults to "id")
     # - polymorphic: For polymorphic associations, specify the name of the polymorphic interface on the child
@@ -977,30 +967,25 @@ module Ralph
     # This automatically generates increment/decrement/update callbacks on the child model.
     #
     # Supports two syntaxes:
-    #   has_many Post                    # Association name inferred as 'posts'
-    #   has_many posts : Post            # Explicit association name
+    #   has_many Post                     # Association name inferred as 'posts'
+    #   has_many posts : Post             # Explicit association name
     #
     # Usage:
     # ```
-    # has_many Post                                         # posts
-    # has_many articles : Post                              # articles (explicit name)
-    # has_many articles : BlogPost, foreign_key: :writer_id # articles, writer_id
-    # has_many Post, dependent: :destroy                    # destroys posts when parent destroyed
-    # has_many Post, dependent: :delete_all                 # deletes without callbacks
-    # has_many Comment, polymorphic: :commentable           # polymorphic (Comment has commentable_id/type)
-    # has_many Tag, through: :post_tags                     # through association
-    # has_many Tag, through: :post_tags, source: :tag       # through with custom source
+    # has_many Post                                          # posts
+    # has_many articles : Post                               # articles (explicit name)
+    # has_many articles : BlogPost, foreign_key: :writer_id  # articles, writer_id
+    # has_many Post, dependent: :destroy                     # destroys posts when parent destroyed
+    # has_many Post, dependent: :delete_all                  # deletes without callbacks
+    # has_many comments : Comment, polymorphic: :commentable # polymorphic (Comment has commentable_id/type)
+    # has_many tags : Tag, through: :post_tags               # through association
+    # has_many tags : Tag, through: :post_tags, source: :tag # through with custom source
     # ```
     macro has_many(klass_or_decl, scope_block = nil, **options)
       # Handle type declaration syntax: has_many posts : Post
       {% if klass_or_decl.is_a?(TypeDeclaration) %}
         {% name_str = klass_or_decl.var.id.stringify %}
         {% class_name = klass_or_decl.type.id.stringify %}
-        {% singular_name = name_str.ends_with?("s") ? name_str[0...-1] : name_str %}
-      {% elsif options[:class_name] %}
-        # Name with class_name option: has_many posts, class_name: "Blog::Post"
-        {% name_str = klass_or_decl.id.stringify %}
-        {% class_name = options[:class_name].id.stringify %}
         {% singular_name = name_str.ends_with?("s") ? name_str[0...-1] : name_str %}
       {% else %}
         # Simple syntax: has_many Post or has_many Post, ->(q) { ... }, as: :custom_name

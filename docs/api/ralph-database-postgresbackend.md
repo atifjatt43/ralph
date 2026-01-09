@@ -2,7 +2,7 @@
 
 `class`
 
-*Defined in [src/ralph/backends/postgres.cr:55](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L55)*
+*Defined in [src/ralph/backends/postgres.cr:68](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L68)*
 
 PostgreSQL database backend implementation
 
@@ -43,6 +43,18 @@ Ralph.configure do |config|
 end
 ```
 
+## Prepared Statement Caching
+
+This backend supports prepared statement caching for improved query
+performance. Enable and configure via Ralph.settings:
+
+```
+Ralph.configure do |config|
+  config.enable_prepared_statements = true
+  config.prepared_statement_cache_size = 100
+end
+```
+
 ## Placeholder Conversion
 
 This backend automatically converts `?` placeholders to PostgreSQL's
@@ -57,7 +69,7 @@ which is handled automatically by the `insert` method.
 
 ### `.new(connection_string : String, apply_pool_settings : Bool = true)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L76)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L90)*
 
 Creates a new PostgreSQL backend with the given connection string
 
@@ -82,7 +94,7 @@ backend = Ralph::Database::PostgresBackend.new("postgres://localhost/mydb", appl
 
 ### `#available_text_search_configs`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L220)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L260)*
 
 Get all available text search configurations
 
@@ -111,15 +123,23 @@ configs = backend.available_text_search_configs
 
 ### `#begin_transaction_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L161)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L201)*
 
 SQL to begin a transaction
 
 ---
 
+### `#clear_statement_cache`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L419)*
+
+Clear all cached prepared statements
+
+---
+
 ### `#close`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L148)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L186)*
 
 Close the database connection
 
@@ -127,7 +147,7 @@ Close the database connection
 
 ### `#closed?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L153)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L193)*
 
 Check if the connection is open
 
@@ -135,7 +155,7 @@ Check if the connection is open
 
 ### `#commit_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L165)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L205)*
 
 SQL to commit a transaction
 
@@ -143,7 +163,7 @@ SQL to commit a transaction
 
 ### `#connection_string`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L190)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L230)*
 
 Get the original connection string (without pool params)
 
@@ -151,7 +171,7 @@ Get the original connection string (without pool params)
 
 ### `#create_extension(name : String, if_not_exists : Bool = true)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L362)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L402)*
 
 Install a PostgreSQL extension
 
@@ -165,7 +185,7 @@ backend.create_extension("pg_trgm")
 
 ### `#create_text_search_config(name : String, copy_from : String = "english")`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L281)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L321)*
 
 Create a custom text search configuration
 
@@ -182,7 +202,7 @@ backend.create_text_search_config("my_english", copy_from: "english")
 
 ### `#dialect`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L185)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L225)*
 
 Returns the dialect identifier for this backend
 Used by migrations and schema generation
@@ -191,7 +211,7 @@ Used by migrations and schema generation
 
 ### `#drop_extension(name : String, if_exists : Bool = true, cascade : Bool = false)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L368)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L408)*
 
 Uninstall a PostgreSQL extension
 
@@ -199,7 +219,7 @@ Uninstall a PostgreSQL extension
 
 ### `#drop_text_search_config(name : String, if_exists : Bool = true)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L292)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L332)*
 
 Drop a custom text search configuration
 
@@ -213,15 +233,16 @@ backend.drop_text_search_config("my_english")
 
 ### `#execute(query : String, args : Array(DB::Any) = [] of DB::Any)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L105)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L128)*
 
-Execute a query and return the raw result
+Execute a write query (INSERT, UPDATE, DELETE, DDL)
+Uses prepared statement cache when enabled
 
 ---
 
 ### `#extension_available?(name : String) : Bool`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L330)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L370)*
 
 Check if a PostgreSQL extension is available
 
@@ -236,7 +257,7 @@ backend.extension_available?("postgis") # => false (if not installed)
 
 ### `#extension_installed?(name : String) : Bool`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L343)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L383)*
 
 Check if a PostgreSQL extension is installed
 
@@ -244,19 +265,16 @@ Check if a PostgreSQL extension is installed
 
 ### `#insert(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L109)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L137)*
 
-Execute a query and return the last inserted ID
-
-Implementation note: Different backends handle this differently:
-- SQLite: Uses `SELECT last_insert_rowid()` after INSERT
-- PostgreSQL: Uses `INSERT ... RETURNING id`
+Insert a record and return the inserted ID
+Uses RETURNING clause for PostgreSQL
 
 ---
 
 ### `#postgres_version`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L307)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L347)*
 
 Get PostgreSQL version
 
@@ -273,23 +291,25 @@ backend.postgres_version
 
 ### `#query_all(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::ResultSet`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L120)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L154)*
 
-Query multiple rows
+Query for multiple rows
+Uses prepared statement cache when enabled
 
 ---
 
 ### `#query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::ResultSet | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L115)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L146)*
 
-Query a single row and map it to a result
+Query for a single row, returns nil if no results
+Uses prepared statement cache when enabled
 
 ---
 
 ### `#raw_connection`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L157)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L197)*
 
 Get the underlying DB::Database connection for advanced operations
 
@@ -297,7 +317,7 @@ Get the underlying DB::Database connection for advanced operations
 
 ### `#release_savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L177)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L217)*
 
 SQL to release a savepoint
 
@@ -305,7 +325,7 @@ SQL to release a savepoint
 
 ### `#rollback_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L169)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L209)*
 
 SQL to rollback a transaction
 
@@ -313,7 +333,7 @@ SQL to rollback a transaction
 
 ### `#rollback_to_savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L181)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L221)*
 
 SQL to rollback to a savepoint
 
@@ -321,7 +341,7 @@ SQL to rollback to a savepoint
 
 ### `#savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L173)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L213)*
 
 SQL to create a savepoint
 
@@ -329,15 +349,32 @@ SQL to create a savepoint
 
 ### `#scalar(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::Any | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L124)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L161)*
 
-Execute a query and return a single scalar value (first column of first row)
+Run a scalar query and return a single value
+Uses prepared statement cache when enabled
+
+---
+
+### `#statement_cache_enabled?`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L444)*
+
+Check if statement caching is enabled
+
+---
+
+### `#statement_cache_stats`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L428)*
+
+Get statement cache statistics
 
 ---
 
 ### `#text_search_config_exists?(config_name : String) : Bool`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L261)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L301)*
 
 Check if a text search configuration exists
 
@@ -345,7 +382,7 @@ Check if a text search configuration exists
 
 ### `#text_search_config_info(config_name : String) : Hash(String, String)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L241)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L281)*
 
 Get text search configuration details
 
@@ -362,7 +399,7 @@ backend.text_search_config_info("english")
 
 ### `#transaction`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L142)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L180)*
 
 Begin a transaction
 

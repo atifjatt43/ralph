@@ -5,7 +5,9 @@ Complete API documentation for Ralph, auto-generated from source code.
 ## Modules
 
 - [`Associations`](ralph-associations.md) - <p>Associations module for defining model relationships</p>
+- [`BulkOperations`](ralph-bulkoperations.md) - <p>Bulk operations mixin for Ralph::Model</p>
 - [`Database`](ralph-database.md) - <p>Abstract database backend interface</p>
+- [`IdentityMap`](ralph-identitymap.md) - <p>Per-request identity map for loaded models</p>
 - [`JoinMacros`](ralph-joinmacros.md) - <p>Join macros - generate join methods for associations</p>
 - [`Transactions`](ralph-transactions.md) - <p>Transaction support for models</p>
 
@@ -25,11 +27,16 @@ Complete API documentation for Ralph, auto-generated from source code.
 - [`RecordNotFound`](ralph-recordnotfound.md) - <p>Raised when <code>find!</code> or <code>first!</code> returns no results</p>
 - [`Settings`](ralph-settings.md) - <p>Global settings for the ORM</p>
 - [`SqliteBackend`](ralph-database-sqlitebackend.md) - <p>SQLite database backend implementation</p>
+- [`StatementCache`](ralph-statementcache(v).md) - <p>LRU (Least Recently Used) Cache for prepared statements</p>
 - [`UnsupportedOperationError`](ralph-unsupportedoperationerror.md) - <p>Raised when an operation is not supported by the current backend</p>
 
 ## Structs
 
+- [`BulkInsertResult`](ralph-bulkinsertresult.md) - <p>Result of a bulk insert operation</p>
+- [`BulkUpsertResult`](ralph-bulkupsertresult.md) - <p>Result of a bulk upsert operation</p>
 - [`PoolStats`](ralph-database-poolstats.md) - <p>Connection pool statistics</p>
+- [`Stats`](ralph-identitymap-stats.md) - <p>Statistics for monitoring identity map usage</p>
+- [`UpsertOptions`](ralph-upsertoptions.md) - <p>Options for upsert conflict resolution</p>
 
 ## Enums
 

@@ -64,14 +64,14 @@ end
 
 class Post < Ralph::Model
   table "posts"
-  
+
   column id, String, primary: true
-  
+
   # Automatic timestamps (created_at, updated_at)
   timestamps
-  
+
   # Foreign key is automatically String to match User's PK type
-  belongs_to user, class_name: "Blog::User"
+  belongs_to user : Blog::User
 end
 ```
 
@@ -99,6 +99,6 @@ end
 ## Notes
 
 - Models use `Blog::` namespace for proper macro resolution
-- Association class names must be fully qualified (e.g., `class_name: "Blog::User"`)
+- Association types must be fully qualified (e.g., `belongs_to user : Blog::User`)
 - SQLite database (`blog.sqlite3`) is created automatically
 - UUIDs are stored as TEXT in SQLite

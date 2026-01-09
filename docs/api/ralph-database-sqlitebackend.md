@@ -2,7 +2,7 @@
 
 `class`
 
-*Defined in [src/ralph/backends/sqlite.cr:62](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L62)*
+*Defined in [src/ralph/backends/sqlite.cr:75](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L75)*
 
 SQLite database backend implementation
 
@@ -44,6 +44,18 @@ Ralph.configure do |config|
 end
 ```
 
+## Prepared Statement Caching
+
+This backend supports prepared statement caching for improved query
+performance. Enable and configure via Ralph.settings:
+
+```
+Ralph.configure do |config|
+  config.enable_prepared_statements = true
+  config.prepared_statement_cache_size = 100
+end
+```
+
 ## Concurrency
 
 SQLite only supports one writer at a time. This backend provides two modes:
@@ -64,7 +76,7 @@ is not supported for in-memory databases.
 
 ### `.new(connection_string : String, wal_mode : Bool = false, busy_timeout : Int32 = 5000, apply_pool_settings : Bool = true)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L90)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L104)*
 
 Creates a new SQLite backend with the given connection string
 
@@ -94,15 +106,23 @@ backend = Ralph::Database::SqliteBackend.new("sqlite3://./db.sqlite3", apply_poo
 
 ### `#begin_transaction_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L215)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L250)*
 
 SQL to begin a transaction
 
 ---
 
+### `#clear_statement_cache`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L303)*
+
+Clear all cached prepared statements
+
+---
+
 ### `#close`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L202)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L235)*
 
 Close the database connection
 
@@ -110,7 +130,7 @@ Close the database connection
 
 ### `#closed?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L207)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L242)*
 
 Check if the connection is open
 
@@ -118,7 +138,7 @@ Check if the connection is open
 
 ### `#commit_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L219)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L254)*
 
 SQL to commit a transaction
 
@@ -126,7 +146,7 @@ SQL to commit a transaction
 
 ### `#connection_string`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L249)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L284)*
 
 Get the original connection string (without pool params)
 
@@ -134,7 +154,7 @@ Get the original connection string (without pool params)
 
 ### `#dialect`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L239)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L274)*
 
 Returns the dialect identifier for this backend
 Used by migrations and schema generation
@@ -143,16 +163,17 @@ Used by migrations and schema generation
 
 ### `#execute(query : String, args : Array(DB::Any) = [] of DB::Any)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L147)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L173)*
 
 Execute a write query (INSERT, UPDATE, DELETE, DDL)
 Serialized through mutex when not in WAL mode
+Uses prepared statement cache when enabled
 
 ---
 
 ### `#insert(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L155)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L183)*
 
 Insert a record and return the last inserted row ID
 Uses the same connection for both operations to ensure correctness
@@ -161,23 +182,25 @@ Uses the same connection for both operations to ensure correctness
 
 ### `#query_all(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::ResultSet`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L171)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L203)*
 
 Query for multiple rows
+Uses prepared statement cache when enabled
 
 ---
 
 ### `#query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::ResultSet | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L165)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L196)*
 
 Query for a single row, returns nil if no results
+Uses prepared statement cache when enabled
 
 ---
 
 ### `#raw_connection`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L211)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L246)*
 
 Get the underlying DB::Database connection for advanced operations
 
@@ -185,7 +208,7 @@ Get the underlying DB::Database connection for advanced operations
 
 ### `#release_savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L231)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L266)*
 
 SQL to release a savepoint
 
@@ -193,7 +216,7 @@ SQL to release a savepoint
 
 ### `#rollback_sql`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L223)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L258)*
 
 SQL to rollback a transaction
 
@@ -201,7 +224,7 @@ SQL to rollback a transaction
 
 ### `#rollback_to_savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L235)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L270)*
 
 SQL to rollback to a savepoint
 
@@ -209,7 +232,7 @@ SQL to rollback to a savepoint
 
 ### `#savepoint_sql(name : String) : String`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L227)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L262)*
 
 SQL to create a savepoint
 
@@ -217,15 +240,32 @@ SQL to create a savepoint
 
 ### `#scalar(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::Any | Nil`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L176)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L209)*
 
 Execute a scalar query and return a single value
+Uses prepared statement cache when enabled
+
+---
+
+### `#statement_cache_enabled?`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L328)*
+
+Check if statement caching is enabled
+
+---
+
+### `#statement_cache_stats`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L312)*
+
+Get statement cache statistics
 
 ---
 
 ### `#transaction`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L194)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L227)*
 
 Execute a block within a database transaction
 The entire transaction is protected by the write lock
@@ -234,7 +274,7 @@ The entire transaction is protected by the write lock
 
 ### `#wal_mode?`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L244)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/backends/sqlite.cr#L279)*
 
 Whether WAL mode is enabled
 

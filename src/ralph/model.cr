@@ -19,6 +19,7 @@ module Ralph
     include Ralph::Validations
     include Ralph::Callbacks
     include Ralph::Associations
+    include Ralph::BulkOperations
 
     # When a subclass is defined, set up callbacks and validations after parsing completes
     macro inherited
@@ -339,6 +340,14 @@ module Ralph
           Ralph.database.execute(sql, args: args)
           result = true
 
+          # Invalidate query cache for this table if auto-invalidation is enabled
+          if Ralph.settings.query_cache_auto_invalidate
+            Ralph::Query::Builder.invalidate_table_cache(self.class.table_name)
+          end
+
+          # Remove from identity map
+          Ralph::IdentityMap.remove(self)
+
           if result
             # Run after_destroy callbacks
             \{% for meth in @type.methods %}
@@ -530,7 +539,14 @@ module Ralph
     end
 
     # Find a record by ID
+    #
+    # When an IdentityMap is active, returns the cached instance if available.
     def self.find(id)
+      # Check identity map first
+      if cached = Ralph::IdentityMap.get(self, id)
+        return cached
+      end
+
       query = base_query.where("#{@@primary_key} = ?", id)
 
       result = Ralph.database.query_one(query.build_select, args: query.where_args)
@@ -538,6 +554,9 @@ module Ralph
 
       record = from_result_set(result)
       result.close
+
+      # Store in identity map
+      Ralph::IdentityMap.set(record) if record
       record
     end
 
@@ -1474,7 +1493,7 @@ module Ralph
     end
 
     # Get the primary key value
-    private def primary_key_value
+    protected def primary_key_value
       __get_by_key_name(self.class.primary_key)
     end
 
@@ -1503,6 +1522,14 @@ module Ralph
         __set_by_key_name(self.class.primary_key, id)
       end
 
+      # Invalidate query cache for this table if auto-invalidation is enabled
+      if Ralph.settings.query_cache_auto_invalidate
+        Ralph::Query::Builder.invalidate_table_cache(self.class.table_name)
+      end
+
+      # Store in identity map if enabled
+      Ralph::IdentityMap.set(self)
+
       clear_changes_information
       true
     end
@@ -1517,6 +1544,12 @@ module Ralph
 
       sql, args = query.build_update(data)
       Ralph.database.execute(sql, args: args)
+
+      # Invalidate query cache for this table if auto-invalidation is enabled
+      if Ralph.settings.query_cache_auto_invalidate
+        Ralph::Query::Builder.invalidate_table_cache(self.class.table_name)
+      end
+
       clear_changes_information
       true
     end

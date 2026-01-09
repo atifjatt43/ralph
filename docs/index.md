@@ -21,6 +21,7 @@ Ralph isn't just another ORM. It's built with specific goals in mind:
 - **Type Safety First**: Leverage Crystal's type system to ensure your data is valid before it ever hits the database.
 - **Explicit over Implicit**: No lazy loading surprises. You get exactly what you ask for, making performance bottlenecks easier to spot and fix.
 - **Fluent & Immutable**: A query builder that feels like natural language and respects immutability, allowing for safe query composition.
+- **Performance Optimized**: Bulk operations (`insert_all`, `upsert_all`, `update_all`, `delete_all`), statement caching, and identity map support for high-performance applications.
 - **Batteries Included**: From migrations and validations to a powerful CLI, Ralph provides everything you need to manage your data layer.
 
 ## Quick Preview
@@ -39,7 +40,7 @@ class User < Ralph::Model
   validates_presence_of :name, :email
   validates_uniqueness_of :email
 
-  has_many :posts, dependent: :destroy
+  has_many posts : Post, dependent: :destroy
 end
 
 # Query with confidence

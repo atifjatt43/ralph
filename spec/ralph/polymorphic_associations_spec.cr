@@ -122,7 +122,8 @@ module Ralph
       column id : String, primary: true
       column title : String
 
-      has_many Ralph::PolymorphicTests::Comment, class_name: "Ralph::PolymorphicTests::Comment", polymorphic: :commentable
+      # Using type declaration syntax with polymorphic
+      has_many comments : Ralph::PolymorphicTests::Comment, polymorphic: :commentable
     end
 
     # Parent with UUID primary key
@@ -132,7 +133,8 @@ module Ralph
       column id : UUID, primary: true
       column title : String
 
-      has_many Ralph::PolymorphicTests::Comment, class_name: "Ralph::PolymorphicTests::Comment", polymorphic: :commentable
+      # Using type declaration syntax with polymorphic
+      has_many comments : Ralph::PolymorphicTests::Comment, polymorphic: :commentable
     end
   end
 

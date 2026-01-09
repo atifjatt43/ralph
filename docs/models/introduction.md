@@ -101,15 +101,15 @@ Ralph supports flexible primary key types including `Int64`, `Int32`, `String`, 
 class Organization < Ralph::Model
   column id : String, primary: true  # Creates alias PrimaryKeyType = String
   column name : String
-  
-  has_many :teams
+
+  has_many teams : Team
 end
 
 class Team < Ralph::Model
   column id : Int64, primary: true
   column name : String
-  
-  belongs_to :organization  # Foreign key is String (matches Organization's PK type)
+
+  belongs_to organization : Organization  # Foreign key is String (matches Organization's PK type)
 end
 ```
 
@@ -179,7 +179,7 @@ class User < Ralph::Model
 
   validates_presence_of :email
 
-  has_many :posts
+  has_many posts : Post
 
   def display_name
     email.split("@").first

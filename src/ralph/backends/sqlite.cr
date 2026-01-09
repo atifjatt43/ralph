@@ -1,6 +1,7 @@
 require "db"
 require "sqlite3"
 require "uri"
+require "../statement_cache"
 
 module Ralph
   module Database
@@ -44,6 +45,18 @@ module Ralph
     # end
     # ```
     #
+    # ## Prepared Statement Caching
+    #
+    # This backend supports prepared statement caching for improved query
+    # performance. Enable and configure via Ralph.settings:
+    #
+    # ```
+    # Ralph.configure do |config|
+    #   config.enable_prepared_statements = true
+    #   config.prepared_statement_cache_size = 100
+    # end
+    # ```
+    #
     # ## Concurrency
     #
     # SQLite only supports one writer at a time. This backend provides two modes:
@@ -65,6 +78,7 @@ module Ralph
       @wal_mode : Bool
       @write_mutex : Mutex
       @connection_string : String
+      @statement_cache : Ralph::StatementCache(::DB::PoolPreparedStatement)?
 
       # Creates a new SQLite backend with the given connection string
       #
@@ -102,12 +116,23 @@ module Ralph
         @db = DB.open(final_connection_string)
 
         # Set a busy timeout to wait for locks instead of failing immediately
-        @db.exec("PRAGMA busy_timeout=#{busy_timeout}")
+        @db.using_connection do |conn|
+          conn.exec("PRAGMA busy_timeout=#{busy_timeout}")
+        end
 
         # Enable WAL mode if requested (skip for in-memory databases)
         if wal_mode && !connection_string.includes?(":memory:")
-          @db.exec("PRAGMA journal_mode=WAL")
+          @db.using_connection do |conn|
+            conn.exec("PRAGMA journal_mode=WAL")
+          end
         end
+
+        # Initialize prepared statement cache from settings
+        settings = Ralph.settings
+        @statement_cache = Ralph::StatementCache(::DB::PoolPreparedStatement).new(
+          max_size: settings.prepared_statement_cache_size,
+          enabled: settings.enable_prepared_statements
+        )
       end
 
       # Build connection string with pool parameters from Ralph.settings
@@ -144,9 +169,12 @@ module Ralph
 
       # Execute a write query (INSERT, UPDATE, DELETE, DDL)
       # Serialized through mutex when not in WAL mode
+      # Uses prepared statement cache when enabled
       def execute(query : String, args : Array(DB::Any) = [] of DB::Any)
         with_write_lock do
-          @db.exec(query, args: args)
+          execute_with_cache(query, args) do |stmt, params|
+            stmt.exec(args: params)
+          end
         end
       end
 
@@ -155,6 +183,8 @@ module Ralph
       def insert(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64
         with_write_lock do
           @db.using_connection do |conn|
+            # For inserts, we need to use the same connection to get last_insert_rowid
+            # so we use direct execution instead of cached statements
             conn.exec(query, args: args)
             conn.scalar("SELECT last_insert_rowid()").as(Int64)
           end
@@ -162,19 +192,22 @@ module Ralph
       end
 
       # Query for a single row, returns nil if no results
+      # Uses prepared statement cache when enabled
       def query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet?
-        rs = @db.query(query, args: args)
+        rs = query_with_cache(query, args)
         rs.move_next ? rs : nil
       end
 
       # Query for multiple rows
+      # Uses prepared statement cache when enabled
       def query_all(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet
-        @db.query(query, args: args)
+        query_with_cache(query, args)
       end
 
       # Execute a scalar query and return a single value
+      # Uses prepared statement cache when enabled
       def scalar(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::Any?
-        result = @db.scalar(query, args: args)
+        result = scalar_with_cache(query, args)
         case result
         when Bool, Float32, Float64, Int32, Int64, Slice(UInt8), String, Time, Nil
           result
@@ -200,6 +233,8 @@ module Ralph
       end
 
       def close
+        # Clear statement cache before closing
+        clear_statement_cache
         @db.close
         @closed = true
       end
@@ -258,6 +293,108 @@ module Ralph
         else
           @write_mutex.synchronize { yield }
         end
+      end
+
+      # ========================================
+      # Prepared Statement Cache Implementation
+      # ========================================
+
+      # Clear all cached prepared statements
+      def clear_statement_cache
+        if cache = @statement_cache
+          cache.clear
+          # Note: DB::PoolPreparedStatement is managed by the pool,
+          # garbage collection will clean up the statements
+        end
+      end
+
+      # Get statement cache statistics
+      def statement_cache_stats : NamedTuple(size: Int32, max_size: Int32, enabled: Bool)
+        if cache = @statement_cache
+          cache.stats
+        else
+          {size: 0, max_size: 0, enabled: false}
+        end
+      end
+
+      # Enable or disable statement caching at runtime
+      def enable_statement_cache=(enabled : Bool)
+        if cache = @statement_cache
+          cache.enabled = enabled
+        end
+      end
+
+      # Check if statement caching is enabled
+      def statement_cache_enabled? : Bool
+        if cache = @statement_cache
+          cache.enabled?
+        else
+          false
+        end
+      end
+
+      # Get or create a prepared statement from cache
+      private def get_or_prepare_statement(query : String) : ::DB::PoolPreparedStatement
+        cache = @statement_cache
+
+        # If cache is disabled or unavailable, create a new statement
+        if cache.nil? || !cache.enabled?
+          return @db.build(query).as(::DB::PoolPreparedStatement)
+        end
+
+        # Try to get from cache
+        if stmt = cache.get(query)
+          return stmt
+        end
+
+        # Create new prepared statement
+        stmt = @db.build(query).as(::DB::PoolPreparedStatement)
+
+        # Cache it (may evict old statements)
+        # Note: evicted statements are managed by the pool, no explicit close needed
+        cache.set(query, stmt)
+
+        stmt
+      end
+
+      # Execute a query using cached prepared statement
+      private def execute_with_cache(query : String, args : Array(DB::Any), &)
+        stmt = get_or_prepare_statement(query)
+        yield stmt, args
+      rescue ex : DB::Error
+        # If statement is invalid (e.g., schema changed), remove from cache and retry
+        if cache = @statement_cache
+          cache.delete(query)
+        end
+        # Retry with fresh statement
+        stmt = @db.build(query).as(::DB::PoolPreparedStatement)
+        yield stmt, args
+      end
+
+      # Query using cached prepared statement
+      private def query_with_cache(query : String, args : Array(DB::Any)) : ::DB::ResultSet
+        stmt = get_or_prepare_statement(query)
+        stmt.query(args: args)
+      rescue ex : DB::Error
+        # If statement is invalid, remove from cache and retry
+        if cache = @statement_cache
+          cache.delete(query)
+        end
+        # Retry with fresh statement
+        @db.query(query, args: args)
+      end
+
+      # Scalar query using cached prepared statement
+      private def scalar_with_cache(query : String, args : Array(DB::Any))
+        stmt = get_or_prepare_statement(query)
+        stmt.scalar(args: args)
+      rescue ex : DB::Error
+        # If statement is invalid, remove from cache and retry
+        if cache = @statement_cache
+          cache.delete(query)
+        end
+        # Retry with fresh statement
+        @db.scalar(query, args: args)
       end
     end
   end

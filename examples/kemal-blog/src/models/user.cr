@@ -21,8 +21,8 @@ module Blog
     validates_length_of :username, min: 3, max: 50
     validates_format_of :email, pattern: /@/
 
-    has_many posts, class_name: "Blog::Post"
-    has_many comments, class_name: "Blog::Comment"
+    has_many posts : Blog::Post
+    has_many comments : Blog::Comment
 
     # Scope for recently created users
     scope :recent, ->(q : Ralph::Query::Builder) { q.order("created_at", :desc).limit(10) }

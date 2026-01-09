@@ -1,6 +1,7 @@
 require "db"
 require "pg"
 require "uri"
+require "../statement_cache"
 
 module Ralph
   module Database
@@ -43,6 +44,18 @@ module Ralph
     # end
     # ```
     #
+    # ## Prepared Statement Caching
+    #
+    # This backend supports prepared statement caching for improved query
+    # performance. Enable and configure via Ralph.settings:
+    #
+    # ```
+    # Ralph.configure do |config|
+    #   config.enable_prepared_statements = true
+    #   config.prepared_statement_cache_size = 100
+    # end
+    # ```
+    #
     # ## Placeholder Conversion
     #
     # This backend automatically converts `?` placeholders to PostgreSQL's
@@ -56,6 +69,7 @@ module Ralph
       @db : ::DB::Database
       @closed : Bool = false
       @connection_string : String
+      @statement_cache : Ralph::StatementCache(::DB::PoolPreparedStatement)?
 
       # Creates a new PostgreSQL backend with the given connection string
       #
@@ -84,6 +98,13 @@ module Ralph
                                   end
 
         @db = DB.open(final_connection_string)
+
+        # Initialize prepared statement cache from settings
+        settings = Ralph.settings
+        @statement_cache = Ralph::StatementCache(::DB::PoolPreparedStatement).new(
+          max_size: settings.prepared_statement_cache_size,
+          enabled: settings.enable_prepared_statements
+        )
       end
 
       # Build connection string with pool parameters from Ralph.settings
@@ -102,27 +123,44 @@ module Ralph
         uri.to_s
       end
 
+      # Execute a write query (INSERT, UPDATE, DELETE, DDL)
+      # Uses prepared statement cache when enabled
       def execute(query : String, args : Array(DB::Any) = [] of DB::Any)
-        @db.exec(convert_placeholders(query), args: args)
+        converted_query = convert_placeholders(query)
+        execute_with_cache(converted_query, args) do |stmt, params|
+          stmt.exec(args: params)
+        end
       end
 
+      # Insert a record and return the inserted ID
+      # Uses RETURNING clause for PostgreSQL
       def insert(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64
         modified_query = append_returning_id(convert_placeholders(query))
+        # For inserts with RETURNING, use direct query_one to ensure we get the ID
         result = @db.query_one(modified_query, args: args, as: Int64)
         result
       end
 
+      # Query for a single row, returns nil if no results
+      # Uses prepared statement cache when enabled
       def query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet?
-        rs = @db.query(convert_placeholders(query), args: args)
+        converted_query = convert_placeholders(query)
+        rs = query_with_cache(converted_query, args)
         rs.move_next ? rs : nil
       end
 
+      # Query for multiple rows
+      # Uses prepared statement cache when enabled
       def query_all(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet
-        @db.query(convert_placeholders(query), args: args)
+        converted_query = convert_placeholders(query)
+        query_with_cache(converted_query, args)
       end
 
+      # Run a scalar query and return a single value
+      # Uses prepared statement cache when enabled
       def scalar(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::Any?
-        result = @db.scalar(convert_placeholders(query), args: args)
+        converted_query = convert_placeholders(query)
+        result = scalar_with_cache(converted_query, args)
         case result
         when Bool, Float32, Float64, Int32, Int64, Slice(UInt8), String, Time, Nil
           result
@@ -146,6 +184,8 @@ module Ralph
       end
 
       def close
+        # Clear statement cache before closing
+        clear_statement_cache
         @db.close
         @closed = true
       end
@@ -371,6 +411,44 @@ module Ralph
         @db.exec("DROP EXTENSION #{if_exists_sql}\"#{name}\"#{cascade_sql}")
       end
 
+      # ========================================
+      # Prepared Statement Cache Implementation
+      # ========================================
+
+      # Clear all cached prepared statements
+      def clear_statement_cache
+        if cache = @statement_cache
+          cache.clear
+          # Note: DB::PoolPreparedStatement is managed by the pool,
+          # garbage collection will clean up the statements
+        end
+      end
+
+      # Get statement cache statistics
+      def statement_cache_stats : NamedTuple(size: Int32, max_size: Int32, enabled: Bool)
+        if cache = @statement_cache
+          cache.stats
+        else
+          {size: 0, max_size: 0, enabled: false}
+        end
+      end
+
+      # Enable or disable statement caching at runtime
+      def enable_statement_cache=(enabled : Bool)
+        if cache = @statement_cache
+          cache.enabled = enabled
+        end
+      end
+
+      # Check if statement caching is enabled
+      def statement_cache_enabled? : Bool
+        if cache = @statement_cache
+          cache.enabled?
+        else
+          false
+        end
+      end
+
       private def convert_placeholders(query : String) : String
         return query unless query.includes?('?')
 
@@ -390,6 +468,70 @@ module Ralph
         else
           "#{trimmed} RETURNING id"
         end
+      end
+
+      # Get or create a prepared statement from cache
+      private def get_or_prepare_statement(query : String) : ::DB::PoolPreparedStatement
+        cache = @statement_cache
+
+        # If cache is disabled or unavailable, create a new statement
+        if cache.nil? || !cache.enabled?
+          return @db.build(query).as(::DB::PoolPreparedStatement)
+        end
+
+        # Try to get from cache
+        if stmt = cache.get(query)
+          return stmt
+        end
+
+        # Create new prepared statement
+        stmt = @db.build(query).as(::DB::PoolPreparedStatement)
+
+        # Cache it (may evict old statements)
+        # Note: evicted statements are managed by the pool, no explicit close needed
+        cache.set(query, stmt)
+
+        stmt
+      end
+
+      # Execute a query using cached prepared statement
+      private def execute_with_cache(query : String, args : Array(DB::Any), &)
+        stmt = get_or_prepare_statement(query)
+        yield stmt, args
+      rescue ex : DB::Error
+        # If statement is invalid (e.g., schema changed), remove from cache and retry
+        if cache = @statement_cache
+          cache.delete(query)
+        end
+        # Retry with fresh statement
+        stmt = @db.build(query).as(::DB::PoolPreparedStatement)
+        yield stmt, args
+      end
+
+      # Query using cached prepared statement
+      private def query_with_cache(query : String, args : Array(DB::Any)) : ::DB::ResultSet
+        stmt = get_or_prepare_statement(query)
+        stmt.query(args: args)
+      rescue ex : DB::Error
+        # If statement is invalid, remove from cache and retry
+        if cache = @statement_cache
+          cache.delete(query)
+        end
+        # Retry with fresh statement
+        @db.query(query, args: args)
+      end
+
+      # Scalar query using cached prepared statement
+      private def scalar_with_cache(query : String, args : Array(DB::Any))
+        stmt = get_or_prepare_statement(query)
+        stmt.scalar(args: args)
+      rescue ex : DB::Error
+        # If statement is invalid, remove from cache and retry
+        if cache = @statement_cache
+          cache.delete(query)
+        end
+        # Retry with fresh statement
+        @db.scalar(query, args: args)
       end
     end
   end

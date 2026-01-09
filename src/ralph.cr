@@ -176,6 +176,74 @@ module Ralph
   def self.validate_pool_config : Array(String)
     settings.validate_pool_settings
   end
+
+  # Query Cache Methods
+  # ===================
+
+  # Get query cache statistics
+  #
+  # Returns statistics about cache hits, misses, size, evictions, etc.
+  #
+  # ## Example
+  #
+  # ```
+  # stats = Ralph.cache_stats
+  # puts "Hits: #{stats.hits}"
+  # puts "Misses: #{stats.misses}"
+  # puts "Hit rate: #{(stats.hit_rate * 100).round(1)}%"
+  # puts "Size: #{stats.size}"
+  # puts "Evictions: #{stats.evictions}"
+  # ```
+  def self.cache_stats : Query::QueryCache::Stats
+    Query.cache_stats
+  end
+
+  # Clear the query cache
+  #
+  # Removes all cached query results. This is useful when you need
+  # to ensure fresh data is loaded from the database.
+  #
+  # ## Example
+  #
+  # ```
+  # Ralph.clear_cache
+  # ```
+  def self.clear_cache : Nil
+    Query.clear_cache
+  end
+
+  # Check if query caching is enabled
+  def self.cache_enabled? : Bool
+    Query.query_cache.enabled?
+  end
+
+  # Disable query caching (clears all cached entries)
+  #
+  # Useful for testing or when you need to ensure fresh data.
+  def self.disable_cache : Nil
+    Query.query_cache.disable
+  end
+
+  # Enable query caching
+  def self.enable_cache : Nil
+    Query.query_cache.enable
+  end
+
+  # Invalidate cache entries for a specific table
+  #
+  # This is called automatically on model save/update/destroy when
+  # `query_cache_auto_invalidate` is enabled (default).
+  #
+  # ## Parameters
+  #
+  # - `table`: The table name to invalidate
+  #
+  # ## Returns
+  #
+  # The number of cache entries that were invalidated.
+  def self.invalidate_table_cache(table : String) : Int32
+    Query.invalidate_table_cache(table)
+  end
 end
 
 # Core library requires
@@ -190,6 +258,8 @@ require "./ralph/transactions"
 require "./ralph/eager_loading"
 require "./ralph/timestamps"
 require "./ralph/acts_as_paranoid"
+require "./ralph/bulk_operations"
+require "./ralph/identity_map"
 require "./ralph/model"
 require "./ralph/query/*"
 require "./ralph/migrations/*"

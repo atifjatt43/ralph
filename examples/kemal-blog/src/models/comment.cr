@@ -16,8 +16,8 @@ module Blog
     validates_length_of :body, min: 1, max: 1000
 
     # User and Post both have String (UUID) PKs, so foreign keys are String type
-    belongs_to user, class_name: "Blog::User"
-    belongs_to post, class_name: "Blog::Post"
+    belongs_to user : Blog::User
+    belongs_to post : Blog::Post
 
     # Scope for recent comments
     scope :recent, ->(q : Ralph::Query::Builder) { q.order("created_at", :desc).limit(20) }

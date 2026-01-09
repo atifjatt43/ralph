@@ -19,8 +19,8 @@ module Blog
     validates_length_of :title, min: 3, max: 200
 
     # User has String (UUID) PK, so user_id will be String type
-    belongs_to user, class_name: "Blog::User"
-    has_many comments, class_name: "Blog::Comment"
+    belongs_to user : Blog::User
+    has_many comments : Blog::Comment
 
     # Scopes for filtering posts
     scope :published, ->(q : Ralph::Query::Builder) { q.where("published = ?", true) }

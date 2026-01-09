@@ -2,7 +2,7 @@
 
 `module`
 
-*Defined in [src/ralph/backends/postgres.cr:6](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L6)*
+*Defined in [src/ralph/backends/postgres.cr:7](https://github.com/watzon/ralph/blob/main/src/ralph/backends/postgres.cr#L7)*
 
 Abstract database backend interface
 

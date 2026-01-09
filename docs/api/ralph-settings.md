@@ -26,11 +26,21 @@ end
 
 ### `.new`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L80)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L151)*
 
 ---
 
 ## Instance Methods
+
+### `#apply_query_cache_settings`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L157)*
+
+Apply query cache settings to the global cache
+
+Call this after modifying cache settings to apply them.
+
+---
 
 ### `#checkout_timeout`
 
@@ -60,9 +70,25 @@ Allows connecting to multiple databases
 
 ---
 
+### `#enable_prepared_statements`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L95)*
+
+Whether to enable prepared statement caching.
+
+When enabled, SQL queries are compiled once and reused with different
+parameters. This reduces database overhead for frequently executed queries.
+
+**Note**: Enable only if your application executes the same queries
+repeatedly with different parameters.
+
+Default: true
+
+---
+
 ### `#get_database(name : String) : Database::Backend`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L118)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L200)*
 
 Get a named database backend
 
@@ -124,7 +150,7 @@ Recommended: 10-25 for low traffic, 50-100 for high traffic.
 
 ### `#pool_params`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L129)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L211)*
 
 Build query string parameters for pool configuration.
 
@@ -132,9 +158,82 @@ Returns a hash that can be merged into connection URI query params.
 
 ---
 
+### `#prepared_statement_cache_size`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L105)*
+
+Maximum number of prepared statements to cache per database connection.
+
+Higher values use more memory but can improve performance for applications
+with many distinct queries. When the cache is full, least recently used
+statements are evicted.
+
+Recommended: 50-100 for most applications, 200+ for query-heavy apps.
+Default: 100
+
+---
+
+### `#query_cache_auto_invalidate`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L149)*
+
+Whether to automatically invalidate cache on model writes.
+
+When enabled, saving, updating, or destroying a model will automatically
+invalidate cached queries that reference the model's table.
+
+Default: true
+
+---
+
+### `#query_cache_enabled`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L122)*
+
+Whether to enable query result caching.
+
+When enabled, queries marked with `.cache` will store their results
+and return cached data on subsequent executions with the same SQL/params.
+
+**Note for tests**: This is typically disabled during testing to ensure
+predictable behavior. Set to false or use `Ralph::Query.configure_cache(enabled: false)`.
+
+Default: true (but consider disabling in test environment)
+
+---
+
+### `#query_cache_max_size`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L131)*
+
+Maximum number of query results to cache.
+
+When the cache is full, least recently used entries are evicted.
+Higher values use more memory but can improve hit rates.
+
+Recommended: 500-1000 for most applications.
+Default: 1000
+
+---
+
+### `#query_cache_ttl`
+
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L141)*
+
+Default time-to-live for cached query results.
+
+Cached results expire after this duration and will be re-fetched
+from the database. Shorter TTLs ensure fresher data but reduce
+cache effectiveness.
+
+Recommended: 1-5 minutes for most applications.
+Default: 5 minutes
+
+---
+
 ### `#register_database(name : String, backend : Database::Backend)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L101)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L183)*
 
 Register a named database backend
 
@@ -182,7 +281,7 @@ Recommended: 0.2-0.5 for development, 0.5-2.0 for production.
 
 ### `#validate_pool_settings`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L143)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/settings.cr#L225)*
 
 Validate pool settings and return any warnings.
 

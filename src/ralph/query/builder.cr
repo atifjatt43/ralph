@@ -306,7 +306,7 @@ module Ralph
 
       # Query caching support
       @cached : Bool
-      @@cache : Hash(String, Array(Hash(String, DBValue))) = {} of String => Array(Hash(String, DBValue))
+      @cache_ttl : Time::Span?
 
       # Row locking support (SELECT FOR UPDATE, etc.)
       @lock : LockClause?
@@ -354,6 +354,7 @@ module Ralph
         @windows = [] of WindowClause
         @set_operations = [] of SetOperationClause
         @cached = false
+        @cache_ttl = nil
         @lock = nil
       end
 
@@ -378,6 +379,7 @@ module Ralph
         @windows : Array(WindowClause),
         @set_operations : Array(SetOperationClause),
         @cached : Bool,
+        @cache_ttl : Time::Span?,
         @lock : LockClause?,
       )
       end
@@ -404,6 +406,7 @@ module Ralph
           @windows.dup,
           @set_operations.dup,
           @cached,
+          @cache_ttl,
           @lock
         )
       end
@@ -460,71 +463,71 @@ module Ralph
 
       # Private helper methods for immutable updates
       private def with_wheres(wheres : Array(WhereClause)) : Builder
-        Builder.new(@table, wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_selects(selects : Array(String)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_orders(orders : Array(OrderClause)) : Builder
-        Builder.new(@table, @wheres, orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_limit(limit : Int32?) : Builder
-        Builder.new(@table, @wheres, @orders, limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_offset(offset : Int32?) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_joins(joins : Array(JoinClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_groups(groups : Array(String)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_havings(havings : Array(WhereClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_distinct(distinct : Bool, distinct_columns : Array(String) = @distinct_columns) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, distinct, distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, distinct, distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_ctes(ctes : Array(CTEClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_from_subquery(from_subquery : FromSubquery?) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_exists_clauses(exists_clauses : Array(ExistsClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_in_subquery_clauses(in_subquery_clauses : Array(InSubqueryClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, in_subquery_clauses, @combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_combined_clauses(combined_clauses : Array(CombinedClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, combined_clauses, @windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, combined_clauses, @windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_windows(windows : Array(WindowClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, windows, @set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, windows, @set_operations, @cached, @cache_ttl, @lock)
       end
 
       private def with_set_operations(set_operations : Array(SetOperationClause)) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, set_operations, @cached, @lock)
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, set_operations, @cached, @cache_ttl, @lock)
       end
 
-      private def with_cached(cached : Bool) : Builder
-        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, cached, @lock)
+      private def with_cached(cached : Bool, cache_ttl : Time::Span? = @cache_ttl) : Builder
+        Builder.new(@table, @wheres, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, @combined_clauses, @windows, @set_operations, cached, cache_ttl, @lock)
       end
 
       # ========================================
@@ -554,7 +557,7 @@ module Ralph
         if @wheres.any? && other.wheres.any?
           # Create new combined clause and clear wheres
           new_combined = @combined_clauses + [CombinedClause.new(@wheres.dup, other.wheres.dup, :or)]
-          Builder.new(@table, [] of WhereClause, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, new_combined, @windows, @set_operations, @cached, @lock)
+          Builder.new(@table, [] of WhereClause, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, new_combined, @windows, @set_operations, @cached, @cache_ttl, @lock)
         elsif other.wheres.any?
           # If we have no wheres, just adopt the other's
           with_wheres(other.wheres.dup)
@@ -587,7 +590,7 @@ module Ralph
         if @wheres.any? && other.wheres.any?
           # Create new combined clause and clear wheres
           new_combined = @combined_clauses + [CombinedClause.new(@wheres.dup, other.wheres.dup, :and)]
-          Builder.new(@table, [] of WhereClause, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, new_combined, @windows, @set_operations, @cached, @lock)
+          Builder.new(@table, [] of WhereClause, @orders, @limit, @offset, @joins, @selects, @groups, @havings, @distinct, @distinct_columns, @ctes, @from_subquery, @exists_clauses, @in_subquery_clauses, new_combined, @windows, @set_operations, @cached, @cache_ttl, @lock)
         elsif other.wheres.any?
           # If we have no wheres, just adopt the other's
           with_wheres(other.wheres.dup)
@@ -619,6 +622,7 @@ module Ralph
         new_offset = @offset || other.offset_value
         new_distinct = @distinct || other.distinct?
         new_lock = @lock ? @lock : other.@lock
+        new_cache_ttl = @cache_ttl || other.@cache_ttl
 
         Builder.new(
           @table,
@@ -640,6 +644,7 @@ module Ralph
           @windows + other.windows,
           @set_operations + other.set_operations,
           @cached || other.cached?,
+          new_cache_ttl,
           new_lock
         )
       end
@@ -1970,19 +1975,26 @@ module Ralph
       # When a query is marked for caching, subsequent executions with the same
       # SQL and parameters will return cached results instead of hitting the database.
       #
-      # Example:
+      # ## Example
+      #
       # ```
+      # # Cache with default TTL
       # query = Ralph::Query::Builder.new("users")
       #   .where("active = ?", true)
       #   .cache
+      #
+      # # Cache with custom TTL
+      # query = Ralph::Query::Builder.new("users")
+      #   .where("active = ?", true)
+      #   .cache(ttl: 10.minutes)
       # ```
-      def cache : Builder
-        with_cached(true)
+      def cache(ttl : Time::Span? = nil) : Builder
+        with_cached(true, ttl)
       end
 
       # Disable caching for this query (returns new Builder)
       def uncache : Builder
-        with_cached(false)
+        with_cached(false, nil)
       end
 
       # Generate a cache key based on SQL and parameters
@@ -1992,33 +2004,67 @@ module Ralph
         "#{sql}:#{args_str}"
       end
 
+      # Get the cache TTL for this query
+      def cache_ttl : Time::Span?
+        @cache_ttl
+      end
+
       # Check if results are cached for this query
       def cached_result? : Array(Hash(String, DBValue))?
         return nil unless @cached
-        @@cache[cache_key]?
+        Query.query_cache.get(cache_key)
       end
 
       # Store results in cache
       def cache_result(results : Array(Hash(String, DBValue))) : Nil
         return unless @cached
-        @@cache[cache_key] = results
+        Query.query_cache.set(cache_key, results, @cache_ttl)
       end
 
       # Clear all cached query results (class method)
       def self.clear_cache : Nil
-        @@cache.clear
+        Query.clear_cache
       end
 
       # Clear cached result for this specific query
       def clear_cache : Nil
-        @@cache.delete(cache_key)
+        Query.query_cache.delete(cache_key)
       end
 
       # Invalidate cache entries for a specific table
       #
       # This should be called after INSERT, UPDATE, or DELETE operations
-      def self.invalidate_table_cache(table : String) : Nil
-        @@cache.reject! { |key, _| key.includes?("\"#{table}\"") }
+      def self.invalidate_table_cache(table : String) : Int32
+        Query.invalidate_table_cache(table)
+      end
+
+      # Get cache statistics
+      #
+      # Returns statistics about cache hits, misses, size, evictions, etc.
+      #
+      # ## Example
+      #
+      # ```
+      # stats = Ralph::Query::Builder.cache_stats
+      # puts "Hits: #{stats.hits}, Misses: #{stats.misses}, Hit rate: #{stats.hit_rate}"
+      # ```
+      def self.cache_stats : QueryCache::Stats
+        Query.cache_stats
+      end
+
+      # Check if query caching is enabled
+      def self.cache_enabled? : Bool
+        Query.query_cache.enabled?
+      end
+
+      # Enable query caching
+      def self.enable_cache : Nil
+        Query.query_cache.enable
+      end
+
+      # Disable query caching (clears all cached entries)
+      def self.disable_cache : Nil
+        Query.query_cache.disable
       end
 
       # ========================================
@@ -2180,6 +2226,7 @@ module Ralph
           @windows.dup,
           @set_operations.dup,
           @cached,
+          @cache_ttl,
           lock
         )
       end

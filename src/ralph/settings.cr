@@ -77,7 +77,89 @@ module Ralph
     # Recommended: 0.2-0.5 for development, 0.5-2.0 for production.
     property retry_delay : Float64 = 0.2
 
+    # Prepared Statement Cache Configuration
+    # ======================================
+    #
+    # These settings control prepared statement caching, which can improve
+    # query performance by avoiding repeated SQL parsing and planning.
+
+    # Whether to enable prepared statement caching.
+    #
+    # When enabled, SQL queries are compiled once and reused with different
+    # parameters. This reduces database overhead for frequently executed queries.
+    #
+    # **Note**: Enable only if your application executes the same queries
+    # repeatedly with different parameters.
+    #
+    # Default: true
+    property enable_prepared_statements : Bool = true
+
+    # Maximum number of prepared statements to cache per database connection.
+    #
+    # Higher values use more memory but can improve performance for applications
+    # with many distinct queries. When the cache is full, least recently used
+    # statements are evicted.
+    #
+    # Recommended: 50-100 for most applications, 200+ for query-heavy apps.
+    # Default: 100
+    property prepared_statement_cache_size : Int32 = 100
+
+    # Query Cache Configuration
+    # =========================
+    #
+    # These settings control the query result cache, which stores query results
+    # in memory to avoid repeated database queries for identical SQL.
+
+    # Whether to enable query result caching.
+    #
+    # When enabled, queries marked with `.cache` will store their results
+    # and return cached data on subsequent executions with the same SQL/params.
+    #
+    # **Note for tests**: This is typically disabled during testing to ensure
+    # predictable behavior. Set to false or use `Ralph::Query.configure_cache(enabled: false)`.
+    #
+    # Default: true (but consider disabling in test environment)
+    property query_cache_enabled : Bool = true
+
+    # Maximum number of query results to cache.
+    #
+    # When the cache is full, least recently used entries are evicted.
+    # Higher values use more memory but can improve hit rates.
+    #
+    # Recommended: 500-1000 for most applications.
+    # Default: 1000
+    property query_cache_max_size : Int32 = 1000
+
+    # Default time-to-live for cached query results.
+    #
+    # Cached results expire after this duration and will be re-fetched
+    # from the database. Shorter TTLs ensure fresher data but reduce
+    # cache effectiveness.
+    #
+    # Recommended: 1-5 minutes for most applications.
+    # Default: 5 minutes
+    property query_cache_ttl : Time::Span = 5.minutes
+
+    # Whether to automatically invalidate cache on model writes.
+    #
+    # When enabled, saving, updating, or destroying a model will automatically
+    # invalidate cached queries that reference the model's table.
+    #
+    # Default: true
+    property query_cache_auto_invalidate : Bool = true
+
     def initialize
+    end
+
+    # Apply query cache settings to the global cache
+    #
+    # Call this after modifying cache settings to apply them.
+    def apply_query_cache_settings : Nil
+      Ralph::Query.configure_cache(
+        max_size: @query_cache_max_size,
+        default_ttl: @query_cache_ttl,
+        enabled: @query_cache_enabled
+      )
     end
 
     # Register a named database backend

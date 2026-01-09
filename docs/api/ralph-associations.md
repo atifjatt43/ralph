@@ -12,34 +12,34 @@ This module provides macros for defining common database associations:
 - `has_many` - One-to-many relationship (e.g., a user has many posts)
 
 Polymorphic associations are also supported:
-- `belongs_to :commentable, polymorphic: true` - Can belong to multiple model types
-- `has_many :comments, as: :commentable` - Parent side of polymorphic relationship
+- `belongs_to commentable : Model, polymorphic: true` - Can belong to multiple model types
+- `has_many comments : Comment, as: :commentable` - Parent side of polymorphic relationship
 
 New in Phase 3.3:
 - `counter_cache: true` - Maintain a count column on parent for has_many associations
 - `touch: true` - Update parent timestamp when association changes
 - Association scoping with lambda blocks
-- Through associations: `has_many :tags, through: :posts`
+- Through associations: `has_many tags : Tag, through: :posts`
 
 Example:
 ```
 class Post < Ralph::Model
-  column id, Int64, primary: true
-  column title, String
-  column user_id, Int64
+  column id : Int64, primary: true
+  column title : String
+  column user_id : Int64
 
-  belongs_to user, touch: true
+  belongs_to user : User, touch: true
 end
 
 class User < Ralph::Model
-  column id, Int64, primary: true
-  column name, String
-  column posts_count, Int32, default: 0
-  column updated_at, Time?
+  column id : Int64, primary: true
+  column name : String
+  column posts_count : Int32, default: 0
+  column updated_at : Time?
 
-  has_one profile
-  has_many posts, counter_cache: true
-  has_many tags, through: :posts
+  has_one profile : Profile
+  has_many posts : Post, counter_cache: true
+  has_many tags : Tag, through: :posts
 end
 ```
 
@@ -122,49 +122,53 @@ Get touch relationships for a child class
 
 ## Macros
 
-### `.belongs_to(name, **options)`
+### `.belongs_to(klass_or_decl = nil, **options)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L190)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L195)*
 
 Define a belongs_to association
 
 Options:
-- class_name: Specify the class of the association (e.g., "User" instead of inferring from name)
 - foreign_key: Specify a custom foreign key column (e.g., "author_id" instead of "user_id")
 - primary_key: Specify the primary key on the associated model (defaults to "id")
-- polymorphic: If true, this association can belong to multiple model types
 - touch: If true, updates parent's updated_at on save; can also be a column name
 - counter_cache: If true, maintains a count column on the parent model
-  - true: Uses default column name (e.g., `posts_count` for `belongs_to :post`)
+  - true: Uses default column name (e.g., `posts_count` for `belongs_to Post`)
   - String: Uses custom column name (e.g., `counter_cache: "comment_count"`)
 - optional: If true, the foreign key can be nil (default: false)
 
+For polymorphic associations, use the special form:
+  belongs_to polymorphic: :commentable
+
+Supports two syntaxes:
+  belongs_to User                  # Association name inferred as 'user'
+  belongs_to author : User         # Explicit association name
+
 Usage:
 ```
-belongs_to user
-belongs_to author, class_name: "User"
-belongs_to author, class_name: "User", foreign_key: "writer_id"
-belongs_to author, class_name: "User", primary_key: "uuid"
-belongs_to commentable, polymorphic: true          # Creates commentable_id and commentable_type columns
-belongs_to user, touch: true                       # Updates user.updated_at on save
-belongs_to user, touch: :last_post_at              # Updates user.last_post_at on save
-belongs_to publisher, counter_cache: true          # Maintains publisher.books_count (inferred from child table)
-belongs_to publisher, counter_cache: "total_books" # Uses custom column name
+belongs_to User                                    # user, user_id
+belongs_to author : User                           # author, author_id (explicit name)
+belongs_to author : User, foreign_key: :writer_id  # author, writer_id
+belongs_to User, primary_key: :uuid                # user, user_id (looks up by uuid)
+belongs_to polymorphic: :commentable               # commentable_id, commentable_type columns
+belongs_to User, touch: true                       # Updates user.updated_at on save
+belongs_to User, touch: :last_post_at              # Updates user.last_post_at on save
+belongs_to User, counter_cache: true               # Maintains user.posts_count
+belongs_to User, counter_cache: "total_books"      # Uses custom column name
 ```
 
 ---
 
-### `.has_many(name, scope_block = nil, **options)`
+### `.has_many(klass_or_decl, scope_block = nil, **options)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L958)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L984)*
 
 Define a has_many association
 
 Options:
-- class_name: Specify the class of the association (e.g., "Post" instead of inferring from name)
 - foreign_key: Specify a custom foreign key on the associated model (e.g., "owner_id" instead of "user_id")
 - primary_key: Specify the primary key on this model (defaults to "id")
-- as: For polymorphic associations, specify the name of the polymorphic interface
+- polymorphic: For polymorphic associations, specify the name of the polymorphic interface on the child
 - through: For through associations, specify the intermediate association name
 - source: For through associations, specify the source association on the through model
 - dependent: Specify what happens to associated records when this record is destroyed
@@ -177,31 +181,34 @@ Options:
 Note: For counter caching, use `counter_cache: true` on the `belongs_to` side of the association.
 This automatically generates increment/decrement/update callbacks on the child model.
 
+Supports two syntaxes:
+  has_many Post                     # Association name inferred as 'posts'
+  has_many posts : Post             # Explicit association name
+
 Usage:
 ```
-has_many posts
-has_many articles, class_name: "BlogPost"
-has_many articles, class_name: "BlogPost", foreign_key: "writer_id"
-has_many posts, dependent: :destroy
-has_many posts, dependent: :delete_all
-has_many comments, as: :commentable              # Polymorphic association
-has_many tags, through: :post_tags               # Through association
-has_many tags, through: :post_tags, source: :tag # Through with custom source
+has_many Post                                          # posts
+has_many articles : Post                               # articles (explicit name)
+has_many articles : BlogPost, foreign_key: :writer_id  # articles, writer_id
+has_many Post, dependent: :destroy                     # destroys posts when parent destroyed
+has_many Post, dependent: :delete_all                  # deletes without callbacks
+has_many comments : Comment, polymorphic: :commentable # polymorphic (Comment has commentable_id/type)
+has_many tags : Tag, through: :post_tags               # through association
+has_many tags : Tag, through: :post_tags, source: :tag # through with custom source
 ```
 
 ---
 
-### `.has_one(name, **options)`
+### `.has_one(klass_or_decl, **options)`
 
-*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L591)*
+*[View source](https://github.com/watzon/ralph/blob/main/src/ralph/associations.cr#L609)*
 
 Define a has_one association
 
 Options:
-- class_name: Specify the class of the association (e.g., "Profile" instead of inferring from name)
 - foreign_key: Specify a custom foreign key on the associated model (e.g., "owner_id" instead of "user_id")
 - primary_key: Specify the primary key on this model (defaults to "id")
-- as: For polymorphic associations, specify the name of the polymorphic interface
+- polymorphic: For polymorphic associations, specify the name of the polymorphic interface on the child
 - dependent: Specify what happens to associated records when this record is destroyed
   - :destroy - Destroy associated records (runs callbacks)
   - :delete - Delete associated records (skips callbacks)
@@ -209,13 +216,17 @@ Options:
   - :restrict_with_error - Prevent destruction if associations exist (adds error)
   - :restrict_with_exception - Prevent destruction if associations exist (raises exception)
 
+Supports two syntaxes:
+  has_one Profile                   # Association name inferred as 'profile'
+  has_one user_profile : Profile    # Explicit association name
+
 Usage:
 ```
-has_one profile
-has_one avatar, class_name: "UserAvatar"
-has_one avatar, class_name: "UserAvatar", foreign_key: "owner_id"
-has_one profile, dependent: :destroy
-has_one profile, as: :profileable # Polymorphic association
+has_one Profile                                      # profile
+has_one user_profile : Profile                       # user_profile (explicit name)
+has_one avatar : UserAvatar, foreign_key: :owner_id  # avatar, owner_id on UserAvatar
+has_one Profile, dependent: :destroy                 # destroys profile when user destroyed
+has_one profile : Profile, polymorphic: :profileable # polymorphic (Profile has profileable_id/type)
 ```
 
 ---

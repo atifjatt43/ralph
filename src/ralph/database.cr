@@ -153,6 +153,62 @@ module Ralph
       protected def health_check_query : String
         "SELECT 1"
       end
+
+      # Prepared Statement Cache Methods
+      # =================================
+
+      # Clear the prepared statement cache
+      #
+      # This invalidates all cached statements, forcing them to be reparsed
+      # on next use. Call this after schema changes or when you want to
+      # release memory.
+      #
+      # ## Example
+      #
+      # ```
+      # Ralph.database.clear_statement_cache
+      # ```
+      def clear_statement_cache
+        # Default implementation does nothing
+        # Backends override this if they support statement caching
+      end
+
+      # Get statistics about the prepared statement cache
+      #
+      # Returns a NamedTuple with cache size, max size, and enabled status.
+      #
+      # ## Example
+      #
+      # ```
+      # stats = Ralph.database.statement_cache_stats
+      # puts "Cached: #{stats[:size]}/#{stats[:max_size]}"
+      # ```
+      def statement_cache_stats : NamedTuple(size: Int32, max_size: Int32, enabled: Bool)
+        # Default implementation returns empty stats
+        {size: 0, max_size: 0, enabled: false}
+      end
+
+      # Enable or disable prepared statement caching at runtime
+      #
+      # ## Example
+      #
+      # ```
+      # # Disable caching temporarily
+      # Ralph.database.enable_statement_cache = false
+      #
+      # # Run some one-off queries...
+      #
+      # # Re-enable caching
+      # Ralph.database.enable_statement_cache = true
+      # ```
+      def enable_statement_cache=(enabled : Bool)
+        # Default implementation does nothing
+      end
+
+      # Check if prepared statement caching is enabled
+      def statement_cache_enabled? : Bool
+        false
+      end
     end
   end
 end

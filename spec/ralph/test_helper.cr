@@ -94,6 +94,7 @@ module RalphTestHelper
       t.boolean("active")
       t.boolean("skip_callback")
       t.timestamp("created_at")
+      t.index("email", unique: true) # Unique index for upsert tests
     end
 
     TestSchema.create_table("posts") do |t|
