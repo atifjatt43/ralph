@@ -21,7 +21,14 @@ nav = [
     {"Models" = [
         "models/introduction.md",
         {"CRUD Operations" = "models/crud-operations.md"},
-        {"Advanced Types" = "models/types.md"},
+        {"Advanced Types" = [
+            "models/types.md",
+            {"Enums" = "models/types/enums.md"},
+            {"JSON/JSONB" = "models/types/json.md"},
+            {"UUID" = "models/types/uuid.md"},
+            {"Arrays" = "models/types/arrays.md"},
+            {"Custom Types" = "models/types/custom.md"},
+        ]},
         {"Associations" = "models/associations.md"},
         {"Validations" = "models/validations.md"},
         {"Callbacks" = "models/callbacks.md"},
@@ -30,11 +37,19 @@ nav = [
     ]},
     {"Query Builder" = [
         "query-builder/introduction.md",
-        {"Advanced" = "query-builder/advanced.md"},
+        {"Advanced" = [
+            "query-builder/advanced.md",
+            {"CTEs & Window Functions" = "query-builder/ctes-and-window-functions.md"},
+            {"Set Operations" = "query-builder/set-operations.md"},
+            {"JSON & Array Queries" = "query-builder/json-and-array-queries.md"},
+            {"Caching & Performance" = "query-builder/caching.md"},
+            {"PostgreSQL Features" = "query-builder/postgres-features.md"},
+        ]},
     ]},
     {"Migrations" = [
         "migrations/introduction.md",
         {"Schema Builder" = "migrations/schema-builder.md"},
+        {"PostgreSQL Indexes" = "migrations/postgres-indexes.md"},
         {"Programmatic API" = "migrations/programmatic-api.md"},
         {"Error Handling" = "migrations/error-handling.md"},
     ]},
