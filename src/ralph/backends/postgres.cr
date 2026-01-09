@@ -132,11 +132,21 @@ module Ralph
         end
       end
 
-      # Insert a record and return the inserted ID
+      # Insert a record and return the inserted ID (for auto-increment PKs)
+      # For non-Int PKs (like UUID), this returns 0 but the insert still succeeds
       # Uses RETURNING clause for PostgreSQL
       def insert(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64
+        # Execute the insert without RETURNING for tables with non-Int PKs
+        # We use exec_all which doesn't expect a return value
+        converted_query = convert_placeholders(query)
+        @db.exec(converted_query, args: args)
+        0_i64 # Return 0 for non-auto-increment PKs
+      end
+
+      # Insert a record and return the auto-generated Int64 ID
+      # Only use this for tables with serial/bigserial primary keys
+      def insert_returning_id(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64
         modified_query = append_returning_id(convert_placeholders(query))
-        # For inserts with RETURNING, use direct query_one to ensure we get the ID
         result = @db.query_one(modified_query, args: args, as: Int64)
         result
       end
