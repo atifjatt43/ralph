@@ -199,8 +199,16 @@ module Ralph
  is_polymorphic = polymorphic_opt != nil && polymorphic_opt != false
 
  if is_polymorphic
-   # Polymorphic form: belongs_to polymorphic: :commentable
-   name_str = polymorphic_opt.id.stringify
+   # Polymorphic associations can be specified two ways:
+   # 1. belongs_to polymorphic: :commentable  (name comes from option value)
+   # 2. belongs_to reference, polymorphic: true  (name comes from first arg)
+   if polymorphic_opt == true && klass_or_decl != nil
+     # Case 2: belongs_to name, polymorphic: true
+     name_str = klass_or_decl.id.stringify
+   else
+     # Case 1: belongs_to polymorphic: :name
+     name_str = polymorphic_opt.id.stringify
+   end
    class_name = "Ralph::Model"
    class_name_override = false
  elsif klass_or_decl.is_a?(TypeDeclaration)
