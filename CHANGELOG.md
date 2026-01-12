@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-beta.4] - 2026-01-12
+
+### Added
+
+- **Schema Validation**: `db:check` CLI command validates model definitions against database schemas, catching mismatches at runtime with detailed error reporting and fix suggestions. Configurable via `strict_resultset_validation` and `validate_schema_on_boot` settings. (closes #216)
+- **Composite Primary Keys**: Support for models with multiple primary key columns via `@@primary_keys` array, `primary_key_values` method, and composite WHERE clauses in update/delete operations.
+- **UUID in DBValue**: UUID type added to `Query::DBValue` union enabling seamless UUID primary keys throughout the ORM including soft deletes.
+- **Float32 Support** (PostgreSQL): Handle PostgreSQL NUMERIC/REAL columns with Float32 type conversion.
+- **SQL Migration Generator**: Topological sorting for CREATE TABLE statements based on foreign key dependencies with circular dependency handling via deferred ALTER TABLE constraints.
+
+### Fixed
+
+- **associations**: Support both polymorphic belongs_to syntax forms (`belongs_to name, polymorphic: true` and `belongs_to polymorphic: :name`).
+- **model**: Prevent duplicate column definitions when polymorphic columns are manually defined before `belongs_to` declaration.
+- **ci**: Skip postgres tests at compile time to prevent connection errors in CI.
+
+### Changed
+
+- **Breaking**: `db:generate` now generates SQL migrations instead of Crystal migrations. The `db:compile`, `db:migrate:sql`, and `db:rollback:sql` commands have been removed.
+- **schema**: String columns now use TEXT instead of VARCHAR(255) by default. VARCHAR(n) is still used when size is explicitly specified.
+
+### Documentation
+
+- Regenerate API documentation with Athena plugin.
+
 ## [1.0.0-beta.3] - 2026-01-09
 
 ### Added
