@@ -424,7 +424,7 @@ module Ralph
       private def map_type_to_sql(type : String) : String
         case type.downcase
         when "string", "varchar"
-          "VARCHAR(255)"
+          "TEXT"
         when "text"
           "TEXT"
         when "integer", "int", "int32"

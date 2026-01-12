@@ -160,7 +160,7 @@ SQL
         private def map_type_to_sql(type : String) : String
           case type.downcase
           when "string"
-            "VARCHAR(255)"
+            "TEXT"
           when "text"
             "TEXT"
           when "integer"

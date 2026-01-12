@@ -26,7 +26,7 @@ module Ralph
             # Primitive types
             when :integer   then "INTEGER"
             when :bigint    then "BIGINT"
-            when :string    then "VARCHAR(#{options[:size]? || 255})"
+            when :string    then options[:size]? ? "VARCHAR(#{options[:size]})" : "TEXT"
             when :text      then "TEXT"
             when :float     then "REAL"
             when :decimal   then "DECIMAL#{precision_sql(options)}"
@@ -99,7 +99,7 @@ module Ralph
             # Primitive types
             when :integer   then "INTEGER"
             when :bigint    then "BIGINT"
-            when :string    then "VARCHAR(#{options[:size]? || 255})"
+            when :string    then options[:size]? ? "VARCHAR(#{options[:size]})" : "TEXT"
             when :text      then "TEXT"
             when :float     then "DOUBLE PRECISION"
             when :decimal   then "NUMERIC#{precision_sql(options)}"
