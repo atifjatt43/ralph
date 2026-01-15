@@ -18,6 +18,9 @@
 # end
 # ```
 module Ralph::Athena
+  # Track if lazy_connect was used and connection is still pending
+  class_property lazy_connect_pending : Bool = false
+
   # Configuration options for the Athena integration
   class Configuration
     # Whether to automatically run pending migrations on application startup.
@@ -119,10 +122,12 @@ module Ralph::Athena
 
     if lazy_connect
       # Store config but don't connect yet - connection will happen on first use
-      # via ensure_connected or when Ralph.database is called
+      # We still call Ralph.configure to initialize settings, but defer database creation
       Ralph.configure do |ralph_config|
         yield ralph_config
       end
+      # Store that we're in lazy mode so database accessor knows to auto-connect
+      @@lazy_connect_pending = true
     else
       # Connect immediately (original behavior)
       Ralph.configure do |ralph_config|
@@ -167,6 +172,8 @@ module Ralph::Athena
     Ralph.configure do |ralph_config|
       ralph_config.database = backend_from_url(url)
     end
+
+    @@lazy_connect_pending = false
   end
 
   # Check if the database is connected.

@@ -46,7 +46,17 @@ module Ralph
   end
 
   # Get the current database connection
+  #
+  # If the Athena plugin is loaded with `lazy_connect: true`, this will
+  # automatically establish the connection on first access.
   def self.database
+    # If Athena plugin is loaded and lazy connect is pending, establish connection now
+    {% if @top_level.has_constant?("Ralph") && Ralph.has_constant?("Athena") %}
+      if Ralph::Athena.lazy_connect_pending && !settings.database?
+        Ralph::Athena.ensure_connected
+      end
+    {% end %}
+
     settings.database || raise "Database not configured. Call Ralph.configure first."
   end
 
