@@ -1,4 +1,9 @@
 module Ralph
+  # Annotation to mark instance variables as database columns
+  # This allows from_result_set to identify which ivars are columns vs associations
+  annotation Column
+  end
+
   # Metadata about a column
   class ColumnMetadata
     property name : String
@@ -422,6 +427,7 @@ module Ralph
 
     @@table_name : String = ""
     @@columns : Hash(String, ColumnMetadata) = {} of String => ColumnMetadata
+    @@column_order : Array(String) = [] of String
     @@primary_key : String = "id"
     @@primary_key_type : String = "Int64"
     @@primary_keys : Array(String) = [] of String
@@ -526,11 +532,21 @@ module Ralph
       {% unless @type.has_constant?("_RALPH_COL_#{col_name.id.upcase}") %}
         # Mark this column as defined to prevent duplicates
         _RALPH_COL_{{col_name.id.upcase}} = true
+        
+        # Track column name for compile-time iteration in from_result_set
+        {% if @type.has_constant?("_RALPH_COLUMN_NAMES") %}
+          _RALPH_COLUMN_NAMES = _RALPH_COLUMN_NAMES + { {{col_name.symbolize}} }
+        {% else %}
+          _RALPH_COLUMN_NAMES = { {{col_name.symbolize}} }
+        {% end %}
 
         # Register column metadata with nullability info
         @@columns[{{col_name.stringify}}] = Ralph::ColumnMetadata.new({{col_name.stringify}}, {{base_type}}, {{primary}}, {{col_default}}, {{is_nilable}})
+        @@column_order << {{col_name.stringify}}
 
         # Define the property with nilable type internally to allow uninitialized state
+        # The annotation allows from_result_set to identify columns vs associations
+        @[Ralph::Column]
         @{{col_name}} : {{col_type}} | Nil
 
         # Getter - return type depends on declared nullability
@@ -608,19 +624,10 @@ module Ralph
       @@columns
     end
 
-    # Get column names in the order they should be read from result sets.
-    # This matches the order of instance variables in from_result_set.
-    # Generated at compile time to ensure consistency.
+    # Get column names in the order they were defined.
+    # This matches the order columns are read from result sets.
     def self.column_names_ordered : Array(String)
-      {% begin %}
-        [
-          {% for ivar in @type.instance_vars %}
-            {% unless ivar.name.starts_with?("_") %}
-              {{ivar.name.stringify}},
-            {% end %}
-          {% end %}
-        ]
-      {% end %}
+      @@column_order
     end
 
     # Get fully-qualified, aliased column expressions for SELECT queries.
@@ -1876,31 +1883,13 @@ module Ralph
     macro from_result_set(rs)
       %instance = allocate
 
-      # Strict ResultSet validation (when enabled)
-      # Compare actual columns from ResultSet to model's expected columns
-      if Ralph.settings.strict_resultset_validation
-        %actual_columns = [] of String
-        {{rs}}.column_count.times do |i|
-          %actual_columns << {{rs}}.column_name(i)
-        end
-        %expected_columns = \{{@type}}.column_names_ordered
-
-        if %actual_columns != %expected_columns
-          raise Ralph::SchemaMismatchError.new(
-            model_name: \{{@type.name.stringify}},
-            table_name: \{{@type}}.table_name,
-            expected_columns: %expected_columns,
-            actual_columns: %actual_columns
-          )
-        end
-      end
-
-      # Track column index for error reporting
-      %column_index = 0
-
-      # Read values and assign to instance variables via setters
-      {% for ivar in @type.instance_vars %}
-        {% unless ivar.name.starts_with?("_") %}
+      # Read values by iterating ResultSet column names (Granite pattern)
+      # This is order-independent - we match columns by name, not position
+      {{rs}}.column_count.times do |%col_idx|
+        %col_name = {{rs}}.column_name(%col_idx)
+        case %col_name
+        {% for ivar in @type.instance_vars.select(&.annotation(Ralph::Column)) %}
+        when {{ivar.name.stringify}}
           {% type_str = ivar.type.stringify %}
           # Detect nilable types using consistent pattern
           {% nilable = type_str.ends_with?("?") ||
@@ -2140,28 +2129,22 @@ module Ralph
 
           # Rescue DB::ColumnTypeMismatchError and wrap with model context
           rescue ex : DB::ColumnTypeMismatchError
-            # Get the actual column name from ResultSet if available
-            %rs_column_name = if %column_index < {{rs}}.column_count
-              {{rs}}.column_name(%column_index)
-            else
-              nil
-            end
-
             raise Ralph::TypeMismatchError.new(
               model_name: \{{@type.name.stringify}},
               column_name: {{ivar.name.stringify}},
-              column_index: %column_index,
+              column_index: %col_idx,
               expected_type: {{type_str}},
               actual_type: ex.message.try { |m| m.match(/returned a (\w+)/).try(&.[1]) } || "unknown",
-              resultset_column_name: %rs_column_name,
+              resultset_column_name: %col_name,
               cause: ex
             )
           end
-
-          # Increment column index for next column
-          %column_index += 1
         {% end %}
-      {% end %}
+        else
+          # Unknown column - skip (read and discard to advance cursor)
+          {{rs}}.read
+        end
+      end
 
       # Clear dirty tracking
       %instance.clear_changes_information
