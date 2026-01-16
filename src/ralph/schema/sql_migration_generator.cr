@@ -322,7 +322,7 @@ module Ralph
                 col_io << " PRIMARY KEY" if col.primary_key
                 col_io << " NOT NULL" unless col.nullable
                 if default = col.default
-                  col_io << " DEFAULT #{default}"
+                  col_io << " DEFAULT #{format_default(default)}"
                 end
               end
               columns << col_sql
@@ -418,6 +418,25 @@ module Ralph
         else
           io << "ALTER TABLE \"#{change.table}\" ADD CONSTRAINT \"fk_#{change.table}_#{change.column}\" "
           io << "FOREIGN KEY (\"#{change.column}\") REFERENCES \"#{to_table}\" (\"#{to_column}\");\n"
+        end
+      end
+
+      # Format a default value for SQL output
+      # Strings need quoting, booleans need uppercase, etc.
+      private def format_default(value : String | Int32 | Int64 | Float64 | Bool | Nil) : String
+        case value
+        when String
+          # Check if it looks like a function call (e.g., gen_random_uuid(), NOW())
+          # or a SQL expression - don't quote those
+          if value.matches?(/\A\w+\(.*\)\z/) || value.matches?(/\A[A-Z_]+\z/)
+            value
+          else
+            "'#{value.gsub("'", "''")}'"
+          end
+        when true  then "TRUE"
+        when false then "FALSE"
+        when Nil   then "NULL"
+        else            value.to_s
         end
       end
 
