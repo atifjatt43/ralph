@@ -2,6 +2,7 @@ require "db"
 require "sqlite3"
 require "uri"
 require "../statement_cache"
+require "../transactions"
 
 module Ralph
   module Database
@@ -170,31 +171,51 @@ module Ralph
       # Execute a write query (INSERT, UPDATE, DELETE, DDL)
       # Serialized through mutex when not in WAL mode
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def execute(query : String, args : Array(DB::Any) = [] of DB::Any)
         with_write_lock do
-          execute_with_cache(query, args) do |stmt, params|
-            stmt.exec(args: params)
+          # If there's a pinned connection (inside a transaction), use it directly
+          if conn = Ralph::Transactions.pinned_connection
+            conn.exec(query, args: args)
+          else
+            execute_with_cache(query, args) do |stmt, params|
+              stmt.exec(args: params)
+            end
           end
         end
       end
 
       # Insert a record and return the last inserted row ID
       # Uses the same connection for both operations to ensure correctness
+      # When inside a transaction, uses the pinned connection
       def insert(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64
         with_write_lock do
-          @db.using_connection do |conn|
-            # For inserts, we need to use the same connection to get last_insert_rowid
-            # so we use direct execution instead of cached statements
+          # If there's a pinned connection (inside a transaction), use it directly
+          if conn = Ralph::Transactions.pinned_connection
             conn.exec(query, args: args)
             conn.scalar("SELECT last_insert_rowid()").as(Int64)
+          else
+            @db.using_connection do |conn|
+              # For inserts, we need to use the same connection to get last_insert_rowid
+              # so we use direct execution instead of cached statements
+              conn.exec(query, args: args)
+              conn.scalar("SELECT last_insert_rowid()").as(Int64)
+            end
           end
         end
       end
 
       # Query for a single row, returns nil if no results
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet?
-        rs = query_with_cache(query, args)
+        # If there's a pinned connection (inside a transaction), use it directly
+        rs = if conn = Ralph::Transactions.pinned_connection
+               conn.query(query, args: args)
+             else
+               query_with_cache(query, args)
+             end
+
         if rs.move_next
           rs
         else
@@ -205,14 +226,27 @@ module Ralph
 
       # Query for multiple rows
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def query_all(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet
-        query_with_cache(query, args)
+        # If there's a pinned connection (inside a transaction), use it directly
+        if conn = Ralph::Transactions.pinned_connection
+          conn.query(query, args: args)
+        else
+          query_with_cache(query, args)
+        end
       end
 
       # Execute a scalar query and return a single value
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def scalar(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::Any?
-        result = scalar_with_cache(query, args)
+        # If there's a pinned connection (inside a transaction), use it directly
+        result = if conn = Ralph::Transactions.pinned_connection
+                   conn.scalar(query, args: args)
+                 else
+                   scalar_with_cache(query, args)
+                 end
+
         case result
         when Bool, Float32, Float64, Int32, Int64, Slice(UInt8), String, Time, Nil
           result

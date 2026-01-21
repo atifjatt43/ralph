@@ -2,6 +2,7 @@ require "db"
 require "pg"
 require "uri"
 require "../statement_cache"
+require "../transactions"
 
 module Ralph
   module Database
@@ -125,37 +126,65 @@ module Ralph
 
       # Execute a write query (INSERT, UPDATE, DELETE, DDL)
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def execute(query : String, args : Array(DB::Any) = [] of DB::Any)
         converted_query = convert_placeholders(query)
-        execute_with_cache(converted_query, args) do |stmt, params|
-          stmt.exec(args: params)
+
+        # If there's a pinned connection (inside a transaction), use it directly
+        if conn = Ralph::Transactions.pinned_connection
+          conn.exec(converted_query, args: args)
+        else
+          execute_with_cache(converted_query, args) do |stmt, params|
+            stmt.exec(args: params)
+          end
         end
       end
 
       # Insert a record and return the inserted ID (for auto-increment PKs)
       # For non-Int PKs (like UUID), this returns 0 but the insert still succeeds
       # Uses RETURNING clause for PostgreSQL
+      # When inside a transaction, uses the pinned connection
       def insert(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64
         # Execute the insert without RETURNING for tables with non-Int PKs
         # We use exec_all which doesn't expect a return value
         converted_query = convert_placeholders(query)
-        @db.exec(converted_query, args: args)
+
+        # If there's a pinned connection (inside a transaction), use it directly
+        if conn = Ralph::Transactions.pinned_connection
+          conn.exec(converted_query, args: args)
+        else
+          @db.exec(converted_query, args: args)
+        end
         0_i64 # Return 0 for non-auto-increment PKs
       end
 
       # Insert a record and return the auto-generated Int64 ID
       # Only use this for tables with serial/bigserial primary keys
+      # When inside a transaction, uses the pinned connection
       def insert_returning_id(query : String, args : Array(DB::Any) = [] of DB::Any) : Int64
         modified_query = append_returning_id(convert_placeholders(query))
-        result = @db.query_one(modified_query, args: args, as: Int64)
-        result
+
+        # If there's a pinned connection (inside a transaction), use it directly
+        if conn = Ralph::Transactions.pinned_connection
+          conn.query_one(modified_query, args: args, as: Int64)
+        else
+          @db.query_one(modified_query, args: args, as: Int64)
+        end
       end
 
       # Query for a single row, returns nil if no results
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def query_one(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet?
         converted_query = convert_placeholders(query)
-        rs = query_with_cache(converted_query, args)
+
+        # If there's a pinned connection (inside a transaction), use it directly
+        rs = if conn = Ralph::Transactions.pinned_connection
+               conn.query(converted_query, args: args)
+             else
+               query_with_cache(converted_query, args)
+             end
+
         if rs.move_next
           rs
         else
@@ -166,16 +195,31 @@ module Ralph
 
       # Query for multiple rows
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def query_all(query : String, args : Array(DB::Any) = [] of DB::Any) : ::DB::ResultSet
         converted_query = convert_placeholders(query)
-        query_with_cache(converted_query, args)
+
+        # If there's a pinned connection (inside a transaction), use it directly
+        if conn = Ralph::Transactions.pinned_connection
+          conn.query(converted_query, args: args)
+        else
+          query_with_cache(converted_query, args)
+        end
       end
 
       # Run a scalar query and return a single value
       # Uses prepared statement cache when enabled
+      # When inside a transaction, uses the pinned connection
       def scalar(query : String, args : Array(DB::Any) = [] of DB::Any) : DB::Any?
         converted_query = convert_placeholders(query)
-        result = scalar_with_cache(converted_query, args)
+
+        # If there's a pinned connection (inside a transaction), use it directly
+        result = if conn = Ralph::Transactions.pinned_connection
+                   conn.scalar(converted_query, args: args)
+                 else
+                   scalar_with_cache(converted_query, args)
+                 end
+
         case result
         when Bool, Float32, Float64, Int32, Int64, Slice(UInt8), String, Time, Nil
           result

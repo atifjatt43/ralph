@@ -69,6 +69,9 @@ module Ralph::Athena
     # If the block raises an exception, the transaction is rolled back.
     # Otherwise, the transaction is committed when the block completes.
     #
+    # All database operations within the block are pinned to a single connection
+    # to ensure proper transactional isolation.
+    #
     # ## Example
     #
     # ```
@@ -110,37 +113,52 @@ module Ralph::Athena
 
       begin
         if Ralph::Transactions.transaction_depth > 1
+          # Nested transaction - use savepoints on the already-pinned connection
           savepoint_name = "savepoint_#{Ralph::Transactions.transaction_depth}"
+          conn = Ralph::Transactions.pinned_connection
+
+          if conn.nil?
+            raise "Nested transaction without pinned connection - this should not happen"
+          end
 
           begin
-            db.execute(db.savepoint_sql(savepoint_name))
+            conn.exec(db.savepoint_sql(savepoint_name))
             yield
-            db.execute(db.release_savepoint_sql(savepoint_name))
+            conn.exec(db.release_savepoint_sql(savepoint_name))
           rescue ex : Exception
-            db.execute(db.rollback_to_savepoint_sql(savepoint_name))
-            db.execute(db.release_savepoint_sql(savepoint_name))
+            conn.exec(db.rollback_to_savepoint_sql(savepoint_name))
+            conn.exec(db.release_savepoint_sql(savepoint_name))
             raise ex
           end
         else
+          # Outer transaction - pin a connection and use DB's transaction support
           Ralph::Transactions.transaction_committed = false
 
-          begin
-            db.execute(db.begin_transaction_sql)
+          db.raw_connection.using_connection do |conn|
+            # Pin this connection for all operations in this fiber
+            Ralph::Transactions.pinned_connection = conn
 
             begin
-              yield
-              db.execute(db.commit_sql)
-              Ralph::Transactions.transaction_committed = true
+              conn.exec(db.begin_transaction_sql)
 
-              Ralph::Transactions.run_after_commit_callbacks
-            rescue ex : Exception
               begin
-                db.execute(db.rollback_sql)
-              rescue
+                yield
+                conn.exec(db.commit_sql)
+                Ralph::Transactions.transaction_committed = true
+
+                Ralph::Transactions.run_after_commit_callbacks
+              rescue ex : Exception
+                begin
+                  conn.exec(db.rollback_sql)
+                rescue
+                end
+                Ralph::Transactions.transaction_committed = false
+                Ralph::Transactions.run_after_rollback_callbacks
+                raise ex
               end
-              Ralph::Transactions.transaction_committed = false
-              Ralph::Transactions.run_after_rollback_callbacks
-              raise ex
+            ensure
+              # Unpin the connection when transaction ends
+              Ralph::Transactions.pinned_connection = nil
             end
           end
         end
